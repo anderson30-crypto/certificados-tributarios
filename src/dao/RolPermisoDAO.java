@@ -146,5 +146,62 @@ public class RolPermisoDAO {
         return lista;
 
     }
+    
+ // VALIDAR PERMISO DE UN ROL
+
+    public boolean tienePermiso(int idRol, String nombrePermiso){
+
+        boolean resultado = false;
+
+
+        String sql =
+                "SELECT COUNT(*) " +
+                "FROM permisos p " +
+                "INNER JOIN rol_permiso rp " +
+                "ON p.id_permiso = rp.id_permiso " +
+                "WHERE rp.id_rol=? " +
+                "AND p.t_nombre_permiso=?";
+
+
+        try {
+
+            Connection con =
+                    conexionBD.conectar();
+
+
+            PreparedStatement ps =
+                    con.prepareStatement(sql);
+
+
+            ps.setInt(1, idRol);
+
+            ps.setString(2, nombrePermiso);
+
+
+            ResultSet rs =
+                    ps.executeQuery();
+
+
+            if(rs.next()){
+
+                resultado =
+                        rs.getInt(1) > 0;
+
+            }
+
+
+        } catch(Exception e){
+
+            System.out.println(
+                    "Error validando permiso: "
+                    + e.getMessage()
+            );
+
+        }
+
+
+        return resultado;
+
+    }
 
 }

@@ -7,5 +7,8 @@
 	</classpathentry>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="lib" path="C:/Users/profe/Downloads/mysql-connector-j-26.7.0/mysql-connector-j-26.7.0/mysql-connector-j-26.7.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/profe/Downloads/itextpdf-5.5.13.3.jar"/>
+	<classpathentry kind="lib" path="Lib/bcpkix-jdk15to18-1.70.jar"/>
+	<classpathentry kind="lib" path="Lib/bcprov-jdk15to18-1.70.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

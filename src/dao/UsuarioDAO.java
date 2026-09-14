@@ -239,6 +239,55 @@ public class UsuarioDAO {
 
 
     }
+    
+ // CONSULTAR ROL DEL USUARIO
+
+    public int obtenerRolUsuario(int idUsuario){
+
+        int idRol = 0;
+
+
+        String sql =
+                "SELECT id_rol FROM usuarios WHERE id_usuario=?";
+
+
+        try {
+
+            Connection con =
+                    conexionBD.conectar();
+
+
+            PreparedStatement ps =
+                    con.prepareStatement(sql);
+
+
+            ps.setInt(1, idUsuario);
+
+
+            ResultSet rs =
+                    ps.executeQuery();
+
+
+            if(rs.next()){
+
+                idRol = rs.getInt("id_rol");
+
+            }
+
+
+        } catch(Exception e){
+
+            System.out.println(
+                    "Error consultando rol usuario: "
+                    + e.getMessage()
+            );
+
+        }
+
+
+        return idRol;
+
+    }
 
 
 }
