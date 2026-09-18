@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<style>
+    @page { size: letter; margin: 60px 55px; }
+    body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #000; }
+
+    .header-table { width: 100%; margin-bottom: 25px; }
+    .header-table td { vertical-align: middle; }
+    .logo-box {
+        width: 60px; height: 60px; border: 2px solid #c00;
+        text-align: center; font-weight: bold; color: #c00; font-size: 10px;
+        display: table-cell; vertical-align: middle;
+    }
+    .header-title { text-align: center; font-size: 12px; line-height: 1.5; }
+    .header-title b { display: block; }
+
+    .hace-constar {
+        text-align: center; font-weight: bold; font-size: 12px;
+        margin: 20px 0; text-decoration: underline;
+    }
+
+    .parrafo { text-align: justify; line-height: 1.5; margin-bottom: 15px; }
+    .parrafo b { font-weight: bold; }
+
+    table.conceptos { width: 100%; border-collapse: collapse; margin-bottom: 18px; }
+    table.conceptos th {
+        text-align: left; font-weight: bold; border-bottom: 1px solid #000;
+        padding: 4px 0; font-size: 11px;
+    }
+    table.conceptos th.valores { text-align: right; }
+    table.conceptos td { padding: 4px 0; font-size: 11px; }
+    table.conceptos td.valor { text-align: right; }
+    table.conceptos tr.total td { font-weight: bold; border-top: 1px solid #000; padding-top: 6px; }
+
+    .nota { text-align: justify; line-height: 1.5; margin: 18px 0; }
+
+    .firma { margin-top: 50px; }
+    .firma-linea { border-top: 1px solid #000; width: 220px; margin-bottom: 4px; }
+    .firma-nombre { font-weight: bold; }
+
+    .footer {
+        position: fixed; bottom: 15px; left: 0; right: 0;
+        text-align: center; font-size: 7.5px; color: #333; line-height: 1.4;
+    }
+</style>
+</head>
+<body>
+
+    <table class="header-table">
+        <tr>
+            <td style="width:70px;"><div class="logo-box">UPB</div></td>
+            <td class="header-title">
+                <b>EL SUSCRITO COORDINADOR DE NÓMINA DE LA</b>
+                <b>UNIVERSIDAD PONTIFICIA BOLIVARIANA</b>
+                <b>SECCIONAL BUCARAMANGA</b>
+            </td>
+        </tr>
+    </table>
+
+    <div class="hace-constar">HACE CONSTAR</div>
+
+    <div class="parrafo">
+        Que la Universidad reconoció a <b>{{NOMBRE_COMPLETO}}</b> con cédula de ciudadanía
+        <b>{{DOCUMENTO}}</b> por ingresos laborales y de prestación de servicios con esta
+        Seccional, durante el año {{ANIO}}, las siguientes sumas:
+    </div>
+
+    <table class="conceptos">
+        <tr><th>Ingresos</th><th class="valores">Valores</th></tr>
+        <tr><td>Pagos por Salarios</td><td class="valor">{{SALARIO}}</td></tr>
+        <tr><td>Pagos por Honorarios</td><td class="valor">{{HONORARIOS}}</td></tr>
+        <tr><td>Pagos por Servicios</td><td class="valor">{{SERVICIOS}}</td></tr>
+        <tr><td>Pagos por Comisiones</td><td class="valor">{{COMISIONES}}</td></tr>
+        <tr><td>Pagos por Prestaciones Sociales</td><td class="valor">{{PRESTACIONES}}</td></tr>
+        <tr><td>Pagos por Viáticos</td><td class="valor">{{VIATICOS}}</td></tr>
+        <tr><td>Pagos Gastos de Representación</td><td class="valor">{{GASTOS_REP}}</td></tr>
+        <tr><td>Otros Pagos</td><td class="valor">{{OTROS_INGRESOS}}</td></tr>
+        <tr><td>Cesantías e intereses de cesantías efectivamente pagadas al empleado</td><td class="valor">{{CESANTIAS_EMPLEADO}}</td></tr>
+        <tr><td>Cesantías consignadas al fondo de cesantías</td><td class="valor">{{CESANTIAS_FONDO}}</td></tr>
+        <tr><td>Pensiones por Jubilación</td><td class="valor">{{PENSIONES}}</td></tr>
+        <tr class="total"><td>Total Ingresos Brutos</td><td class="valor">{{TOTAL_INGRESOS}}</td></tr>
+        <tr class="total"><td>Valor Retención ICA municipio Floridablanca (Stder)</td><td class="valor">{{RET_ICA}}</td></tr>
+    </table>
+
+    <div class="nota">
+        Se certifica que los montos de retención de ICA fueron consignados oportunamente en el
+        municipio de Floridablanca.
+    </div>
+
+    <div class="nota">
+        La presente certificación se expide a solicitud del interesado, a los {{DIA}} días del mes
+        de {{MES}} del año {{ANIO_EXPEDICION}}.
+    </div>
+
+    <div class="firma">
+        Atentamente,<br />
+        <br />
+        <br />
+        <div class="firma-linea"></div>
+        <div class="firma-nombre">Jhon Jairo Andrés Aparicio Rueda</div>
+        <div>Coordinador de Nómina</div>
+    </div>
+
+    <div class="footer">
+        SEDE MEDELLÍN Campus de Laureles Circular 1ª Nº 70-01 / Teléfono: (057) (4) 4159015 / E-mail: comrelp@upb.edu.co<br />
+        SECCIONAL BUCARAMANGA Autopista Piedecuesta Km 7 / Teléfono (057) (7) 6796220 / E-mail: info@upb.edu.co<br />
+        SECCIONAL MONTERÍA Km. 8 Cereté / Teléfono: (057) (4) 7860146 / E-mail: crelinter@upbmonteria.edu.co<br />
+        SECCIONAL PALMIRA Seminario Cristo Sacerdote, Km. 1 – Vía Tienda Nueva / Teléfono: (057) (2) 2702545<br />
+        www.upb.edu.co / Colombia / Suramérica
+    </div>
+
+</body>
+</html>

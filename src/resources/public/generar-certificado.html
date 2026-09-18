@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Certificados Tributarios - Generar Certificado</title>
+<style>
+  :root{
+    --red: #E30613;
+    --red-dark: #C40510;
+    --gray-bg: #F4F5F7;
+    --gray-border: #E1E3E8;
+    --text-dark: #23262B;
+    --text-muted: #6B7078;
+    --purple: #5B4FCF;
+    --sidebar-w: 190px;
+    --header-h: 58px;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin: 0;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--text-dark);
+    background: #ffffff;
+  }
+
+  /* ---------- Header ---------- */
+  .topbar{
+    height: var(--header-h);
+    background: var(--red);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 20;
+  }
+
+  .topbar .brand{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 var(--sidebar-w);
+  }
+
+  .brand .logo-mark{
+    display: flex;
+    align-items: center;
+  }
+
+  .brand .logo-mark img{
+    height: 30px;
+    width: auto;
+    display: block;
+  }
+
+  .topbar .page-title{
+    flex: 1;
+    text-align: center;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .topbar-actions{
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    color: #ffffff;
+    flex: 0 0 var(--sidebar-w);
+    justify-content: flex-end;
+  }
+
+  .icon-btn{
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #ffffff;
+    font-size: 18px;
+    position: relative;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+  }
+
+  .icon-btn .dot{
+    position: absolute;
+    top: 2px; right: 2px;
+    width: 7px; height: 7px;
+    background: #FFD400;
+    border-radius: 50%;
+    border: 1px solid var(--red);
+  }
+
+  .user-chip{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #ffffff;
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    position: fixed;
+    top: var(--header-h);
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-w);
+    background: #ffffff;
+    border-right: 1px solid var(--gray-border);
+    padding-top: 14px;
+    z-index: 10;
+  }
+
+  .nav-item{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 20px;
+    font-size: 13px;
+    color: var(--text-dark);
+    text-decoration: none;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+  }
+
+  .nav-item .nav-icon{
+    width: 18px;
+    text-align: center;
+    font-size: 15px;
+  }
+
+  .nav-item:hover{
+    background: var(--gray-bg);
+  }
+
+  .nav-item.active{
+    color: var(--red);
+    font-weight: 600;
+    border-left-color: var(--red);
+    background: #FDECEC;
+  }
+
+  .nav-item.logout{
+    margin-top: 30px;
+    color: var(--text-muted);
+  }
+
+  /* ---------- Main content ---------- */
+  .main{
+    margin-left: var(--sidebar-w);
+    margin-top: var(--header-h);
+    padding: 26px 40px 50px;
+    min-height: calc(100vh - var(--header-h));
+    background: #ffffff;
+  }
+
+  .breadcrumb{
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+
+  .section-title{
+    text-align: center;
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 4px;
+  }
+
+  .section-subtitle{
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0 0 22px;
+  }
+
+  .content-wrap{
+    max-width: 780px;
+    margin: 0 auto;
+  }
+
+  .search-row{
+    position: relative;
+    margin-bottom: 24px;
+  }
+
+  .search-row input{
+    width: 100%;
+    padding: 9px 36px 9px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--gray-border);
+    background: var(--gray-bg);
+    font-size: 13px;
+    outline: none;
+  }
+
+  .search-row input:focus{
+    border-color: var(--red);
+    background: #ffffff;
+  }
+
+  .search-row .search-icon{
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  .list-label{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+
+  .doc-grid{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: repeat(3, auto);
+    grid-auto-flow: column;
+    gap: 14px 40px;
+    margin-bottom: 10px;
+  }
+
+  .doc-row{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .doc-bar{
+    flex: 1;
+    height: 34px;
+    background: #E3E5E9;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .doc-checkbox{
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    border: 1px solid var(--gray-border);
+    background: #F0F1F3;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .12s ease, border-color .12s ease;
+  }
+
+  .doc-checkbox.checked{
+    background: var(--purple);
+    border-color: var(--purple);
+  }
+
+  .doc-checkbox.checked::after{
+    content: "✓";
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .select-all-row{
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 6px 0 30px;
+  }
+
+  .select-all-row .doc-checkbox{
+    width: 18px;
+    height: 18px;
+  }
+
+  .generate-btn-wrap{
+    text-align: center;
+  }
+
+  .btn-generate{
+    padding: 12px 30px;
+    background: var(--red);
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s ease, opacity .15s ease;
+  }
+
+  .btn-generate:hover{
+    background: var(--red-dark);
+  }
+
+  .btn-generate:disabled{
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .selected-count{
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 10px;
+  }
+
+  @media (max-width: 720px){
+    .doc-grid{ grid-template-columns: 1fr; }
+    .sidebar{ display: none; }
+    .main{ margin-left: 0; }
+    .topbar .brand, .topbar-actions{ flex: 0 0 auto; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo-mark"><img src="images/upb-logo.png" alt="UPB"></div>
+    </div>
+    <div class="page-title">Generar Certificados Tributarios</div>
+    <div class="topbar-actions">
+      <a class="icon-btn" title="Notificaciones" id="notifBtn" href="notificaciones-error.html"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="dot"></span></a>
+      <a class="user-chip" href="perfil.html"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Usuario</a>
+    </div>
+  </header>
+
+  <nav class="sidebar">
+    <a class="nav-item" href="inicio.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></span> Inicio
+    </a>
+    <a class="nav-item active" href="subir-documentos.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span> Certificados
+    </a>
+    <a class="nav-item" href="historial.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span> Historial
+    </a>
+    <a class="nav-item" href="perfil.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Configuración
+    </a>
+    <a class="nav-item logout" href="login.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span> Cerrar Sesión
+    </a>
+  </nav>
+
+  <main class="main">
+    <div class="breadcrumb">Inicio &nbsp;›&nbsp; Generar Certificado</div>
+
+    <h2 class="section-title">Generar Certificado</h2>
+    <p class="section-subtitle">Busca el documento que desee</p>
+
+    <div class="content-wrap">
+      <div class="search-row">
+        <input type="text" id="searchInput" placeholder="Buscar Certificado">
+        <span class="search-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg></span>
+      </div>
+
+      <div class="list-label">Documentos Encontrados ▾</div>
+
+      <div class="doc-grid" id="docGrid">
+        <!-- generado por JS -->
+      </div>
+
+      <div class="select-all-row">
+        <div class="doc-checkbox" id="selectAll"></div>
+        <label for="selectAll">Seleccionar Todo</label>
+      </div>
+
+      <div class="generate-btn-wrap">
+        <button class="btn-generate" id="btnGenerate" disabled>Generar Certificado Tributario</button>
+        <div class="selected-count" id="selectedCount">0 documentos seleccionados</div>
+      </div>
+    </div>
+  </main>
+
+<script>
+  const documentos = [
+    { name: 'Certificado de Retención en la Fuente', checked: true },
+    { name: 'Certificado de IVA', checked: true },
+    { name: 'Certificado de ICA', checked: true },
+    { name: 'Declaración de Renta', checked: false },
+    { name: 'RUT Actualizado', checked: true },
+    { name: 'Estados Financieros', checked: false }
+  ];
+
+  const docGrid = document.getElementById('docGrid');
+  const selectAll = document.getElementById('selectAll');
+  const btnGenerate = document.getElementById('btnGenerate');
+  const selectedCount = document.getElementById('selectedCount');
+  const searchInput = document.getElementById('searchInput');
+
+  function renderDocs(filter){
+    docGrid.innerHTML = '';
+    const filtered = documentos.filter(function(doc){
+      return doc.name.toLowerCase().includes((filter || '').toLowerCase());
+    });
+
+    filtered.forEach(function(doc){
+      const row = document.createElement('div');
+      row.className = 'doc-row';
+      row.innerHTML = '<div class="doc-bar" title="' + doc.name + '">' + doc.name + '</div><div class="doc-checkbox' + (doc.checked ? ' checked' : '') + '" data-name="' + doc.name + '"></div>';
+      docGrid.appendChild(row);
+    });
+
+    attachCheckboxEvents();
+    updateState();
+  }
+
+  function attachCheckboxEvents(){
+    document.querySelectorAll('.doc-grid .doc-checkbox').forEach(function(box){
+      box.addEventListener('click', function(){
+        const name = box.dataset.name;
+        const doc = documentos.find(d => d.name === name);
+        doc.checked = !doc.checked;
+        box.classList.toggle('checked', doc.checked);
+        updateState();
+      });
+    });
+  }
+
+  function updateState(){
+    const total = documentos.length;
+    const checkedCount = documentos.filter(d => d.checked).length;
+    selectedCount.textContent = checkedCount + ' documento(s) seleccionado(s)';
+    btnGenerate.disabled = checkedCount === 0;
+    selectAll.classList.toggle('checked', total > 0 && checkedCount === total);
+  }
+
+  selectAll.addEventListener('click', function(){
+    const shouldCheck = !selectAll.classList.contains('checked');
+    documentos.forEach(function(doc){ doc.checked = shouldCheck; });
+    renderDocs(searchInput.value);
+  });
+
+  searchInput.addEventListener('input', function(){
+    renderDocs(searchInput.value);
+  });
+
+  btnGenerate.addEventListener('click', function(){
+    const selected = documentos.filter(d => d.checked).map(d => d.name);
+    console.log('Generando certificado con documentos:', selected);
+    sessionStorage.setItem('certDocs', String(selected.length));
+    sessionStorage.setItem('certDocNames', JSON.stringify(selected));
+    window.location.href = 'certificado-generado.html';
+  });
+
+  document.querySelectorAll('.nav-item[data-page]').forEach(function(item){
+    item.addEventListener('click', function(e){
+      e.preventDefault();
+      console.log('Sección aún no implementada:', item.dataset.page);
+    });
+  });
+
+  renderDocs('');
+</script>
+
+</body>
+</html>

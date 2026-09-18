@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Certificados Tributarios - Iniciar Sesión</title>
+<style>
+  :root{
+    --red: #E30613;
+    --red-dark: #C40510;
+    --gray-bg: #F4F5F7;
+    --gray-border: #E1E3E8;
+    --text-dark: #23262B;
+    --text-muted: #6B7078;
+    --input-bg: #F0F1F3;
+    --link-blue: #2D6CDF;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gray-bg);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--text-dark);
+  }
+
+  .login-card{
+    width: 340px;
+    background: #ffffff;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 4px 18px rgba(20, 20, 30, 0.08);
+    border: 1px solid var(--gray-border);
+  }
+
+  .login-header{
+    background: var(--red);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .login-header .logo-mark{
+    display: flex;
+    align-items: center;
+  }
+
+  .login-header .logo-mark img{
+    height: 28px;
+    width: auto;
+    display: block;
+  }
+
+  .login-header .logo-text{
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.3px;
+  }
+
+  .login-body{
+    padding: 28px 26px 24px;
+  }
+
+  .login-title{
+    text-align: center;
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 22px;
+    color: var(--text-dark);
+  }
+
+  .field{
+    margin-bottom: 16px;
+  }
+
+  .field label{
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--text-dark);
+  }
+
+  .field input{
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--gray-border);
+    background: var(--input-bg);
+    font-size: 13px;
+    color: var(--text-dark);
+    outline: none;
+    transition: border-color .15s ease, background .15s ease;
+  }
+
+  .field input::placeholder{
+    color: #9AA0A8;
+  }
+
+  .field input:focus{
+    border-color: var(--red);
+    background: #ffffff;
+  }
+
+  .forgot-link{
+    display: block;
+    text-align: center;
+    font-size: 12px;
+    color: var(--link-blue);
+    text-decoration: none;
+    margin: 4px 0 20px;
+  }
+
+  .forgot-link:hover{
+    text-decoration: underline;
+  }
+
+  .btn-submit{
+    width: 100%;
+    padding: 11px;
+    background: var(--red);
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s ease;
+  }
+
+  .btn-submit:hover{
+    background: var(--red-dark);
+  }
+
+  .btn-submit:active{
+    transform: translateY(1px);
+  }
+
+  .error-msg{
+    display: none;
+    background: #FDECEC;
+    color: var(--red-dark);
+    border: 1px solid #F5C2C2;
+    font-size: 12px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    margin-bottom: 14px;
+  }
+
+  .error-msg.show{
+    display: block;
+  }
+</style>
+</head>
+<body>
+
+  <div class="login-card">
+    <div class="login-header">
+      <div class="logo-mark"><img src="images/upb-logo.png" alt="UPB"></div>
+      <div class="logo-text">Certificados Tributarios</div>
+    </div>
+
+    <div class="login-body">
+      <h1 class="login-title">Iniciar sesión</h1>
+
+      <div class="error-msg" id="errorMsg">Usuario o contraseña incorrectos.</div>
+
+      <form id="loginForm">
+        <div class="field">
+          <label for="username">Nombre de usuario</label>
+          <input type="text" id="username" name="username" placeholder="Ingrese su nombre de usuario" autocomplete="username" required>
+        </div>
+
+        <div class="field">
+          <label for="password">Contraseña</label>
+          <input type="password" id="password" name="password" placeholder="Ingrese su contraseña" autocomplete="current-password" required>
+        </div>
+
+        <a href="#" class="forgot-link" id="forgotLink">¿Olvidó su contraseña?</a>
+
+        <button type="submit" class="btn-submit">Iniciar sesión</button>
+      </form>
+    </div>
+  </div>
+
+<script>
+  const form = document.getElementById('loginForm');
+  const errorMsg = document.getElementById('errorMsg');
+  const forgotLink = document.getElementById('forgotLink');
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+
+    // Placeholder de validación - reemplazar con llamada real al backend
+    if(!username || !password){
+      errorMsg.textContent = 'Por favor complete todos los campos.';
+      errorMsg.classList.add('show');
+      return;
+    }
+
+    errorMsg.classList.remove('show');
+    console.log('Intentando iniciar sesión con:', username);
+    // Aquí iría la llamada a la API de autenticación
+    window.location.href = 'inicio.html';
+  });
+
+  forgotLink.addEventListener('click', function(e){
+    e.preventDefault();
+    alert('Funcionalidad de recuperación de contraseña pendiente de implementar.');
+  });
+</script>
+
+</body>
+</html>

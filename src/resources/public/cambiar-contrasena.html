@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Certificados Tributarios - Cambiar Contraseña</title>
+<style>
+  :root{
+    --red: #E30613;
+    --red-dark: #C40510;
+    --gray-bg: #F4F5F7;
+    --gray-border: #E1E3E8;
+    --text-dark: #23262B;
+    --text-muted: #6B7078;
+    --green-ok: #1E8E3E;
+    --sidebar-w: 190px;
+    --header-h: 58px;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin: 0;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--text-dark);
+    background: #ffffff;
+  }
+
+  .topbar{
+    height: var(--header-h);
+    background: var(--red);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 20;
+  }
+
+  .topbar .brand{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 var(--sidebar-w);
+  }
+
+  .brand .logo-mark{
+    display: flex;
+    align-items: center;
+  }
+
+  .brand .logo-mark img{
+    height: 30px;
+    width: auto;
+    display: block;
+  }
+
+  .topbar .page-title{
+    flex: 1;
+    text-align: center;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .topbar-actions{
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    color: #ffffff;
+    flex: 0 0 var(--sidebar-w);
+    justify-content: flex-end;
+  }
+
+  .icon-btn{
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #ffffff;
+    font-size: 18px;
+    position: relative;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+  }
+
+  .icon-btn .dot{
+    position: absolute;
+    top: 2px; right: 2px;
+    width: 7px; height: 7px;
+    background: #FFD400;
+    border-radius: 50%;
+    border: 1px solid var(--red);
+  }
+
+  .user-chip{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #ffffff;
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .sidebar{
+    position: fixed;
+    top: var(--header-h);
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-w);
+    background: #ffffff;
+    border-right: 1px solid var(--gray-border);
+    padding-top: 14px;
+    z-index: 10;
+  }
+
+  .nav-item{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 20px;
+    font-size: 13px;
+    color: var(--text-dark);
+    text-decoration: none;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+  }
+
+  .nav-item .nav-icon{
+    width: 18px;
+    text-align: center;
+    font-size: 15px;
+  }
+
+  .nav-item:hover{
+    background: var(--gray-bg);
+  }
+
+  .nav-item.active{
+    color: var(--red);
+    font-weight: 600;
+    border-left-color: var(--red);
+    background: #FDECEC;
+  }
+
+  .nav-item.logout{
+    margin-top: 30px;
+    color: var(--text-muted);
+  }
+
+  .main{
+    margin-left: var(--sidebar-w);
+    margin-top: var(--header-h);
+    padding: 26px 40px 50px;
+    min-height: calc(100vh - var(--header-h));
+    background: #ffffff;
+  }
+
+  .breadcrumb{
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 40px;
+  }
+
+  .form-wrap{
+    max-width: 460px;
+    margin: 0 auto;
+  }
+
+  .field{
+    margin-bottom: 22px;
+  }
+
+  .field label{
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+
+  .field input{
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--gray-border);
+    background: var(--gray-bg);
+    font-size: 13px;
+    color: var(--text-dark);
+    outline: none;
+    transition: border-color .15s ease, background .15s ease;
+  }
+
+  .field input:focus{
+    border-color: var(--red);
+    background: #ffffff;
+  }
+
+  .hint-list{
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .hint-list li{
+    margin-bottom: 2px;
+    padding-left: 14px;
+    position: relative;
+  }
+
+  .hint-list li::before{
+    content: "•";
+    position: absolute;
+    left: 0;
+  }
+
+  .hint-list li.ok{
+    color: var(--green-ok);
+  }
+
+  .hint-list li.ok::before{
+    content: "✓";
+  }
+
+  .actions-row{
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 30px;
+  }
+
+  .btn{
+    padding: 9px 22px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+  }
+
+  .btn-save{
+    background: var(--red);
+    color: #ffffff;
+  }
+
+  .btn-save:hover{
+    background: var(--red-dark);
+  }
+
+  .btn-save:disabled{
+    opacity: .5;
+    cursor: not-allowed;
+  }
+
+  .btn-close{
+    background: var(--red);
+    color: #ffffff;
+  }
+
+  .btn-close:hover{
+    background: var(--red-dark);
+  }
+
+  @media (max-width: 720px){
+    .sidebar{ display: none; }
+    .main{ margin-left: 0; }
+    .topbar .brand, .topbar-actions{ flex: 0 0 auto; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo-mark"><img src="images/upb-logo.png" alt="UPB"></div>
+    </div>
+    <div class="page-title">Cambiar Contraseña</div>
+    <div class="topbar-actions">
+      <button class="icon-btn" title="Notificaciones"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="dot"></span></button>
+      <a class="user-chip" href="perfil.html"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Usuario</a>
+    </div>
+  </header>
+
+  <nav class="sidebar">
+    <a class="nav-item" href="inicio.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></span> Inicio
+    </a>
+    <a class="nav-item" href="subir-documentos.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span> Certificados
+    </a>
+    <a class="nav-item" href="historial.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span> Historial
+    </a>
+    <a class="nav-item active" href="perfil.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Configuración
+    </a>
+    <a class="nav-item logout" href="login.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span> Cerrar Sesión
+    </a>
+  </nav>
+
+  <main class="main">
+    <div class="breadcrumb">Inicio &nbsp;›&nbsp; Cambiar Contraseña</div>
+
+    <div class="form-wrap">
+      <form id="passForm">
+        <div class="field">
+          <label for="currentPass">Contraseña Actual</label>
+          <input type="password" id="currentPass" required>
+        </div>
+
+        <div class="field">
+          <label for="newPass">Nueva Contraseña</label>
+          <input type="password" id="newPass" required>
+          <ul class="hint-list" id="hintList">
+            <li id="hintLength">Al menos 8 caracteres</li>
+            <li id="hintUpper">Una letra mayúscula</li>
+            <li id="hintSpecial">Un número y un carácter especial</li>
+          </ul>
+        </div>
+
+        <div class="field">
+          <label for="confirmPass">Confirmar Nueva Contraseña</label>
+          <input type="password" id="confirmPass" required>
+        </div>
+
+        <div class="actions-row">
+          <button type="submit" class="btn btn-save" id="btnSave">Guardar Contraseña</button>
+          <a class="btn btn-close" href="perfil.html">Cerrar</a>
+        </div>
+      </form>
+    </div>
+  </main>
+
+<script>
+  const currentPass = document.getElementById('currentPass');
+  const newPass = document.getElementById('newPass');
+  const confirmPass = document.getElementById('confirmPass');
+  const passForm = document.getElementById('passForm');
+
+  const hintLength = document.getElementById('hintLength');
+  const hintUpper = document.getElementById('hintUpper');
+  const hintSpecial = document.getElementById('hintSpecial');
+
+  newPass.addEventListener('input', function(){
+    const val = newPass.value;
+    hintLength.classList.toggle('ok', val.length >= 8);
+    hintUpper.classList.toggle('ok', /[A-Z]/.test(val));
+    hintSpecial.classList.toggle('ok', /[0-9]/.test(val) && /[^A-Za-z0-9]/.test(val));
+  });
+
+  passForm.addEventListener('submit', function(e){
+    e.preventDefault();
+
+    if(newPass.value.length < 8 || !/[A-Z]/.test(newPass.value) || !/[0-9]/.test(newPass.value) || !/[^A-Za-z0-9]/.test(newPass.value)){
+      alert('La nueva contraseña no cumple con todos los requisitos.');
+      return;
+    }
+
+    if(newPass.value !== confirmPass.value){
+      alert('La confirmación no coincide con la nueva contraseña.');
+      return;
+    }
+
+    console.log('Cambiando contraseña...');
+    alert('Contraseña actualizada correctamente.');
+    window.location.href = 'perfil.html';
+  });
+
+  document.querySelectorAll('.nav-item[data-page]').forEach(function(item){
+    item.addEventListener('click', function(e){
+      e.preventDefault();
+      console.log('Sección aún no implementada:', item.dataset.page);
+    });
+  });
+</script>
+
+</body>
+</html>

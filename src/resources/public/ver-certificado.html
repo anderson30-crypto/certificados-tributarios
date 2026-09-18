@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Certificados Tributarios - Ver Certificado</title>
+<style>
+  :root{
+    --red: #E30613;
+    --red-dark: #C40510;
+    --gray-bg: #F4F5F7;
+    --gray-border: #E1E3E8;
+    --text-dark: #23262B;
+    --text-muted: #6B7078;
+    --sidebar-w: 190px;
+    --header-h: 58px;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin: 0;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--text-dark);
+    background: #ffffff;
+  }
+
+  .topbar{
+    height: var(--header-h);
+    background: var(--red);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 20;
+  }
+
+  .topbar .brand{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 var(--sidebar-w);
+  }
+
+  .brand .logo-mark{
+    display: flex;
+    align-items: center;
+  }
+
+  .brand .logo-mark img{
+    height: 30px;
+    width: auto;
+    display: block;
+  }
+
+  .topbar .page-title{
+    flex: 1;
+    text-align: center;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .topbar-actions{
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    color: #ffffff;
+    flex: 0 0 var(--sidebar-w);
+    justify-content: flex-end;
+  }
+
+  .icon-btn{
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #ffffff;
+    font-size: 18px;
+    position: relative;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+  }
+
+  .icon-btn .dot{
+    position: absolute;
+    top: 2px; right: 2px;
+    width: 7px; height: 7px;
+    background: #FFD400;
+    border-radius: 50%;
+    border: 1px solid var(--red);
+  }
+
+  .user-chip{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #ffffff;
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .sidebar{
+    position: fixed;
+    top: var(--header-h);
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-w);
+    background: #ffffff;
+    border-right: 1px solid var(--gray-border);
+    padding-top: 14px;
+    z-index: 10;
+  }
+
+  .nav-item{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 20px;
+    font-size: 13px;
+    color: var(--text-dark);
+    text-decoration: none;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+  }
+
+  .nav-item .nav-icon{
+    width: 18px;
+    text-align: center;
+    font-size: 15px;
+  }
+
+  .nav-item:hover{
+    background: var(--gray-bg);
+  }
+
+  .nav-item.active{
+    color: var(--red);
+    font-weight: 600;
+    border-left-color: var(--red);
+    background: #FDECEC;
+  }
+
+  .nav-item.logout{
+    margin-top: 30px;
+    color: var(--text-muted);
+  }
+
+  .main{
+    margin-left: var(--sidebar-w);
+    margin-top: var(--header-h);
+    padding: 26px 40px 90px;
+    min-height: calc(100vh - var(--header-h));
+    background: #ffffff;
+  }
+
+  .breadcrumb{
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+
+  .doc-sheet{
+    max-width: 640px;
+    margin: 0 auto;
+    background: #ffffff;
+    border: 1px solid var(--gray-border);
+    border-radius: 6px;
+    padding: 34px 40px;
+    box-shadow: 0 2px 14px rgba(20,20,30,0.06);
+  }
+
+  .doc-sheet .seal{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 14px;
+  }
+
+  .doc-sheet .seal img{
+    height: 70px;
+    width: auto;
+    display: block;
+  }
+
+  .doc-sheet h2{
+    text-align: center;
+    font-size: 14px;
+    letter-spacing: .3px;
+    margin: 0 0 4px;
+  }
+
+  .doc-sheet .sub{
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin: 0 0 20px;
+  }
+
+  .doc-sheet p.body-text{
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--text-dark);
+    text-align: justify;
+    margin: 0 0 20px;
+  }
+
+  table.cert-table{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-bottom: 20px;
+  }
+
+  table.cert-table td{
+    padding: 7px 4px;
+    border-bottom: 1px solid var(--gray-border);
+  }
+
+  table.cert-table td.label{
+    color: var(--text-muted);
+    width: 45%;
+  }
+
+  table.cert-table td.value{
+    font-weight: 600;
+    text-align: right;
+  }
+
+  .doc-sheet .footnote{
+    font-size: 10.5px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 18px;
+  }
+
+  .doc-sheet .signature{
+    text-align: center;
+    margin-top: 26px;
+  }
+
+  .doc-sheet .signature .name{
+    font-size: 12px;
+    font-weight: 700;
+    border-top: 1px solid var(--text-dark);
+    display: inline-block;
+    padding-top: 6px;
+    margin-top: 30px;
+  }
+
+  .doc-sheet .signature .role{
+    font-size: 10.5px;
+    color: var(--text-muted);
+  }
+
+  .bottom-bar{
+    position: fixed;
+    left: var(--sidebar-w);
+    right: 0;
+    bottom: 0;
+    background: #ffffff;
+    border-top: 1px solid var(--gray-border);
+    padding: 14px 40px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .btn{
+    padding: 10px 24px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+  }
+
+  .btn-primary{
+    background: var(--red);
+    color: #ffffff;
+  }
+
+  .btn-primary:hover{
+    background: var(--red-dark);
+  }
+
+  .btn-secondary{
+    background: #ffffff;
+    color: var(--text-dark);
+    border: 1px solid var(--gray-border);
+  }
+
+  .btn-secondary:hover{
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  @media (max-width: 720px){
+    .sidebar{ display: none; }
+    .main{ margin-left: 0; }
+    .bottom-bar{ left: 0; }
+    .topbar .brand, .topbar-actions{ flex: 0 0 auto; }
+    .doc-sheet{ padding: 24px 18px; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo-mark"><img src="images/upb-logo.png" alt="UPB"></div>
+    </div>
+    <div class="page-title">Certificados</div>
+    <div class="topbar-actions">
+      <a class="icon-btn" title="Notificaciones" href="notificaciones-error.html"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="dot"></span></a>
+      <a class="user-chip" href="perfil.html"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Usuario</a>
+    </div>
+  </header>
+
+  <nav class="sidebar">
+    <a class="nav-item" href="inicio.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></span> Inicio
+    </a>
+    <a class="nav-item active" href="subir-documentos.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span> Certificados
+    </a>
+    <a class="nav-item" href="historial.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span> Historial
+    </a>
+    <a class="nav-item" href="perfil.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Configuración
+    </a>
+    <a class="nav-item logout" href="login.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span> Cerrar Sesión
+    </a>
+  </nav>
+
+  <main class="main">
+    <div class="breadcrumb">Inicio &nbsp;›&nbsp; Certificados &nbsp;›&nbsp; Ver Certificado</div>
+
+    <div class="doc-sheet">
+      <div class="seal"><img src="images/images.png" alt="Escudo Universidad Pontificia Bolivariana"></div>
+      <h2>UNIVERSIDAD PONTIFICIA BOLIVARIANA — CERTIFICADO TRIBUTARIO</h2>
+      <p class="sub">Folio <span id="folioTxt">CT-000000</span> · Generado el <span id="fechaTxt"></span></p>
+
+      <p class="body-text">
+        Que la Universidad reconoció a MARIA CAROLINA MARTINEZ SANTOS
+        con cédula de ciudadanía 1.095.865 por ingresos laborales y de prestación de 
+        servicios con esta Seccional, durante el año dos mil veinticinco (2025), las siguientes 
+        sumas: 
+
+      </p>
+
+      <table class="cert-table">
+        <tr><td class="label">Nombre</td><td class="value">Maria Carolina Martinez Santos/td></tr>
+        <tr><td class="label">Tipo de Documento</td><td class="value">Cédula de Ciudadanía</td></tr>
+        <tr><td class="label">Número de Documento</td><td class="value">1.020.345.678</td></tr>
+        <tr><td class="label">Período</td><td class="value">Enero – Diciembre 2025</td></tr>
+        <tr><td class="label">Concepto</td><td class="value">Retenciónes</td></tr>
+        <tr><td class="label">Valor Certificado</td><td class="value">$ 4.320.000</td></tr>
+        <tr><td class="label">Fecha de Expedición</td><td class="value" id="fechaTabla"></td></tr>
+      </table>
+
+      <div class="signature">
+        <div class="name">Coordinador de Nómina</div>
+        <div class="role">UNIVERSIDAD PONTIFICIA BOLIVARIANA</div>
+      </div>
+
+      <p class="footnote">Documento generado electrónicamente. La validez de este certificado puede confirmarse con el folio indicado.</p>
+    </div>
+  </main>
+
+  <div class="bottom-bar">
+    <a class="btn btn-secondary" href="certificado-generado.html">‹ Volver</a>
+    <button class="btn btn-primary" id="btnDescargarPdf"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Descargar PDF</button>
+  </div>
+
+<script>
+  const folio = sessionStorage.getItem('certFolio') || 'CT-000000';
+  const fecha = sessionStorage.getItem('certFecha') || new Date().toLocaleDateString('es-CO');
+  document.getElementById('folioTxt').textContent = folio;
+  document.getElementById('fechaTxt').textContent = fecha;
+  document.getElementById('fechaTabla').textContent = fecha;
+
+  document.getElementById('btnDescargarPdf').addEventListener('click', function(){
+    console.log('Descargando PDF del certificado', folio);
+    alert('Descargando certificado ' + folio + ' en PDF (simulado)');
+  });
+
+  document.querySelectorAll('.nav-item[data-page]').forEach(function(item){
+    item.addEventListener('click', function(e){
+      e.preventDefault();
+      console.log('Sección aún no implementada:', item.dataset.page);
+    });
+  });
+</script>
+
+</body>
+</html>

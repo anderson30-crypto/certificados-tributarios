@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Certificados Tributarios - Certificado Generado</title>
+<style>
+  :root{
+    --red: #E30613;
+    --red-dark: #C40510;
+    --gray-bg: #F4F5F7;
+    --gray-border: #E1E3E8;
+    --text-dark: #23262B;
+    --text-muted: #6B7078;
+    --sidebar-w: 190px;
+    --header-h: 58px;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin: 0;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--text-dark);
+    background: #ffffff;
+  }
+
+  .topbar{
+    height: var(--header-h);
+    background: var(--red);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 20;
+  }
+
+  .topbar .brand{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 var(--sidebar-w);
+  }
+
+  .brand .logo-mark{
+    display: flex;
+    align-items: center;
+  }
+
+  .brand .logo-mark img{
+    height: 30px;
+    width: auto;
+    display: block;
+  }
+
+  .topbar .page-title{
+    flex: 1;
+    text-align: center;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .topbar-actions{
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    color: #ffffff;
+    flex: 0 0 var(--sidebar-w);
+    justify-content: flex-end;
+  }
+
+  .icon-btn{
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #ffffff;
+    font-size: 18px;
+    position: relative;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+  }
+
+  .icon-btn .dot{
+    position: absolute;
+    top: 2px; right: 2px;
+    width: 7px; height: 7px;
+    background: #FFD400;
+    border-radius: 50%;
+    border: 1px solid var(--red);
+  }
+
+  .user-chip{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #ffffff;
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .sidebar{
+    position: fixed;
+    top: var(--header-h);
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-w);
+    background: #ffffff;
+    border-right: 1px solid var(--gray-border);
+    padding-top: 14px;
+    z-index: 10;
+  }
+
+  .nav-item{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 20px;
+    font-size: 13px;
+    color: var(--text-dark);
+    text-decoration: none;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+  }
+
+  .nav-item .nav-icon{
+    width: 18px;
+    text-align: center;
+    font-size: 15px;
+  }
+
+  .nav-item:hover{
+    background: var(--gray-bg);
+  }
+
+  .nav-item.active{
+    color: var(--red);
+    font-weight: 600;
+    border-left-color: var(--red);
+    background: #FDECEC;
+  }
+
+  .nav-item.logout{
+    margin-top: 30px;
+    color: var(--text-muted);
+  }
+
+  .main{
+    margin-left: var(--sidebar-w);
+    margin-top: var(--header-h);
+    padding: 26px 40px 50px;
+    min-height: calc(100vh - var(--header-h));
+    background: #ffffff;
+  }
+
+  .breadcrumb{
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+
+  .cert-list{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    max-width: 900px;
+    margin: 30px auto 0;
+  }
+
+  .cert-card{
+    flex: 1 1 280px;
+    max-width: 300px;
+    background: var(--gray-bg);
+    border: 1px solid var(--gray-border);
+    border-radius: 8px;
+    padding: 26px 22px;
+    text-align: center;
+  }
+
+  .cert-icon{
+    font-size: 46px;
+    margin-bottom: 14px;
+    cursor: pointer;
+  }
+
+  .cert-meta{
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-bottom: 20px;
+    text-align: left;
+    padding: 0 8px;
+  }
+
+  .cert-meta strong{
+    color: var(--text-dark);
+  }
+
+  .cert-doc-name{
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--text-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cert-actions{
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .btn{
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+  }
+
+  .btn-primary{
+    background: var(--red);
+    color: #ffffff;
+  }
+
+  .btn-primary:hover{
+    background: var(--red-dark);
+  }
+
+  .btn-secondary{
+    background: #ffffff;
+    color: var(--text-dark);
+    border: 1px solid var(--gray-border);
+  }
+
+  .btn-secondary:hover{
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  .success-banner{
+    max-width: 340px;
+    margin: 0 auto 6px;
+    text-align: center;
+    color: #1E8E3E;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  @media (max-width: 720px){
+    .sidebar{ display: none; }
+    .main{ margin-left: 0; }
+    .topbar .brand, .topbar-actions{ flex: 0 0 auto; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo-mark"><img src="images/images.png" alt="UPB"></div>
+    </div>
+    <div class="page-title">Certificados</div>
+    <div class="topbar-actions">
+      <a class="icon-btn" title="Notificaciones" href="notificaciones-error.html"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="dot"></span></a>
+      <a class="user-chip" href="perfil.html"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Usuario</a>
+    </div>
+  </header>
+
+  <nav class="sidebar">
+    <a class="nav-item" href="inicio.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></span> Inicio
+    </a>
+    <a class="nav-item active" href="subir-documentos.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span> Certificados
+    </a>
+    <a class="nav-item" href="historial.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span> Historial
+    </a>
+    <a class="nav-item" href="perfil.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Configuración
+    </a>
+    <a class="nav-item logout" href="login.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span> Cerrar Sesión
+    </a>
+  </nav>
+
+  <main class="main">
+    <div class="breadcrumb">Inicio &nbsp;›&nbsp; Generar Certificado &nbsp;›&nbsp; Certificado</div>
+
+    <div class="success-banner" id="successBanner"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Certificado generado con éxito</div>
+
+    <div class="cert-list" id="certList"></div>
+  </main>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const nombresGuardados = JSON.parse(sessionStorage.getItem('certDocNames') || 'null');
+  const numDocsGuardado = params.get('docs') || sessionStorage.getItem('certDocs') || '1';
+
+  // Si tenemos los nombres de los documentos seleccionados, generamos una tarjeta
+  // por cada uno. Si no, usamos el número de documentos como respaldo.
+  const nombres = (nombresGuardados && nombresGuardados.length)
+    ? nombresGuardados
+    : Array.from({ length: parseInt(numDocsGuardado, 10) || 1 }, function(_, i){ return 'Certificado Tributario ' + (i + 1); });
+
+  const fecha = new Date().toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
+  const certList = document.getElementById('certList');
+  const folios = [];
+
+  document.getElementById('successBanner').textContent = nombres.length > 1
+    ? '<svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ' + nombres.length + ' certificados generados con éxito'
+    : '<svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Certificado generado con éxito';
+
+  nombres.forEach(function(nombre){
+    const folio = 'CT-' + Math.floor(100000 + Math.random() * 900000);
+    folios.push(folio);
+
+    const card = document.createElement('div');
+    card.className = 'cert-card';
+    card.innerHTML =
+      '<div class="cert-icon" title="Ver certificado"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>' +
+      '<div class="cert-doc-name">' + nombre + '</div>' +
+      '<div class="cert-meta">' +
+        '<div><strong>Folio:</strong> ' + folio + '</div>' +
+        '<div><strong>Generado el:</strong> ' + fecha + '</div>' +
+      '</div>' +
+      '<div class="cert-actions">' +
+        '<button class="btn btn-secondary btn-descargar"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Descargar</button>' +
+        '<a class="btn btn-primary" href="enviar-correo-formulario.html">Enviar <svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="M22 6l-10 7L2 6"/></svg></a>' +
+      '</div>';
+
+    card.querySelector('.cert-icon').addEventListener('click', function(){
+      window.location.href = 'ver-certificado.html';
+    });
+
+    card.querySelector('.btn-descargar').addEventListener('click', function(){
+      console.log('Descargando certificado', folio);
+      alert('Descargando certificado ' + folio + ' (simulado)');
+    });
+
+    certList.appendChild(card);
+  });
+
+  sessionStorage.setItem('certFolio', folios[0]);
+  sessionStorage.setItem('certFecha', fecha);
+  sessionStorage.setItem('certFolios', JSON.stringify(folios));
+
+  document.querySelectorAll('.nav-item[data-page]').forEach(function(item){
+    item.addEventListener('click', function(e){
+      e.preventDefault();
+      console.log('Sección aún no implementada:', item.dataset.page);
+    });
+  });
+</script>
+
+</body>
+</html>

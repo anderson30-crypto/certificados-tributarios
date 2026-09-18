@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Certificados Tributarios - Enviar por Correo</title>
+<style>
+  :root{
+    --red: #E30613;
+    --red-dark: #C40510;
+    --gray-bg: #F4F5F7;
+    --gray-border: #E1E3E8;
+    --text-dark: #23262B;
+    --text-muted: #6B7078;
+    --sidebar-w: 190px;
+    --header-h: 58px;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin: 0;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--text-dark);
+    background: #ffffff;
+  }
+
+  .topbar{
+    height: var(--header-h);
+    background: var(--red);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 20;
+  }
+
+  .topbar .brand{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 var(--sidebar-w);
+  }
+
+  .brand .logo-mark{
+    display: flex;
+    align-items: center;
+  }
+
+  .brand .logo-mark img{
+    height: 30px;
+    width: auto;
+    display: block;
+  }
+
+  .topbar .page-title{
+    flex: 1;
+    text-align: center;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .topbar-actions{
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    color: #ffffff;
+    flex: 0 0 var(--sidebar-w);
+    justify-content: flex-end;
+  }
+
+  .icon-btn{
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #ffffff;
+    font-size: 18px;
+    position: relative;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+  }
+
+  .icon-btn .dot{
+    position: absolute;
+    top: 2px; right: 2px;
+    width: 7px; height: 7px;
+    background: #FFD400;
+    border-radius: 50%;
+    border: 1px solid var(--red);
+  }
+
+  .user-chip{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #ffffff;
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .sidebar{
+    position: fixed;
+    top: var(--header-h);
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-w);
+    background: #ffffff;
+    border-right: 1px solid var(--gray-border);
+    padding-top: 14px;
+    z-index: 10;
+  }
+
+  .nav-item{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 20px;
+    font-size: 13px;
+    color: var(--text-dark);
+    text-decoration: none;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+  }
+
+  .nav-item .nav-icon{
+    width: 18px;
+    text-align: center;
+    font-size: 15px;
+  }
+
+  .nav-item:hover{
+    background: var(--gray-bg);
+  }
+
+  .nav-item.active{
+    color: var(--red);
+    font-weight: 600;
+    border-left-color: var(--red);
+    background: #FDECEC;
+  }
+
+  .nav-item.logout{
+    margin-top: 30px;
+    color: var(--text-muted);
+  }
+
+  .main{
+    margin-left: var(--sidebar-w);
+    margin-top: var(--header-h);
+    padding: 26px 40px 50px;
+    min-height: calc(100vh - var(--header-h));
+    background: #ffffff;
+  }
+
+  .breadcrumb{
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+
+  .mail-layout{
+    display: flex;
+    gap: 26px;
+    max-width: 880px;
+    margin: 0 auto;
+  }
+
+  .mail-rail{
+    flex: 0 0 130px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .mail-rail-item{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 10px;
+    font-size: 12px;
+    border-radius: 6px;
+    color: var(--text-dark);
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .mail-rail-item:hover{
+    background: var(--gray-bg);
+  }
+
+  .mail-rail-item.active{
+    background: #FDECEC;
+    color: var(--red);
+    font-weight: 700;
+  }
+
+  .mail-main{
+    flex: 1;
+    min-width: 0;
+  }
+
+  .mail-toolbar{
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .mail-search{
+    flex: 1;
+    position: relative;
+  }
+
+  .mail-search input{
+    width: 100%;
+    padding: 8px 34px 8px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--gray-border);
+    background: var(--gray-bg);
+    font-size: 12.5px;
+    outline: none;
+  }
+
+  .mail-search input:focus{
+    border-color: var(--red);
+    background: #ffffff;
+  }
+
+  .mail-search .search-icon{
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .btn-compose{
+    padding: 9px 18px;
+    background: var(--red);
+    color: #ffffff;
+    border: none;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .btn-compose:hover{
+    background: var(--red-dark);
+  }
+
+  .mail-list{
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--gray-border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .mail-item{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--gray-border);
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+
+  .mail-item:last-child{ border-bottom: none; }
+
+  .mail-item:hover{ background: var(--gray-bg); }
+
+  .mail-item .mail-icon{
+    font-size: 16px;
+  }
+
+  .mail-item .mail-info{
+    flex: 1;
+    min-width: 0;
+  }
+
+  .mail-item .mail-to{
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mail-item .mail-subject{
+    color: var(--text-muted);
+    font-size: 11.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mail-item .mail-date{
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .mail-item .mail-status{
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+
+  .mail-status.enviado{
+    color: #1E8E3E;
+    background: #E7F6EC;
+  }
+
+  .empty-mail{
+    text-align: center;
+    padding: 50px 10px;
+    color: var(--text-muted);
+    font-size: 12.5px;
+  }
+
+  @media (max-width: 720px){
+    .sidebar{ display: none; }
+    .main{ margin-left: 0; }
+    .mail-layout{ flex-direction: column; }
+    .mail-rail{ flex-direction: row; overflow-x: auto; flex: none; }
+    .topbar .brand, .topbar-actions{ flex: 0 0 auto; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo-mark"><img src="images/upb-logo.png" alt="UPB"></div>
+    </div>
+    <div class="page-title"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="M22 6l-10 7L2 6"/></svg> Correo</div>
+    <div class="topbar-actions">
+      <a class="icon-btn" title="Notificaciones" href="notificaciones-error.html"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="dot"></span></a>
+      <a class="user-chip" href="perfil.html"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Usuario</a>
+    </div>
+  </header>
+
+  <nav class="sidebar">
+    <a class="nav-item" href="inicio.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></span> Inicio
+    </a>
+    <a class="nav-item" href="subir-documentos.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span> Certificados
+    </a>
+    <a class="nav-item" href="historial.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span> Historial
+    </a>
+    <a class="nav-item" href="perfil.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Configuración
+    </a>
+    <a class="nav-item logout" href="login.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span> Cerrar Sesión
+    </a>
+  </nav>
+
+  <main class="main">
+    <div class="breadcrumb">Inicio &nbsp;›&nbsp; Enviar Correo</div>
+
+    <div class="mail-layout">
+      <div class="mail-rail">
+        <a class="mail-rail-item active"><span><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg></span> Enviar</a>
+        <a class="mail-rail-item" href="borrador.html"><span><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span> Borrador</a>
+        <a class="mail-rail-item" data-page="contactos"><span><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> Contactos</a>
+        <a class="mail-rail-item" data-page="enviados"><span><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span> Enviados</a>
+        <a class="mail-rail-item" data-page="papelera"><span><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></span> Papelera</a>
+      </div>
+
+      <div class="mail-main">
+        <div class="mail-toolbar">
+          <div class="mail-search">
+            <input type="text" id="searchInput" placeholder="Buscar por destinatario o certificado">
+            <span class="search-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg></span>
+          </div>
+          <a class="btn-compose" href="enviar-correo-formulario.html">+ Nuevo Correo</a>
+        </div>
+
+        <ul class="mail-list" id="mailList"></ul>
+      </div>
+    </div>
+  </main>
+
+<script>
+  let correos = JSON.parse(sessionStorage.getItem('correosEnviados') || 'null') || [
+    { to: 'juan.perez@correo.com', subject: 'Entrega de Certificado Tributario', date: '02 sep. 2026', status: 'Enviado' },
+    { to: 'maria.gomez@correo.com', subject: 'Certificado de Retención en la Fuente', date: '28 ago. 2026', status: 'Enviado' },
+    { to: 'contabilidad@empresa.com', subject: 'Certificado de IVA - Tercer Trimestre', date: '15 ago. 2026', status: 'Enviado' }
+  ];
+
+  const mailList = document.getElementById('mailList');
+  const searchInput = document.getElementById('searchInput');
+
+  function renderList(filter){
+    mailList.innerHTML = '';
+    const filtered = correos.filter(function(c){
+      const q = (filter || '').toLowerCase();
+      return c.to.toLowerCase().includes(q) || c.subject.toLowerCase().includes(q);
+    });
+
+    if(filtered.length === 0){
+      mailList.innerHTML = '<div class="empty-mail">No se encontraron correos.</div>';
+      return;
+    }
+
+    filtered.slice().reverse().forEach(function(c){
+      const li = document.createElement('li');
+      li.className = 'mail-item';
+      li.innerHTML =
+        '<span class="mail-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span>' +
+        '<div class="mail-info">' +
+          '<div class="mail-to">' + c.to + '</div>' +
+          '<div class="mail-subject">' + c.subject + '</div>' +
+        '</div>' +
+        '<span class="mail-date">' + c.date + '</span>' +
+        '<span class="mail-status enviado">' + c.status + '</span>';
+      mailList.appendChild(li);
+    });
+  }
+
+  searchInput.addEventListener('input', function(){
+    renderList(searchInput.value);
+  });
+
+  document.querySelectorAll('.mail-rail-item[data-page]').forEach(function(item){
+    item.addEventListener('click', function(e){
+      e.preventDefault();
+      console.log('Sección aún no implementada:', item.dataset.page);
+    });
+  });
+
+  document.querySelectorAll('.nav-item[data-page]').forEach(function(item){
+    item.addEventListener('click', function(e){
+      e.preventDefault();
+      console.log('Sección aún no implementada:', item.dataset.page);
+    });
+  });
+
+  renderList('');
+</script>
+
+</body>
+</html>

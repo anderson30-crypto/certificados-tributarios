@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Certificados Tributarios - Índice</title>
+<style>
+  :root{
+    --red: #E30613;
+    --red-dark: #C40510;
+    --gray-bg: #F4F5F7;
+    --gray-border: #E1E3E8;
+    --text-dark: #23262B;
+    --text-muted: #6B7078;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin: 0;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    background: var(--gray-bg);
+    color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+  .card{
+    background: #ffffff;
+    border: 1px solid var(--gray-border);
+    border-radius: 8px;
+    max-width: 420px;
+    width: 100%;
+    overflow: hidden;
+    box-shadow: 0 4px 18px rgba(20,20,30,0.08);
+  }
+  .card-header{
+    background: var(--red);
+    padding: 16px 22px;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .card-body{
+    padding: 20px 22px 24px;
+  }
+  .card-body p{
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0 0 16px;
+  }
+  ul{
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  a.link-item{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--gray-bg);
+    border: 1px solid var(--gray-border);
+    border-radius: 6px;
+    text-decoration: none;
+    color: var(--text-dark);
+    font-size: 13px;
+    font-weight: 600;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  a.link-item:hover{
+    border-color: var(--red);
+    box-shadow: 0 3px 10px rgba(227,6,19,0.1);
+  }
+  a.link-item span.arrow{
+    color: var(--red);
+  }
+  .status{
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header">Sistema de Certificados Tributarios</div>
+    <div class="card-body">
+      <p>Pantallas construidas hasta el momento. Haz clic para navegar entre ellas.</p>
+      <ul>
+        <li><a class="link-item" href="login.html">Iniciar Sesión <span class="arrow">›</span></a></li>
+        <li><a class="link-item" href="inicio.html">Inicio (Pantalla Principal) <span class="arrow">›</span></a></li>
+        <li><a class="link-item" href="subir-documentos.html">Subir Documentos <span class="arrow">›</span></a></li>
+        <li><a class="link-item" href="generar-certificado.html">Generar Certificado <span class="arrow">›</span></a></li>
+        <li><a class="link-item" href="certificado-generado.html">Certificado Generado <span class="arrow">›</span></a></li>
+        <li><a class="link-item" href="ver-certificado.html">Ver Certificado <span class="arrow">›</span></a></li>
+        <li><a class="link-item" href="enviar-correo.html">Enviar por Correo <span class="arrow">›</span></a></li>
+        <li><a class="link-item" href="enviar-correo-formulario.html">Redactar Correo <span class="arrow">›</span></a></li>
+        <li><a class="link-item" href="borrador.html">Revisar Borrador <span class="arrow">›</span></a></li>
+        <li><a class="link-item" href="solicitudes.html">Solicitudes <span class="arrow">›</span></a></li>
+        <li><a class="link-item" href="certificados-devueltos.html">Certificados Devueltos <span class="arrow">›</span></a></li>
+        <li><a class="link-item" href="notificaciones-error.html">Notificaciones de Error <span class="arrow">›</span></a></li>
+        <li><a class="link-item" href="perfil.html">Perfil <span class="arrow">›</span></a></li>
+        <li><a class="link-item" href="cambiar-contrasena.html">Cambiar Contraseña <span class="arrow">›</span></a></li>
+        <li><a class="link-item" href="firma-digital.html">Firma Digital <span class="arrow">›</span></a></li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

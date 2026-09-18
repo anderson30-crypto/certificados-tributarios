@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Certificados Tributarios - Firma Digital</title>
+<style>
+  :root{
+    --red: #E30613;
+    --red-dark: #C40510;
+    --gray-bg: #F4F5F7;
+    --gray-border: #E1E3E8;
+    --text-dark: #23262B;
+    --text-muted: #6B7078;
+    --green-ok: #1E8E3E;
+    --sidebar-w: 190px;
+    --header-h: 58px;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin: 0;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--text-dark);
+    background: #ffffff;
+  }
+
+  .topbar{
+    height: var(--header-h);
+    background: var(--red);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 20;
+  }
+
+  .topbar .brand{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 var(--sidebar-w);
+  }
+
+  .brand .logo-mark{
+    display: flex;
+    align-items: center;
+  }
+
+  .brand .logo-mark img{
+    height: 30px;
+    width: auto;
+    display: block;
+  }
+
+  .topbar .page-title{
+    flex: 1;
+    text-align: center;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .topbar-actions{
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    color: #ffffff;
+    flex: 0 0 var(--sidebar-w);
+    justify-content: flex-end;
+  }
+
+  .icon-btn{
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #ffffff;
+    font-size: 18px;
+    position: relative;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+  }
+
+  .icon-btn .dot{
+    position: absolute;
+    top: 2px; right: 2px;
+    width: 7px; height: 7px;
+    background: #FFD400;
+    border-radius: 50%;
+    border: 1px solid var(--red);
+  }
+
+  .user-chip{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #ffffff;
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .sidebar{
+    position: fixed;
+    top: var(--header-h);
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-w);
+    background: #ffffff;
+    border-right: 1px solid var(--gray-border);
+    padding-top: 14px;
+    z-index: 10;
+  }
+
+  .nav-item{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 20px;
+    font-size: 13px;
+    color: var(--text-dark);
+    text-decoration: none;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+  }
+
+  .nav-item .nav-icon{
+    width: 18px;
+    text-align: center;
+    font-size: 15px;
+  }
+
+  .nav-item:hover{
+    background: var(--gray-bg);
+  }
+
+  .nav-item.active{
+    color: var(--red);
+    font-weight: 600;
+    border-left-color: var(--red);
+    background: #FDECEC;
+  }
+
+  .nav-item.logout{
+    margin-top: 30px;
+    color: var(--text-muted);
+  }
+
+  .main{
+    margin-left: var(--sidebar-w);
+    margin-top: var(--header-h);
+    padding: 26px 40px 50px;
+    min-height: calc(100vh - var(--header-h));
+    background: #ffffff;
+  }
+
+  .breadcrumb{
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 30px;
+  }
+
+  .section-title{
+    text-align: center;
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 40px;
+  }
+
+  .signature-wrap{
+    max-width: 380px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .signature-canvas-box{
+    border-bottom: 1px solid var(--text-dark);
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+  }
+
+  #sigCanvas{
+    width: 100%;
+    height: 100px;
+    display: block;
+    cursor: crosshair;
+    touch-action: none;
+  }
+
+  .signature-name{
+    font-size: 13px;
+    font-weight: 700;
+    margin: 4px 0 4px;
+  }
+
+  .signature-status{
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 30px;
+  }
+
+  .signature-status .status-badge{
+    font-weight: 700;
+  }
+
+  .signature-status .status-badge.active{
+    color: var(--green-ok);
+  }
+
+  .signature-status .status-badge.inactive{
+    color: var(--text-muted);
+  }
+
+  .empty-hint{
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+
+  .actions-row{
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+  }
+
+  .btn{
+    padding: 9px 26px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    background: var(--red);
+    color: #ffffff;
+  }
+
+  .btn:hover{
+    background: var(--red-dark);
+  }
+
+  .btn:disabled{
+    opacity: .5;
+    cursor: not-allowed;
+  }
+
+  .btn-secondary{
+    background: #ffffff;
+    color: var(--red);
+    border: 1px solid var(--red);
+  }
+
+  .btn-secondary:hover{
+    background: #FDECEC;
+  }
+
+  .modal-overlay{
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+  }
+
+  .modal-overlay.show{
+    display: flex;
+  }
+
+  .modal-box{
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 24px;
+    width: 360px;
+    max-width: 90vw;
+  }
+
+  .modal-box h3{
+    font-size: 14px;
+    margin: 0 0 14px;
+    text-align: center;
+  }
+
+  .modal-actions{
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .link-clear{
+    font-size: 11px;
+    color: var(--text-muted);
+    text-decoration: underline;
+    cursor: pointer;
+    display: block;
+    text-align: center;
+    margin-top: 4px;
+  }
+
+  @media (max-width: 720px){
+    .sidebar{ display: none; }
+    .main{ margin-left: 0; }
+    .topbar .brand, .topbar-actions{ flex: 0 0 auto; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo-mark"><img src="images/upb-logo.png" alt="UPB"></div>
+    </div>
+    <div class="page-title">Firma Digital</div>
+    <div class="topbar-actions">
+      <button class="icon-btn" title="Notificaciones"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="dot"></span></button>
+      <a class="user-chip" href="perfil.html"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Usuario</a>
+    </div>
+  </header>
+
+  <nav class="sidebar">
+    <a class="nav-item" href="inicio.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></span> Inicio
+    </a>
+    <a class="nav-item" href="subir-documentos.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span> Certificados
+    </a>
+    <a class="nav-item" href="historial.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span> Historial
+    </a>
+    <a class="nav-item active" href="perfil.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Configuración
+    </a>
+    <a class="nav-item logout" href="login.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span> Cerrar Sesión
+    </a>
+  </nav>
+
+  <main class="main">
+    <div class="breadcrumb">Inicio &nbsp;›&nbsp; Modificar Firma Digital</div>
+
+    <h2 class="section-title">Firmas Digitales Registradas</h2>
+
+    <div class="signature-wrap" id="signatureDisplay">
+      <!-- se rellena por JS -->
+    </div>
+
+    <div class="actions-row">
+      <button class="btn" id="btnAgregar">Agregar</button>
+      <button class="btn" id="btnEliminar">Eliminar</button>
+    </div>
+  </main>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-box">
+      <h3>Dibuja tu firma</h3>
+      <div class="signature-canvas-box">
+        <canvas id="sigCanvas"></canvas>
+      </div>
+      <span class="link-clear" id="linkClear">Borrar y volver a intentar</span>
+      <div class="modal-actions">
+        <button class="btn" id="btnGuardarFirma">Guardar Firma</button>
+        <button class="btn btn-secondary" id="btnCancelarFirma">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const signatureDisplay = document.getElementById('signatureDisplay');
+  const btnAgregar = document.getElementById('btnAgregar');
+  const btnEliminar = document.getElementById('btnEliminar');
+  const modalOverlay = document.getElementById('modalOverlay');
+  const btnGuardarFirma = document.getElementById('btnGuardarFirma');
+  const btnCancelarFirma = document.getElementById('btnCancelarFirma');
+  const linkClear = document.getElementById('linkClear');
+  const canvas = document.getElementById('sigCanvas');
+  const ctx = canvas.getContext('2d');
+
+  let signatureDataUrl = null; // null = sin firma registrada
+  let isActive = true;
+  let drawing = false;
+
+  function resizeCanvas(){
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * 2;
+    canvas.height = rect.height * 2;
+    ctx.scale(2, 2);
+    ctx.strokeStyle = '#23262B';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+  }
+
+  function getPos(e){
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  }
+
+  function startDraw(e){
+    drawing = true;
+    const pos = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+  }
+
+  function moveDraw(e){
+    if(!drawing) return;
+    e.preventDefault();
+    const pos = getPos(e);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+  }
+
+  function endDraw(){
+    drawing = false;
+  }
+
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', moveDraw);
+  window.addEventListener('mouseup', endDraw);
+  canvas.addEventListener('touchstart', startDraw);
+  canvas.addEventListener('touchmove', moveDraw);
+  canvas.addEventListener('touchend', endDraw);
+
+  function clearCanvas(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  function renderSignature(){
+    if(!signatureDataUrl){
+      signatureDisplay.innerHTML = '<p class="empty-hint">Aún no tienes una firma digital registrada.</p>';
+      btnEliminar.disabled = true;
+      return;
+    }
+    btnEliminar.disabled = false;
+    signatureDisplay.innerHTML =
+      '<div class="signature-canvas-box"><img src="' + signatureDataUrl + '" style="height:80px; max-width:100%;"></div>' +
+      '<div class="signature-name">Usuario</div>' +
+      '<div class="signature-status">Estado: <span class="status-badge ' + (isActive ? 'active' : 'inactive') + '">' + (isActive ? 'Activa' : 'Inactiva') + '</span></div>';
+  }
+
+  btnAgregar.addEventListener('click', function(){
+    modalOverlay.classList.add('show');
+    setTimeout(function(){
+      resizeCanvas();
+      clearCanvas();
+    }, 10);
+  });
+
+  btnCancelarFirma.addEventListener('click', function(){
+    modalOverlay.classList.remove('show');
+  });
+
+  linkClear.addEventListener('click', function(){
+    clearCanvas();
+  });
+
+  btnGuardarFirma.addEventListener('click', function(){
+    signatureDataUrl = canvas.toDataURL('image/png');
+    isActive = true;
+    renderSignature();
+    modalOverlay.classList.remove('show');
+    console.log('Firma digital guardada');
+  });
+
+  btnEliminar.addEventListener('click', function(){
+    if(!signatureDataUrl) return;
+    if(confirm('¿Seguro que deseas eliminar tu firma digital registrada?')){
+      signatureDataUrl = null;
+      renderSignature();
+      console.log('Firma digital eliminada');
+    }
+  });
+
+  document.querySelectorAll('.nav-item[data-page]').forEach(function(item){
+    item.addEventListener('click', function(e){
+      e.preventDefault();
+      console.log('Sección aún no implementada:', item.dataset.page);
+    });
+  });
+
+  renderSignature();
+</script>
+
+</body>
+</html>
