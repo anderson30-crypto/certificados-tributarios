@@ -92,4 +92,20 @@ public class UsuarioServicio {
         return usuarioDAO.desactivarUsuario(idUsuario);
 
     }
+    
+    public boolean asignarRolUsuario(int idUsuario, int idRol){
+
+        if(idUsuario <= 0 || idRol <=0){
+
+            System.out.println(
+            "Usuario o rol inválido"
+            );
+
+            return false;
+        }
+
+
+        return usuarioDAO.asignarRolUsuario(idUsuario, idRol);
+
+    }
 }

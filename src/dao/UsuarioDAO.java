@@ -288,6 +288,48 @@ public class UsuarioDAO {
         return idRol;
 
     }
+    
+ // ASIGNAR ROL A USUARIO
+
+    public boolean asignarRolUsuario(int idUsuario, int idRol){
+
+        String sql =
+                "UPDATE usuarios "
+              + "SET id_rol=? "
+              + "WHERE id_usuario=?";
+
+
+        try {
+
+        	Connection con =
+                    conexionBD.conectar();
+
+
+            PreparedStatement ps =
+                    con.prepareStatement(sql);
+
+
+            ps.setInt(1, idRol);
+
+            ps.setInt(2, idUsuario);
+
+
+            ps.executeUpdate();
+
+
+            return true;
+
+
+        } catch(Exception e){
+
+            System.out.println(
+                "Error asignando rol al usuario: "
+                + e.getMessage()
+            );
+
+            return false;
+        }
+    }
 
 
 }

@@ -1,6 +1,5 @@
 package servicio;
 
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -9,13 +8,15 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Properties;
 
-
-
 public class BackupServicio {
 
 
-    public boolean realizarBackup(){
+    private String usuarioBD;
+    private String passwordBD;
 
+
+
+    public boolean realizarBackup(){
 
         try {
 
@@ -55,26 +56,21 @@ public class BackupServicio {
 
             if(!directorio.exists()){
 
-
                 directorio.mkdirs();
 
             }
 
 
 
-
             // Nombre único del archivo
 
             String fecha =
-                    new SimpleDateFormat(
-                            "HH_mm_ss"
-                    )
+                    new SimpleDateFormat("HH_mm_ss")
                     .format(new Date());
 
 
 
             String archivo =
-
                     carpeta
                     + "/certificados_tributarios_"
                     + fecha
@@ -83,15 +79,10 @@ public class BackupServicio {
 
 
 
-
-
             // Ruta mysqldump
 
             String rutaMysql =
-
-                    "C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\mysqldump.exe";
-
-
+            "C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\mysqldump.exe";
 
 
 
@@ -102,26 +93,22 @@ public class BackupServicio {
                     new Properties();
 
 
-
             InputStream entrada =
                     new FileInputStream(
-                            "src/conexion/config.properties"
+                    "src/conexion/config.properties"
                     );
-
 
 
             propiedades.load(entrada);
 
 
 
-            String usuario =
+            usuarioBD =
                     propiedades.getProperty("usuario");
 
 
-            String password =
+            passwordBD =
                     propiedades.getProperty("password");
-
-
 
 
 
@@ -129,22 +116,21 @@ public class BackupServicio {
             // Crear proceso de backup
 
             ProcessBuilder builder =
-
                     new ProcessBuilder(
 
-                            rutaMysql,
+                    rutaMysql,
 
-                            "-u",
+                    "-u",
 
-                            usuario,
+                    usuarioBD,
 
-                            "-p" + password,
+                    "-p" + passwordBD,
 
-                            "certificados_tributarios",
+                    "certificados_tributarios",
 
-                            "-r",
+                    "-r",
 
-                            archivo
+                    archivo
 
                     );
 
@@ -152,16 +138,12 @@ public class BackupServicio {
 
 
             Process proceso =
-
                     builder.start();
 
 
 
             int resultado =
-
                     proceso.waitFor();
-
-
 
 
 
@@ -171,7 +153,6 @@ public class BackupServicio {
 
 
                 File archivoBackup =
-
                         new File(archivo);
 
 
@@ -182,36 +163,32 @@ public class BackupServicio {
 
 
                     double tamaño =
-
                             archivoBackup.length()
                             / 1024.0;
 
 
 
-
                     DecimalFormat formato =
-
                             new DecimalFormat("#.##");
 
 
 
-
                     System.out.println(
-                            "Backup creado correctamente:"
+                    "Backup creado correctamente:"
                     );
 
 
 
                     System.out.println(
-                            archivo
+                    archivo
                     );
 
 
 
                     System.out.println(
-                            "Tamaño del backup: "
-                            + formato.format(tamaño)
-                            + " KB"
+                    "Tamaño del backup: "
+                    + formato.format(tamaño)
+                    + " KB"
                     );
 
 
@@ -223,7 +200,7 @@ public class BackupServicio {
 
 
                     System.out.println(
-                            "El backup terminó pero el archivo no existe"
+                    "El backup terminó pero el archivo no existe"
                     );
 
 
@@ -237,7 +214,7 @@ public class BackupServicio {
 
 
                 System.out.println(
-                        "Error creando backup"
+                "Error creando backup"
                 );
 
 
@@ -247,16 +224,104 @@ public class BackupServicio {
 
 
 
+        }catch(Exception e){
+
+
+            System.out.println(
+            "Error backup: "
+            + e.getMessage()
+            );
+
+
+            return false;
+
+        }
+
+    }
+
+
+
+
+    // RESTAURAR BACKUP
+
+    public boolean restaurarBackup(String archivo){
+
+
+        try {
+
+
+
+            String rutaMysql =
+            "C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\mysql.exe";
+
+
+
+            ProcessBuilder builder =
+                    new ProcessBuilder(
+
+                    rutaMysql,
+
+                    "-u",
+
+                    usuarioBD,
+
+                    "-p" + passwordBD,
+
+                    "certificados_tributarios"
+
+                    );
+
+
+
+            builder.redirectInput(
+                    new File(archivo)
+            );
+
+
+
+            Process proceso =
+                    builder.start();
+
+
+
+            int resultado =
+                    proceso.waitFor();
+
+
+
+
+            if(resultado == 0){
+
+
+                System.out.println(
+                "Restauración realizada correctamente"
+                );
+
+
+                return true;
+
+
+            }else{
+
+
+                System.out.println(
+                "Error restaurando backup"
+                );
+
+
+                return false;
+
+            }
+
+
 
         }catch(Exception e){
 
 
-
             System.out.println(
-                    "Error backup: "
-                    + e.getMessage()
+            "Error restaurando backup: "
+            + e.getMessage()
             );
-
 
 
             return false;
