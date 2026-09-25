@@ -1,16 +1,22 @@
-package com.upb.integrador;
+package Seguridad;
 
-import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
-
+import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Connection;
+
+import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.format.TextStyle;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 public class GenerarCertificado2 {
@@ -18,7 +24,7 @@ public class GenerarCertificado2 {
     private static final DecimalFormat FORMATO = new DecimalFormat("#,##0");
 
     public static void main(String[] args) {
-        try (Connection conn = ConexionBD2.obtenerConexion()) {
+        try (Connection conn = obtenerConexionBD()) {
             int idContratista = obtenerUltimoIdContratista(conn);
             String rutaPdf = generarParaContratista(idContratista);
             System.out.println("Certificado generado: " + rutaPdf);
@@ -27,9 +33,29 @@ public class GenerarCertificado2 {
         }
     }
 
+    private static Connection obtenerConexionBD() throws Exception {
+        String[] nombresClases = {
+            "Seguridad.ConexionBD2",
+            "ConexionBD2",
+            "seguridad.ConexionBD2"
+        };
+
+        for (String nombreClase : nombresClases) {
+            try {
+                Class<?> clazz = Class.forName(nombreClase);
+                Method metodo = clazz.getMethod("obtenerConexion");
+                return (Connection) metodo.invoke(null);
+            } catch (ClassNotFoundException e) {
+                // Intenta con la siguiente clase posible.
+            }
+        }
+
+        throw new ClassNotFoundException("No se encontró la clase ConexionBD2 en el proyecto.");
+    }
+
     public static String generarParaContratista(int idContratista) throws Exception {
 
-        try (Connection conn = ConexionBD2.obtenerConexion()) {
+        try (Connection conn = obtenerConexionBD()) {
 
             String sql = "SELECT c.t_primer_apellido, c.t_segundo_apellido, c.t_nombres, " +
                 "c.n_numero_documento, " +
