@@ -365,7 +365,7 @@
           <div class="upload-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
           <div class="select-link" id="selectLink">Seleccionar archivo</div>
           <div class="hint">o arrastra tu documento aquí</div>
-          <input type="file" id="fileInput" multiple style="display:none">
+          <input type="file" id="fileInput" multiple accept=".xlsx" style="display:none">
         </div>
         <button class="btn-upload" id="btnUpload">Subir</button>
       </div>
@@ -392,8 +392,11 @@
   const fileList = document.getElementById('fileList');
   const btnUpload = document.getElementById('btnUpload');
   const btnNext = document.getElementById('btnNext');
+  const hint = dropzone.querySelector('.hint');
+  const HINT_INICIAL = 'o arrastra tu documento aquí';
 
   let pendingFiles = [];
+  // Cada elemento: { nombre: nombre original, archivo: nombre guardado en el servidor }
   let uploadedFiles = [];
 
   function renderFileList(){
@@ -402,13 +405,13 @@
       fileList.innerHTML = '<li class="empty-row"></li><li class="empty-row"></li><li class="empty-row"></li>';
       return;
     }
-    uploadedFiles.forEach(function(name, index){
+    uploadedFiles.forEach(function(file, index){
       const li = document.createElement('li');
       li.className = 'file-item';
-      li.innerHTML = '<span class="file-name">' + name + '</span><button class="remove-file" data-index="' + index + '"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>';
+      li.innerHTML = '<span class="file-name"></span><button class="remove-file" data-index="' + index + '"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>';
+      li.querySelector('.file-name').textContent = file.nombre;
       fileList.appendChild(li);
     });
-
     document.querySelectorAll('.remove-file').forEach(function(btn){
       btn.addEventListener('click', function(){
         const idx = parseInt(btn.getAttribute('data-index'), 10);
@@ -418,55 +421,101 @@
     });
   }
 
+  function prepararArchivos(files){
+    pendingFiles = files.filter(function(f){ return f.name.toLowerCase().endsWith('.xlsx'); });
+    if(pendingFiles.length < files.length){
+      alert('Solo se aceptan sábanas en Excel (.xlsx). Se ignoraron los demás archivos.');
+    }
+    hint.textContent = pendingFiles.length > 0
+      ? pendingFiles.length + ' archivo(s) listo(s) para subir'
+      : HINT_INICIAL;
+  }
+
   dropzone.addEventListener('click', function(){
     fileInput.click();
   });
-
   fileInput.addEventListener('change', function(e){
-    pendingFiles = Array.from(e.target.files);
-    dropzone.querySelector('.hint').textContent = pendingFiles.length + ' archivo(s) listo(s) para subir';
+    prepararArchivos(Array.from(e.target.files));
   });
-
   ['dragover'].forEach(function(evt){
     dropzone.addEventListener(evt, function(e){
       e.preventDefault();
       dropzone.classList.add('dragover');
     });
   });
-
   ['dragleave', 'drop'].forEach(function(evt){
     dropzone.addEventListener(evt, function(e){
       e.preventDefault();
       dropzone.classList.remove('dragover');
     });
   });
-
   dropzone.addEventListener('drop', function(e){
-    pendingFiles = Array.from(e.dataTransfer.files);
-    dropzone.querySelector('.hint').textContent = pendingFiles.length + ' archivo(s) listo(s) para subir';
+    prepararArchivos(Array.from(e.dataTransfer.files));
   });
 
-  btnUpload.addEventListener('click', function(){
+  // "Subir": envía cada archivo al servidor (WebServer -> /api/sabana), que lo guarda en la carpeta "subidas"
+  btnUpload.addEventListener('click', async function(){
     if(pendingFiles.length === 0){
-      alert('Selecciona o arrastra al menos un archivo antes de subir.');
+      alert('Selecciona o arrastra al menos una sábana (.xlsx) antes de subir.');
       return;
     }
-    pendingFiles.forEach(function(f){
-      uploadedFiles.push(f.name);
-    });
-    pendingFiles = [];
-    dropzone.querySelector('.hint').textContent = 'o arrastra tu documento aquí';
-    fileInput.value = '';
-    renderFileList();
+    btnUpload.disabled = true;
+    hint.textContent = 'Subiendo...';
+    try {
+      for (const f of pendingFiles) {
+        const datos = new FormData();
+        datos.append('archivo', f);
+        const resp = await fetch('/api/sabana', { method: 'POST', body: datos });
+        const json = await resp.json();
+        if(!resp.ok){
+          throw new Error(json.error || 'No se pudo subir ' + f.name);
+        }
+        uploadedFiles.push({ nombre: json.nombre, archivo: json.archivo });
+      }
+    } catch (err) {
+      alert('Error al subir: ' + err.message);
+    } finally {
+      pendingFiles = [];
+      fileInput.value = '';
+      hint.textContent = HINT_INICIAL;
+      btnUpload.disabled = false;
+      renderFileList();
+    }
   });
 
-  btnNext.addEventListener('click', function(){
+  // "Siguiente": ejecuta el CargueMasivo con cada sábana subida y luego pasa a generar certificados
+  btnNext.addEventListener('click', async function(){
     if(uploadedFiles.length === 0){
-      alert('Debes subir al menos un documento para continuar.');
+      alert('Debes subir al menos una sábana para continuar.');
       return;
     }
-    console.log('Continuar con documentos:', uploadedFiles);
-    window.location.href = 'generar-certificado.html';
+    btnNext.disabled = true;
+    btnNext.textContent = 'Cargando datos...';
+    let resumen = '';
+    let huboErrorGrave = false;
+    try {
+      for (const file of uploadedFiles) {
+        const resp = await fetch('/api/sabana/' + encodeURIComponent(file.archivo) + '/cargar', { method: 'POST' });
+        const json = await resp.json();
+        if(!resp.ok){
+          huboErrorGrave = true;
+          resumen += file.nombre + ': ERROR - ' + json.error + '\n';
+          continue;
+        }
+        resumen += file.nombre + ': ' + json.insertados + ' nuevos, ' + json.actualizados + ' actualizados, ' +
+                   json.errores.length + ' con error\n';
+        json.errores.forEach(function(e){ resumen += '   - ' + e + '\n'; });
+      }
+    } catch (err) {
+      huboErrorGrave = true;
+      resumen += 'Error de comunicación con el servidor: ' + err.message;
+    }
+    alert('Resultado del cargue:\n\n' + resumen);
+    btnNext.disabled = false;
+    btnNext.textContent = 'Siguiente ›';
+    if(!huboErrorGrave){
+      window.location.href = 'generar-certificado.html';
+    }
   });
 
   document.querySelectorAll('.nav-item[data-page]').forEach(function(item){

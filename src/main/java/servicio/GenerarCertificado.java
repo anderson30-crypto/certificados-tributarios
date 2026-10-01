@@ -1,26 +1,31 @@
 package servicio;
 
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import conexion.ConexionBD;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.format.TextStyle;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 
 public class GenerarCertificado {
 
     private static final DecimalFormat FORMATO = new DecimalFormat("#,##0");
 
+    // Carpeta (en la raíz del proyecto) donde quedan los PDF generados
+    public static final String CARPETA_SALIDA = "certificados_generados";
+
     public static void main(String[] args) {
-        try (Connection conn = obtenerConexionBD()) {
+        try (Connection conn = ConexionBD.obtenerConexion()) {
             int idContratista = obtenerUltimoIdContratista(conn);
             String rutaPdf = generarParaContratista(idContratista);
             System.out.println("Certificado generado: " + rutaPdf);
@@ -29,28 +34,9 @@ public class GenerarCertificado {
         }
     }
 
-    private static Connection obtenerConexionBD() throws Exception {
-        String[] nombresClases = {
-            "conexion.ConexionBD",
-            "ConexionBD"
-        };
-
-        for (String nombreClase : nombresClases) {
-            try {
-                Class<?> clazz = Class.forName(nombreClase);
-                Method metodo = clazz.getMethod("obtenerConexion");
-                return (Connection) metodo.invoke(null);
-            } catch (ClassNotFoundException e) {
-                // Intenta con la siguiente clase posible.
-            }
-        }
-
-        throw new ClassNotFoundException("No se encontró la clase ConexionBD2 en el proyecto.");
-    }
-
     public static String generarParaContratista(int idContratista) throws Exception {
 
-        try (Connection conn = obtenerConexionBD()) {
+        try (Connection conn = ConexionBD.obtenerConexion()) {
 
             String sql = "SELECT c.t_primer_apellido, c.t_segundo_apellido, c.t_nombres, " +
                 "c.n_numero_documento, " +
@@ -58,7 +44,8 @@ public class GenerarCertificado {
                 "co.n_pago_viaticos, co.n_gastos, co.n_otros_ingresos, co.n_cesantias_empleado, " +
                 "co.n_cesantias_fondo, co.n_pensiones, co.n_total_ing_brutos, co.n_ret_ica, co.n_anio " +
                 "FROM contratistas c JOIN contratos co ON c.id_contratista = co.id_contratista " +
-                "WHERE c.id_contratista = ?";
+                "WHERE c.id_contratista = ? " +
+                "ORDER BY co.n_anio DESC LIMIT 1";
 
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -107,7 +94,8 @@ public class GenerarCertificado {
                            .replace("{{TOTAL_INGRESOS}}", formatear(rs.getDouble("n_total_ing_brutos")))
                            .replace("{{RET_ICA}}", formatear(rs.getDouble("n_ret_ica")));
 
-                String rutaSalida = "src/main/resources/certificado_" + documento + ".pdf";
+                Files.createDirectories(Paths.get(CARPETA_SALIDA));
+                String rutaSalida = CARPETA_SALIDA + "/certificado_" + documento + ".pdf";
 
                 try (FileOutputStream os = new FileOutputStream(rutaSalida)) {
                     PdfRendererBuilder builder = new PdfRendererBuilder();

@@ -7,3 +7,7 @@
 .project
 .settings/
 .vscode/
+
+# Archivos que genera la aplicación al ejecutarse
+/subidas/
+/certificados_generados/

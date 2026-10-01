@@ -373,15 +373,15 @@
     <div class="breadcrumb">Inicio &nbsp;›&nbsp; Generar Certificado</div>
 
     <h2 class="section-title">Generar Certificado</h2>
-    <p class="section-subtitle">Busca el documento que desee</p>
+    <p class="section-subtitle">Busca el contratista al que le quieres generar el certificado</p>
 
     <div class="content-wrap">
       <div class="search-row">
-        <input type="text" id="searchInput" placeholder="Buscar Certificado">
+        <input type="text" id="searchInput" placeholder="Buscar por nombre o documento">
         <span class="search-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg></span>
       </div>
 
-      <div class="list-label">Documentos Encontrados ▾</div>
+      <div class="list-label">Contratistas Encontrados ▾</div>
 
       <div class="doc-grid" id="docGrid">
         <!-- generado por JS -->
@@ -394,80 +394,125 @@
 
       <div class="generate-btn-wrap">
         <button class="btn-generate" id="btnGenerate" disabled>Generar Certificado Tributario</button>
-        <div class="selected-count" id="selectedCount">0 documentos seleccionados</div>
+        <div class="selected-count" id="selectedCount">0 contratista(s) seleccionado(s)</div>
       </div>
     </div>
   </main>
 
 <script>
-  const documentos = [
-    { name: 'Certificado de Retención en la Fuente', checked: true },
-    { name: 'Certificado de IVA', checked: true },
-    { name: 'Certificado de ICA', checked: true },
-    { name: 'Declaración de Renta', checked: false },
-    { name: 'RUT Actualizado', checked: true },
-    { name: 'Estados Financieros', checked: false }
-  ];
-
+  // Contratistas cargados desde la base de datos (WebServer -> /api/contratistas)
+  let documentos = [];
   const docGrid = document.getElementById('docGrid');
   const selectAll = document.getElementById('selectAll');
   const btnGenerate = document.getElementById('btnGenerate');
   const selectedCount = document.getElementById('selectedCount');
   const searchInput = document.getElementById('searchInput');
 
+  // Lista con los enlaces a los PDF generados, debajo del botón
+  const resultados = document.createElement('ul');
+  resultados.style.cssText = 'margin-top:16px; line-height:1.9;';
+  document.querySelector('.generate-btn-wrap').appendChild(resultados);
+
+  function mostrarMensaje(texto){
+    docGrid.innerHTML = '';
+    const p = document.createElement('p');
+    p.textContent = texto;
+    docGrid.appendChild(p);
+  }
+
+  async function cargarContratistas(){
+    mostrarMensaje('Cargando contratistas...');
+    try {
+      const resp = await fetch('/api/contratistas');
+      const json = await resp.json();
+      if(!resp.ok){
+        throw new Error(json.error);
+      }
+      documentos = json.map(function(c){
+        return { id: c.id, name: c.nombre + ' - ' + c.documento, checked: false };
+      });
+      if(documentos.length === 0){
+        mostrarMensaje('No hay contratistas. Primero sube la sábana en "Subir Documentos".');
+        updateState();
+        return;
+      }
+      renderDocs(searchInput.value);
+    } catch (err) {
+      mostrarMensaje('No se pudieron cargar los contratistas: ' + err.message);
+    }
+  }
+
   function renderDocs(filter){
     docGrid.innerHTML = '';
     const filtered = documentos.filter(function(doc){
       return doc.name.toLowerCase().includes((filter || '').toLowerCase());
     });
-
     filtered.forEach(function(doc){
       const row = document.createElement('div');
       row.className = 'doc-row';
-      row.innerHTML = '<div class="doc-bar" title="' + doc.name + '">' + doc.name + '</div><div class="doc-checkbox' + (doc.checked ? ' checked' : '') + '" data-name="' + doc.name + '"></div>';
+      row.innerHTML = '<div class="doc-bar"></div><div class="doc-checkbox' + (doc.checked ? ' checked' : '') + '" data-id="' + doc.id + '"></div>';
+      row.querySelector('.doc-bar').textContent = doc.name;
+      row.querySelector('.doc-bar').title = doc.name;
       docGrid.appendChild(row);
     });
-
     attachCheckboxEvents();
     updateState();
   }
-
   function attachCheckboxEvents(){
     document.querySelectorAll('.doc-grid .doc-checkbox').forEach(function(box){
       box.addEventListener('click', function(){
-        const name = box.dataset.name;
-        const doc = documentos.find(d => d.name === name);
+        const doc = documentos.find(d => String(d.id) === box.dataset.id);
         doc.checked = !doc.checked;
         box.classList.toggle('checked', doc.checked);
         updateState();
       });
     });
   }
-
   function updateState(){
     const total = documentos.length;
     const checkedCount = documentos.filter(d => d.checked).length;
-    selectedCount.textContent = checkedCount + ' documento(s) seleccionado(s)';
+    selectedCount.textContent = checkedCount + ' contratista(s) seleccionado(s)';
     btnGenerate.disabled = checkedCount === 0;
     selectAll.classList.toggle('checked', total > 0 && checkedCount === total);
   }
-
   selectAll.addEventListener('click', function(){
     const shouldCheck = !selectAll.classList.contains('checked');
     documentos.forEach(function(doc){ doc.checked = shouldCheck; });
     renderDocs(searchInput.value);
   });
-
   searchInput.addEventListener('input', function(){
     renderDocs(searchInput.value);
   });
 
-  btnGenerate.addEventListener('click', function(){
-    const selected = documentos.filter(d => d.checked).map(d => d.name);
-    console.log('Generando certificado con documentos:', selected);
-    sessionStorage.setItem('certDocs', String(selected.length));
-    sessionStorage.setItem('certDocNames', JSON.stringify(selected));
-    window.location.href = 'certificado-generado.html';
+  // Genera el PDF de cada contratista seleccionado (WebServer -> GenerarCertificado)
+  btnGenerate.addEventListener('click', async function(){
+    const seleccionados = documentos.filter(d => d.checked);
+    btnGenerate.disabled = true;
+    btnGenerate.textContent = 'Generando...';
+    resultados.innerHTML = '';
+
+    for (const doc of seleccionados) {
+      const li = document.createElement('li');
+      try {
+        const resp = await fetch('/api/certificados/' + doc.id, { method: 'POST' });
+        const json = await resp.json();
+        if(!resp.ok){
+          throw new Error(json.error);
+        }
+        const enlace = document.createElement('a');
+        enlace.href = json.url;
+        enlace.target = '_blank';
+        enlace.textContent = 'Ver certificado de ' + doc.name;
+        li.appendChild(enlace);
+      } catch (err) {
+        li.textContent = doc.name + ': ERROR - ' + err.message;
+        li.style.color = '#c00';
+      }
+      resultados.appendChild(li);
+    }
+
+    btnGenerate.textContent = 'Generar Certificado Tributario';
+    updateState();
   });
 
   document.querySelectorAll('.nav-item[data-page]').forEach(function(item){
@@ -476,8 +521,7 @@
       console.log('Sección aún no implementada:', item.dataset.page);
     });
   });
-
-  renderDocs('');
+  cargarContratistas();
 </script>
 
 </body>
