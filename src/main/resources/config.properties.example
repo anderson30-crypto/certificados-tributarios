@@ -1,0 +1,4 @@
+# Copiar este archivo como config.properties (misma carpeta) y poner los datos reales.
+url=jdbc:mysql://localhost:3306/certificados_tributarios
+usuario=root
+password=TU_PASSWORD

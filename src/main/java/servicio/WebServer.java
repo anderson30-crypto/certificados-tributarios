@@ -1,7 +1,9 @@
-package com.upb.integrador;
+package servicio;
 
 import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
+
+import conexion.ConexionBD;   
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

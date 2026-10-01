@@ -5,7 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 
-import conexion.conexionBD;
+import conexion.ConexionBD;
 import modelo.Usuario;
 
 
@@ -24,7 +24,7 @@ public class UsuarioDAO {
 
         try {
 
-            Connection con = conexionBD.conectar();
+            Connection con = ConexionBD.conectar();
 
             PreparedStatement ps = con.prepareStatement(sql);
 
@@ -71,7 +71,7 @@ public class UsuarioDAO {
         try {
 
 
-            Connection con = conexionBD.conectar();
+            Connection con = ConexionBD.conectar();
 
             PreparedStatement ps =
             con.prepareStatement(sql);
@@ -149,7 +149,7 @@ public class UsuarioDAO {
 
 
             Connection con =
-            conexionBD.conectar();
+            ConexionBD.conectar();
 
 
             PreparedStatement ps =
@@ -211,7 +211,7 @@ public class UsuarioDAO {
 
 
             Connection con =
-            conexionBD.conectar();
+            ConexionBD.conectar();
 
 
             PreparedStatement ps =
@@ -254,7 +254,7 @@ public class UsuarioDAO {
         try {
 
             Connection con =
-                    conexionBD.conectar();
+                    ConexionBD.conectar();
 
 
             PreparedStatement ps =
@@ -302,7 +302,7 @@ public class UsuarioDAO {
         try {
 
         	Connection con =
-                    conexionBD.conectar();
+                    ConexionBD.conectar();
 
 
             PreparedStatement ps =

@@ -1,15 +1,11 @@
-package Seguridad;
-
-import java.io.ByteArrayOutputStream;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
-import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.sql.Connection;
+package servicio;
 
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import conexion.ConexionBD;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.text.DecimalFormat;
@@ -19,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public class GenerarCertificado2 {
+public class GenerarCertificado {
 
     private static final DecimalFormat FORMATO = new DecimalFormat("#,##0");
 
@@ -35,9 +31,8 @@ public class GenerarCertificado2 {
 
     private static Connection obtenerConexionBD() throws Exception {
         String[] nombresClases = {
-            "Seguridad.ConexionBD2",
-            "ConexionBD2",
-            "seguridad.ConexionBD2"
+            "conexion.ConexionBD",
+            "ConexionBD"
         };
 
         for (String nombreClase : nombresClases) {
@@ -80,7 +75,13 @@ public class GenerarCertificado2 {
                 int anio = rs.getInt("n_anio");
 
                 // Cargar plantilla
-                String html = Files.readString(Paths.get("src/main/resources/plantilla_certificado.html"));
+                String html;
+                try (InputStream plantilla = GenerarCertificado.class.getResourceAsStream("/plantilla_certificado.html")) {
+                    if (plantilla == null) {
+                        throw new Exception("No se encontró plantilla_certificado.html en src/main/resources");
+                    }
+                    html = new String(plantilla.readAllBytes(), StandardCharsets.UTF_8);
+                }
 
                 LocalDate hoy = LocalDate.now();
                 String mes = hoy.getMonth().getDisplayName(TextStyle.FULL, new Locale("es", "ES"));

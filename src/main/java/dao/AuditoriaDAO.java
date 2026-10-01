@@ -1,6 +1,6 @@
 package dao;
 
-import conexion.conexionBD;
+import conexion.ConexionBD;
 import modelo.Auditoria;
 
 import java.sql.Connection;
@@ -26,7 +26,7 @@ public class AuditoriaDAO {
         try {
 
 
-            Connection cn = conexionBD.conectar();
+            Connection cn = ConexionBD.conectar();
 
 
             PreparedStatement ps =
@@ -84,7 +84,7 @@ public class AuditoriaDAO {
         try {
 
 
-            Connection cn = conexionBD.conectar();
+            Connection cn = ConexionBD.conectar();
 
 
             PreparedStatement ps =

@@ -1,13 +1,13 @@
 package prueba;
 
-import conexion.conexionBD;
+import conexion.ConexionBD;
 import java.sql.Connection;
 
 public class PruebaConexion {
 
     public static void main(String[] args) {
 
-        Connection conexion = conexionBD.conectar();
+        Connection conexion = ConexionBD.conectar();
 
         if(conexion != null) {
 

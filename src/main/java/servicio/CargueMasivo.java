@@ -2,7 +2,7 @@ package servicio;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
+import conexion.ConexionBD;
 import java.io.FileInputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -17,7 +17,7 @@ public class CargueMasivo {
 
         try (FileInputStream fis = new FileInputStream(rutaArchivo);
              Workbook workbook = new XSSFWorkbook(fis);
-             Connection conn = ConexionBD2.obtenerConexion()) {
+             Connection conn = ConexionBD.obtenerConexion()) {
 
             Sheet hoja = workbook.getSheetAt(0);
             int filasInsertadas = 0;

@@ -1,7 +1,7 @@
 package dao;
 
 
-import conexion.conexionBD;
+import conexion.ConexionBD;
 import modelo.Certificado;
 
 import java.sql.Connection;
@@ -58,7 +58,7 @@ public class CertificadoDAO {
 
 
             Connection cn =
-                    conexionBD.conectar();
+                    ConexionBD.conectar();
 
 
 
@@ -218,7 +218,7 @@ public class CertificadoDAO {
 
 
             Connection cn =
-                    conexionBD.conectar();
+                    ConexionBD.conectar();
 
 
 
@@ -310,7 +310,7 @@ public class CertificadoDAO {
 
 
             Connection cn =
-                    conexionBD.conectar();
+                    ConexionBD.conectar();
 
 
 

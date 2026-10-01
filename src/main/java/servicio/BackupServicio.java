@@ -1,8 +1,7 @@
 package servicio;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
+import conexion.ConexionBD;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -89,17 +88,7 @@ public class BackupServicio {
 
             // Leer configuración
 
-            Properties propiedades =
-                    new Properties();
-
-
-            InputStream entrada =
-                    new FileInputStream(
-                    "src/conexion/config.properties"
-                    );
-
-
-            propiedades.load(entrada);
+            Properties propiedades = ConexionBD.cargarConfiguracion();
 
 
 

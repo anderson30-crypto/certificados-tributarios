@@ -5,7 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 
-import conexion.conexionBD;
+import conexion.ConexionBD;
 import modelo.Permiso;
 
 
@@ -23,7 +23,7 @@ public class PermisoDAO {
 
         try {
 
-            Connection con = conexionBD.conectar();
+            Connection con = ConexionBD.conectar();
 
             PreparedStatement ps =
             con.prepareStatement(sql);
@@ -69,7 +69,7 @@ public class PermisoDAO {
         try {
 
             Connection con =
-            conexionBD.conectar();
+            ConexionBD.conectar();
 
 
             PreparedStatement ps =
