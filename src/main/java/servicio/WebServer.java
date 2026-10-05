@@ -241,6 +241,7 @@ public class WebServer {
     }
 
     private static void probarConexion() {
+        System.out.println("Probando conexión a " + ConexionBD.describirConexion() + " ...");
         try (Connection conn = ConexionBD.obtenerConexion()) {
             System.out.println("Conexión exitosa a la base de datos");
         } catch (Exception e) {

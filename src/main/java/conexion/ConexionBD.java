@@ -45,11 +45,29 @@ public class ConexionBD {
             throw new SQLException("Error leyendo archivo de configuración: " + e.getMessage(), e);
         }
 
-        return DriverManager.getConnection(
-                propiedades.getProperty("url"),
-                propiedades.getProperty("usuario"),
-                propiedades.getProperty("password")
-        );
+        String url = propiedades.getProperty("url");
+        if (url == null || url.isBlank()) {
+            throw new SQLException("Falta la clave url en config.properties");
+        }
+
+        Properties datos = new Properties();
+        datos.setProperty("user", propiedades.getProperty("usuario", "").trim());
+        datos.setProperty("password", propiedades.getProperty("password", ""));
+        // Sin esto, si MySQL no responde el programa se queda esperando para siempre sin mostrar nada
+        datos.setProperty("connectTimeout", "10000");
+
+        return DriverManager.getConnection(url.trim(), datos);
+    }
+
+    /** Texto para la consola: a qué base y con qué usuario se conecta (nunca la contraseña). */
+    public static String describirConexion() {
+        try {
+            Properties propiedades = cargarConfiguracion();
+            return propiedades.getProperty("url", "(sin url)").trim() +
+                " con el usuario " + propiedades.getProperty("usuario", "(sin usuario)").trim();
+        } catch (IOException e) {
+            return "(no se pudo leer config.properties: " + e.getMessage() + ")";
+        }
     }
 
 
