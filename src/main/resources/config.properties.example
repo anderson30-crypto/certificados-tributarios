@@ -2,3 +2,17 @@
 url=jdbc:mysql://localhost:3306/certificados_tributarios
 usuario=root
 password=TU_PASSWORD
+
+# --- Correo (Office 365 de la universidad) ---
+correo.host=smtp.office365.com
+correo.puerto=587
+correo.usuario=cuenta@upb.edu.co
+# Contraseña de aplicación (no la contraseña normal de la cuenta)
+correo.password=CONTRASENA_DE_APLICACION
+# Office 365 exige cifrado STARTTLS en el puerto 587
+correo.starttls=true
+# Pausa entre correos (milisegundos) para respetar los límites de envío de Exchange
+correo.pausa_ms=2500
+# MODO PRUEBA: si tiene un correo, TODOS los envíos llegan ahí (no a los contratistas).
+# Dejar vacío solo cuando se vaya a enviar a los destinatarios reales.
+correo.redirigir_a=tu_correo@upb.edu.co

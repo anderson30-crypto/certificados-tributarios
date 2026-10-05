@@ -5,6 +5,7 @@ import io.javalin.http.UploadedFile;
 import io.javalin.http.staticfiles.Location;
 
 import conexion.ConexionBD;
+import dao.EnvioCertificadoDAO;
 
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -125,9 +126,17 @@ public class WebServer {
             int id = Integer.parseInt(ctx.pathParam("id"));
 
             try {
-                String rutaPdf = GenerarCertificado.generarParaContratista(id);
-                String nombrePdf = Paths.get(rutaPdf).getFileName().toString();
-                ctx.json(Map.of("exito", true, "archivo", nombrePdf, "url", "/api/certificados/pdf/" + nombrePdf));
+                GenerarCertificado.Resultado resultado = GenerarCertificado.generarParaContratista(id);
+                String nombrePdf = Paths.get(resultado.rutaPdf()).getFileName().toString();
+                Map<String, Object> datos = new EnvioCertificadoDAO().datosParaEnvio(resultado.idCertificado());
+
+                Map<String, Object> respuesta = new HashMap<>();
+                respuesta.put("exito", true);
+                respuesta.put("idCertificado", resultado.idCertificado());
+                respuesta.put("archivo", nombrePdf);
+                respuesta.put("url", "/api/certificados/pdf/" + nombrePdf);
+                respuesta.put("correo", datos.get("correo"));
+                ctx.json(respuesta);
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -149,7 +158,86 @@ public class WebServer {
             ctx.result(Files.newInputStream(ruta));
         });
 
+        // Enviar por correo uno o varios certificados ya generados.
+        // Cuerpo JSON: { "certificados": [1, 2], "cc": "", "asunto": "...", "mensaje": "..." }
+        app.post("/api/correos/enviar", ctx -> {
+            Map<?, ?> cuerpo = ctx.bodyAsClass(Map.class);
+            List<?> ids = (List<?>) cuerpo.get("certificados");
+            String cc = texto(cuerpo.get("cc"));
+            String asunto = texto(cuerpo.get("asunto"));
+            String mensaje = texto(cuerpo.get("mensaje"));
+
+            if (ids == null || ids.isEmpty()) {
+                ctx.status(400).json(Map.of("error", "No se indicó ningún certificado para enviar"));
+                return;
+            }
+
+            CorreoServicio correo;
+            try {
+                correo = new CorreoServicio();
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("error", e.getMessage()));
+                return;
+            }
+
+            EnvioCertificadoDAO envios = new EnvioCertificadoDAO();
+            List<Map<String, Object>> resultados = new ArrayList<>();
+
+            // Uno por uno y con pausa: Exchange limita los correos por minuto.
+            // Si uno falla se registra el error y se sigue con los demás.
+            for (int i = 0; i < ids.size(); i++) {
+                int idCertificado = ((Number) ids.get(i)).intValue();
+                Map<String, Object> resultado = new HashMap<>();
+                resultado.put("idCertificado", idCertificado);
+
+                Map<String, Object> datos = envios.datosParaEnvio(idCertificado);
+                if (datos == null) {
+                    resultado.put("exito", false);
+                    resultado.put("error", "No existe el certificado " + idCertificado);
+                    resultados.add(resultado);
+                    continue;
+                }
+
+                String para = (String) datos.get("correo");
+                resultado.put("contratista", datos.get("nombre"));
+                resultado.put("destino", correo.destinoEfectivo(para));
+
+                try {
+                    correo.enviar(para, cc, asunto, mensaje, Paths.get((String) datos.get("rutaPdf")));
+                    envios.registrar(idCertificado, correo.destinoEfectivo(para), true, null);
+                    resultado.put("exito", true);
+
+                } catch (Exception e) {
+                    envios.registrar(idCertificado, para, false, e.getMessage());
+                    resultado.put("exito", false);
+                    resultado.put("error", e.getMessage());
+                }
+
+                resultados.add(resultado);
+
+                if (i < ids.size() - 1) {
+                    correo.pausa();
+                }
+            }
+
+            ctx.json(Map.of("modoPrueba", correo.modoPrueba(), "resultados", resultados));
+        });
+
+        // Historial de correos enviados (tabla envio_certificado)
+        app.get("/api/correos", ctx -> {
+            try {
+                ctx.json(new EnvioCertificadoDAO().listar());
+            } catch (Exception e) {
+                e.printStackTrace();
+                ctx.status(500).json(Map.of("error", e.getMessage()));
+            }
+        });
+
         System.out.println("Servidor corriendo en http://localhost:7000");
+    }
+
+    private static String texto(Object valor) {
+        return valor == null ? "" : valor.toString();
     }
 
     private static void probarConexion() {

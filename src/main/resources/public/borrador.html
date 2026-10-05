@@ -389,39 +389,60 @@
   </main>
 
 <script>
-  const draft = JSON.parse(sessionStorage.getItem('correoBorrador') || 'null') || {
-    to: 'destinatario@correo.com',
-    subject: 'Entrega de Certificado Tributario',
-    body: 'Adjunto encontrará el certificado tributario solicitado.',
-    attachment: 'Certificado_Tributario.pdf'
-  };
+  const draft = JSON.parse(sessionStorage.getItem('correoBorrador') || 'null');
+  if(!draft || !draft.certificados || draft.certificados.length === 0){
+    alert('No hay ningún correo por revisar. Genera los certificados primero.');
+    window.location.href = 'generar-certificado.html';
+  }
+  const btnEnviar = document.getElementById('btnEnviarFinal');
 
-  document.getElementById('toLine').textContent = draft.to;
+  document.getElementById('toLine').textContent = draft.certificados.map(function(c){
+    return c.contratista + ' <' + (c.correo || 'sin correo') + '>';
+  }).join(', ') + (draft.cc ? '  |  CC: ' + draft.cc : '');
   document.getElementById('subjectTxt').textContent = (draft.subject || 'Entrega del Certificado Tributario').toUpperCase();
   document.getElementById('bodyTxt').textContent = draft.body;
-  document.getElementById('attachTxt').textContent = draft.attachment;
+  document.getElementById('attachTxt').textContent = draft.certificados.map(function(c){ return c.archivo; }).join(', ');
 
-  document.getElementById('btnEnviarFinal').addEventListener('click', function(){
-    const correos = JSON.parse(sessionStorage.getItem('correosEnviados') || 'null') || [];
-    correos.push({
-      to: draft.to,
-      subject: draft.subject,
-      date: new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }),
-      status: 'Enviado'
-    });
-    sessionStorage.setItem('correosEnviados', JSON.stringify(correos));
-    sessionStorage.removeItem('correoBorrador');
-    alert('Correo enviado correctamente a ' + draft.to);
-    window.location.href = 'enviar-correo.html';
+  // Envío real: WebServer -> /api/correos/enviar -> CorreoServicio (SMTP)
+  btnEnviar.addEventListener('click', async function(){
+    btnEnviar.disabled = true;
+    btnEnviar.textContent = 'Enviando ' + draft.certificados.length + ' correo(s)...';
+    try {
+      const resp = await fetch('/api/correos/enviar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          certificados: draft.certificados.map(function(c){ return c.idCertificado; }),
+          cc: draft.cc,
+          asunto: draft.subject,
+          mensaje: draft.body
+        })
+      });
+      const json = await resp.json();
+      if(!resp.ok){
+        throw new Error(json.error);
+      }
+      let resumen = json.modoPrueba ? '(MODO PRUEBA: todo se envió al correo de redirigir_a)\n\n' : '';
+      json.resultados.forEach(function(r){
+        resumen += (r.exito ? 'OK    ' : 'ERROR ') + (r.contratista || ('certificado ' + r.idCertificado)) +
+                   (r.exito ? ' -> ' + r.destino : ': ' + r.error) + '\n';
+      });
+      alert('Resultado del envío:\n\n' + resumen);
+      sessionStorage.removeItem('correoBorrador');
+      sessionStorage.removeItem('certificadosParaEnviar');
+      window.location.href = 'enviar-correo.html';
+    } catch (err) {
+      alert('No se pudo enviar: ' + err.message);
+      btnEnviar.disabled = false;
+      btnEnviar.textContent = 'Enviar';
+    }
   });
-
   document.querySelectorAll('.mail-rail-item[data-page]').forEach(function(item){
     item.addEventListener('click', function(e){
       e.preventDefault();
       console.log('Sección aún no implementada:', item.dataset.page);
     });
   });
-
   document.querySelectorAll('.nav-item[data-page]').forEach(function(item){
     item.addEventListener('click', function(e){
       e.preventDefault();

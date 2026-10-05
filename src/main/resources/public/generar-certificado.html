@@ -413,6 +413,19 @@
   resultados.style.cssText = 'margin-top:16px; line-height:1.9;';
   document.querySelector('.generate-btn-wrap').appendChild(resultados);
 
+  // Botón para pasar a enviar por correo los certificados recién generados
+  const btnCorreo = document.createElement('button');
+  btnCorreo.className = 'btn-generate';
+  btnCorreo.textContent = 'Enviar por correo';
+  btnCorreo.style.cssText = 'display:none; margin-top:12px;';
+  document.querySelector('.generate-btn-wrap').appendChild(btnCorreo);
+  let generados = [];
+  btnCorreo.addEventListener('click', function(){
+    // El formulario de correo lee esta lista (id del certificado, contratista, correo y PDF)
+    sessionStorage.setItem('certificadosParaEnviar', JSON.stringify(generados));
+    window.location.href = 'enviar-correo-formulario.html';
+  });
+
   function mostrarMensaje(texto){
     docGrid.innerHTML = '';
     const p = document.createElement('p');
@@ -490,6 +503,8 @@
     btnGenerate.disabled = true;
     btnGenerate.textContent = 'Generando...';
     resultados.innerHTML = '';
+    generados = [];
+    btnCorreo.style.display = 'none';
 
     for (const doc of seleccionados) {
       const li = document.createElement('li');
@@ -504,6 +519,8 @@
         enlace.target = '_blank';
         enlace.textContent = 'Ver certificado de ' + doc.name;
         li.appendChild(enlace);
+        generados.push({ idCertificado: json.idCertificado, contratista: doc.name,
+                         correo: json.correo, archivo: json.archivo });
       } catch (err) {
         li.textContent = doc.name + ': ERROR - ' + err.message;
         li.style.color = '#c00';
@@ -512,6 +529,7 @@
     }
 
     btnGenerate.textContent = 'Generar Certificado Tributario';
+    btnCorreo.style.display = generados.length > 0 ? 'inline-block' : 'none';
     updateState();
   });
 

@@ -24,22 +24,32 @@ public class GenerarCertificado {
     // Carpeta (en la raíz del proyecto) donde quedan los PDF generados
     public static final String CARPETA_SALIDA = "certificados_generados";
 
+    // Usuario que queda registrado como generador mientras no exista inicio de sesión (tabla usuarios)
+    public static final int ID_USUARIO_SISTEMA = 1;
+
+    // Tabla estados: 2 = Generado
+    private static final int ESTADO_GENERADO = 2;
+
+    // Lo que devuelve la generación: el registro en la tabla certificados y el PDF creado
+    public record Resultado(int idCertificado, String rutaPdf) { }
+
     public static void main(String[] args) {
         try (Connection conn = ConexionBD.obtenerConexion()) {
             int idContratista = obtenerUltimoIdContratista(conn);
-            String rutaPdf = generarParaContratista(idContratista);
-            System.out.println("Certificado generado: " + rutaPdf);
+            Resultado resultado = generarParaContratista(idContratista);
+            System.out.println("Certificado generado: " + resultado.rutaPdf() +
+                " (id_certificado " + resultado.idCertificado() + ")");
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public static String generarParaContratista(int idContratista) throws Exception {
+    public static Resultado generarParaContratista(int idContratista) throws Exception {
 
         try (Connection conn = ConexionBD.obtenerConexion()) {
 
             String sql = "SELECT c.t_primer_apellido, c.t_segundo_apellido, c.t_nombres, " +
-                "c.n_numero_documento, " +
+                "c.n_numero_documento, co.id_contrato, " +
                 "co.n_salario, co.n_honorarios, co.n_servicios, co.n_comisiones, co.n_prestaciones, " +
                 "co.n_pago_viaticos, co.n_gastos, co.n_otros_ingresos, co.n_cesantias_empleado, " +
                 "co.n_cesantias_fondo, co.n_pensiones, co.n_total_ing_brutos, co.n_ret_ica, co.n_anio " +
@@ -56,8 +66,9 @@ public class GenerarCertificado {
                     throw new Exception("No se encontró el contratista con id " + idContratista);
                 }
 
-                String nombreCompleto = rs.getString("t_nombres") + " " +
-                    rs.getString("t_primer_apellido") + " " + rs.getString("t_segundo_apellido");
+                String segundoApellido = rs.getString("t_segundo_apellido");
+                String nombreCompleto = rs.getString("t_nombres") + " " + rs.getString("t_primer_apellido") +
+                    (segundoApellido == null ? "" : " " + segundoApellido);
                 String documento = rs.getString("n_numero_documento");
                 int anio = rs.getInt("n_anio");
 
@@ -104,7 +115,28 @@ public class GenerarCertificado {
                     builder.run();
                 }
 
-                return rutaSalida;
+                int idCertificado = registrarCertificado(conn, rs.getInt("id_contrato"), rutaSalida);
+                return new Resultado(idCertificado, rutaSalida);
+            }
+        }
+    }
+
+    // Deja constancia del PDF en la tabla certificados (la necesita envio_certificado para el historial)
+    private static int registrarCertificado(Connection conn, int idContrato, String rutaPdf) throws Exception {
+        String sql = "INSERT INTO certificados " +
+            "(id_contrato, id_usuario, id_estado, d_fecha_generacion, t_ruta_pdf, t_formato_certificado) " +
+            "VALUES (?, ?, ?, CURDATE(), ?, 'PDF')";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
+            ps.setInt(1, idContrato);
+            ps.setInt(2, ID_USUARIO_SISTEMA);
+            ps.setInt(3, ESTADO_GENERADO);
+            ps.setString(4, rutaPdf);
+            ps.executeUpdate();
+
+            try (ResultSet claves = ps.getGeneratedKeys()) {
+                claves.next();
+                return claves.getInt(1);
             }
         }
     }

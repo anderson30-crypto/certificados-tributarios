@@ -401,61 +401,78 @@
   </main>
 
 <script>
-  let correos = JSON.parse(sessionStorage.getItem('correosEnviados') || 'null') || [
-    { to: 'juan.perez@correo.com', subject: 'Entrega de Certificado Tributario', date: '02 sep. 2026', status: 'Enviado' },
-    { to: 'maria.gomez@correo.com', subject: 'Certificado de Retención en la Fuente', date: '28 ago. 2026', status: 'Enviado' },
-    { to: 'contabilidad@empresa.com', subject: 'Certificado de IVA - Tercer Trimestre', date: '15 ago. 2026', status: 'Enviado' }
-  ];
-
+  // Historial real de envíos (WebServer -> /api/correos -> tabla envio_certificado)
+  let correos = [];
   const mailList = document.getElementById('mailList');
   const searchInput = document.getElementById('searchInput');
 
   function renderList(filter){
     mailList.innerHTML = '';
+    const q = (filter || '').toLowerCase();
     const filtered = correos.filter(function(c){
-      const q = (filter || '').toLowerCase();
-      return c.to.toLowerCase().includes(q) || c.subject.toLowerCase().includes(q);
+      return (c.destino || '').toLowerCase().includes(q) || c.contratista.toLowerCase().includes(q);
     });
-
     if(filtered.length === 0){
       mailList.innerHTML = '<div class="empty-mail">No se encontraron correos.</div>';
       return;
     }
-
-    filtered.slice().reverse().forEach(function(c){
+    filtered.forEach(function(c){
       const li = document.createElement('li');
       li.className = 'mail-item';
       li.innerHTML =
         '<span class="mail-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span>' +
-        '<div class="mail-info">' +
-          '<div class="mail-to">' + c.to + '</div>' +
-          '<div class="mail-subject">' + c.subject + '</div>' +
-        '</div>' +
-        '<span class="mail-date">' + c.date + '</span>' +
-        '<span class="mail-status enviado">' + c.status + '</span>';
+        '<div class="mail-info"><div class="mail-to"></div><div class="mail-subject"></div></div>' +
+        '<span class="mail-date"></span>' +
+        '<span class="mail-status"></span>';
+      li.querySelector('.mail-to').textContent = c.destino || '(sin correo)';
+      li.querySelector('.mail-subject').textContent = c.contratista + (c.error ? ' — ' + c.error : '');
+      li.querySelector('.mail-date').textContent = c.fecha;
+      const estado = li.querySelector('.mail-status');
+      estado.textContent = c.estado;
+      if(c.estado === 'Enviado'){
+        estado.classList.add('enviado');
+      } else {
+        estado.style.color = '#c00';
+      }
       mailList.appendChild(li);
     });
+  }
+
+  async function cargarHistorial(){
+    mailList.innerHTML = '<div class="empty-mail">Cargando...</div>';
+    try {
+      const resp = await fetch('/api/correos');
+      const json = await resp.json();
+      if(!resp.ok){
+        throw new Error(json.error);
+      }
+      correos = json;
+      renderList(searchInput.value);
+    } catch (err) {
+      mailList.innerHTML = '';
+      const div = document.createElement('div');
+      div.className = 'empty-mail';
+      div.textContent = 'No se pudo cargar el historial: ' + err.message;
+      mailList.appendChild(div);
+    }
   }
 
   searchInput.addEventListener('input', function(){
     renderList(searchInput.value);
   });
-
   document.querySelectorAll('.mail-rail-item[data-page]').forEach(function(item){
     item.addEventListener('click', function(e){
       e.preventDefault();
       console.log('Sección aún no implementada:', item.dataset.page);
     });
   });
-
   document.querySelectorAll('.nav-item[data-page]').forEach(function(item){
     item.addEventListener('click', function(e){
       e.preventDefault();
       console.log('Sección aún no implementada:', item.dataset.page);
     });
   });
-
-  renderList('');
+  cargarHistorial();
 </script>
 
 </body>

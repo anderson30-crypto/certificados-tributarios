@@ -364,7 +364,7 @@
 Adjunto encontrará el certificado tributario solicitado. Cualquier inquietud, quedamos atentos.
 
 Cordialmente,
-Universidad Politécnica</textarea>
+Universidad Pontificia Bolivariana</textarea>
       </div>
 
       <div class="compose-actions">
@@ -375,40 +375,54 @@ Universidad Politécnica</textarea>
   </main>
 
 <script>
-  const attachName = sessionStorage.getItem('certFolio')
-    ? 'Certificado_' + sessionStorage.getItem('certFolio') + '.pdf'
-    : 'Certificado_Tributario.pdf';
-  document.getElementById('attachName').textContent = attachName;
+  // Certificados que vienen de "Generar Certificado": [{ idCertificado, contratista, correo, archivo }]
+  const certificados = JSON.parse(sessionStorage.getItem('certificadosParaEnviar') || '[]');
+  const fieldPara = document.getElementById('fieldPara');
+
+  if(certificados.length === 0){
+    alert('Primero genera los certificados en "Generar Certificado" y luego usa "Enviar por correo".');
+    window.location.href = 'generar-certificado.html';
+  }
+
+  // Cada contratista recibe SU certificado en el correo registrado en la base de datos
+  fieldPara.type = 'text';
+  fieldPara.readOnly = true;
+  fieldPara.value = certificados.map(function(c){ return c.correo || '(sin correo: ' + c.contratista + ')'; }).join(', ');
+  fieldPara.title = 'Se usa el correo de cada contratista registrado en la base de datos';
+
+  document.getElementById('attachName').textContent = certificados.length === 1
+    ? certificados[0].archivo
+    : certificados.length + ' certificados (cada contratista recibe el suyo)';
+
+  function leerBorrador(){
+    return {
+      certificados: certificados,
+      cc: document.getElementById('fieldCc').value.trim(),
+      subject: document.getElementById('fieldAsunto').value,
+      body: document.getElementById('fieldMensaje').value
+    };
+  }
+
+  // Si ya había un borrador guardado, se recuperan asunto, CC y mensaje
+  const previo = JSON.parse(sessionStorage.getItem('correoBorrador') || 'null');
+  if(previo){
+    document.getElementById('fieldCc').value = previo.cc || '';
+    document.getElementById('fieldAsunto').value = previo.subject || '';
+    document.getElementById('fieldMensaje').value = previo.body || '';
+  }
 
   document.getElementById('btnGuardarBorrador').addEventListener('click', function(){
-    const draft = {
-      to: document.getElementById('fieldPara').value,
-      cc: document.getElementById('fieldCc').value,
-      subject: document.getElementById('fieldAsunto').value,
-      body: document.getElementById('fieldMensaje').value,
-      attachment: attachName
-    };
-    sessionStorage.setItem('correoBorrador', JSON.stringify(draft));
+    sessionStorage.setItem('correoBorrador', JSON.stringify(leerBorrador()));
     alert('Borrador guardado.');
   });
-
   document.getElementById('btnRevisar').addEventListener('click', function(){
-    const to = document.getElementById('fieldPara').value.trim();
-    if(!to){
-      alert('Ingresa un destinatario antes de continuar.');
+    if(!document.getElementById('fieldAsunto').value.trim()){
+      alert('Escribe un asunto antes de continuar.');
       return;
     }
-    const draft = {
-      to: to,
-      cc: document.getElementById('fieldCc').value,
-      subject: document.getElementById('fieldAsunto').value,
-      body: document.getElementById('fieldMensaje').value,
-      attachment: attachName
-    };
-    sessionStorage.setItem('correoBorrador', JSON.stringify(draft));
+    sessionStorage.setItem('correoBorrador', JSON.stringify(leerBorrador()));
     window.location.href = 'borrador.html';
   });
-
   document.querySelectorAll('.nav-item[data-page]').forEach(function(item){
     item.addEventListener('click', function(e){
       e.preventDefault();
