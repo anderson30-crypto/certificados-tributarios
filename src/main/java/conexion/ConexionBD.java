@@ -3,16 +3,31 @@ package conexion;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Properties;
 
 public class ConexionBD {
 
-    // Archivo con url, usuario y password (no se sube a git, ver config.properties.example).
-    // Maven lo copia de src/main/resources a target/classes, por eso se lee desde el classpath.
+    // Ningún dato sensible va en el código. La configuración se busca en este orden
+    // (lo que se encuentre después reemplaza a lo anterior):
+    //   1. src/main/resources/config.properties  -> desarrollo en el PC (no se sube a git)
+    //   2. el archivo indicado en la variable de entorno CT_CONFIG  -> servidor, fuera del proyecto
+    //   3. variables de entorno CT_...  -> servidor (por ejemplo CT_DB_PASSWORD)
     private static final String CONFIG = "/config.properties";
+
+    // Claves que se pueden definir también como variable de entorno (ver nombreVariable)
+    private static final String[] CLAVES = {
+        "url", "usuario", "password",
+        "correo.host", "correo.puerto", "correo.usuario", "correo.password",
+        "correo.starttls", "correo.pausa_ms", "correo.redirigir_a",
+        "firma.p12.password", "cifrado.clave"
+    };
 
 
     public static Properties cargarConfiguracion() throws IOException {
@@ -20,17 +35,46 @@ public class ConexionBD {
         Properties propiedades = new Properties();
 
         try (InputStream archivo = ConexionBD.class.getResourceAsStream(CONFIG)) {
-
-            if (archivo == null) {
-                throw new FileNotFoundException(
-                    "No se encontró config.properties en src/main/resources (copiar config.properties.example)"
-                );
+            if (archivo != null) {
+                propiedades.load(new InputStreamReader(archivo, StandardCharsets.UTF_8));
             }
+        }
 
-            propiedades.load(archivo);
+        String externo = System.getenv("CT_CONFIG");
+        if (externo != null && !externo.isBlank()) {
+            try (Reader archivo = Files.newBufferedReader(Path.of(externo.trim()), StandardCharsets.UTF_8)) {
+                propiedades.load(archivo);
+            } catch (IOException e) {
+                throw new IOException("No se pudo leer el archivo de CT_CONFIG (" + externo + "): " + e.getMessage(), e);
+            }
+        }
+
+        for (String clave : CLAVES) {
+            String valor = System.getenv(nombreVariable(clave));
+            if (valor != null) {
+                propiedades.setProperty(clave, valor);
+            }
         }
 
         return propiedades;
+    }
+
+    /** Un valor de configuración obligatorio; si falta, el error dice dónde definirlo. */
+    public static String obtener(String clave) throws IOException {
+        String valor = cargarConfiguracion().getProperty(clave);
+        if (valor == null || valor.isBlank()) {
+            throw new IOException("Falta la configuración '" + clave + "': defínala en config.properties " +
+                "o en la variable de entorno " + nombreVariable(clave));
+        }
+        return valor.trim();
+    }
+
+    /** url -> CT_DB_URL, correo.host -> CT_CORREO_HOST, firma.p12.password -> CT_FIRMA_P12_PASSWORD */
+    public static String nombreVariable(String clave) {
+        if (clave.equals("url") || clave.equals("usuario") || clave.equals("password")) {
+            return "CT_DB_" + clave.toUpperCase();
+        }
+        return "CT_" + clave.toUpperCase().replace('.', '_');
     }
 
 
@@ -47,7 +91,8 @@ public class ConexionBD {
 
         String url = propiedades.getProperty("url");
         if (url == null || url.isBlank()) {
-            throw new SQLException("Falta la clave url en config.properties");
+            throw new SQLException("Falta la conexión a la base de datos: defina url, usuario y password en " +
+                "config.properties o las variables de entorno CT_DB_URL, CT_DB_USUARIO y CT_DB_PASSWORD");
         }
 
         Properties datos = new Properties();

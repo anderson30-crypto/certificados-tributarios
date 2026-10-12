@@ -1,18 +1,44 @@
-# Copiar este archivo como config.properties (misma carpeta) y poner los datos reales.
+# =====================================================================
+# Configuración del aplicativo. NINGÚN dato sensible va en el código.
+#
+# En el PC (desarrollo): copiar este archivo como config.properties en esta misma
+# carpeta y poner los datos reales. config.properties NO se sube a git.
+#
+# En el servidor (Red Hat): no usar este archivo dentro del proyecto. Definir las
+# variables de entorno indicadas en cada clave (por ejemplo CT_DB_PASSWORD) o
+# apuntar CT_CONFIG a un archivo externo protegido, por ejemplo:
+#   CT_CONFIG=/etc/certificados-tributarios/config.properties   (permisos 600)
+# Las variables de entorno tienen prioridad sobre los archivos.
+# =====================================================================
+
+# --- Base de datos ---
+# CT_DB_URL
 url=jdbc:mysql://localhost:3306/certificados_tributarios
+# CT_DB_USUARIO
 usuario=root
-password=TU_PASSWORD
+# CT_DB_PASSWORD
+password=Artifex13579?
 
 # --- Correo (Office 365 de la universidad) ---
+# CT_CORREO_HOST
 correo.host=smtp.office365.com
+# CT_CORREO_PUERTO
 correo.puerto=587
+# CT_CORREO_USUARIO
 correo.usuario=cuenta@upb.edu.co
-# Contraseña de aplicación (no la contraseña normal de la cuenta)
-correo.password=CONTRASENA_DE_APLICACION
-# Office 365 exige cifrado STARTTLS en el puerto 587
+# CT_CORREO_PASSWORD  (contraseña de aplicación, no la de la cuenta)
+correo.password=ljppdmwqjhczbpny
+# CT_CORREO_STARTTLS  (Office 365 exige cifrado STARTTLS en el puerto 587)
 correo.starttls=true
-# Pausa entre correos (milisegundos) para respetar los límites de envío de Exchange
+# CT_CORREO_PAUSA_MS  (pausa entre correos para respetar los límites de Exchange)
 correo.pausa_ms=2500
-# MODO PRUEBA: si tiene un correo, TODOS los envíos llegan ahí (no a los contratistas).
+# CT_CORREO_REDIRIGIR_A  MODO PRUEBA: si tiene un correo, TODOS los envíos llegan ahí.
 # Dejar vacío solo cuando se vaya a enviar a los destinatarios reales.
-correo.redirigir_a=tu_correo@upb.edu.co
+correo.redirigir_a=jose.serrano.2021@upb.edu.co
+
+# --- Firma digital y cifrado ---
+# CT_FIRMA_P12_PASSWORD  clave del certificado Seguridad/certificado.p12
+firma.p12.password=CLAVE_DEL_CERTIFICADO_P12
+# CT_CIFRADO_CLAVE  frase de la que se deriva la clave AES de los archivos cifrados.
+# Si ya hay archivos cifrados, debe ser la misma frase con la que se cifraron.
+cifrado.clave=FRASE_LARGA_Y_SECRETA

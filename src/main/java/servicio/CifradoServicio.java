@@ -8,6 +8,7 @@ import java.security.MessageDigest;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 
+import conexion.ConexionBD;
 import dao.CertificadoDAO;
 
 
@@ -15,8 +16,10 @@ import dao.CertificadoDAO;
 public class CifradoServicio {
 
 
-    private String clave =
-            "Certificados1234";
+    // Frase de la clave AES: viene de la configuración (cifrado.clave), nunca del código
+    private String clave() throws java.io.IOException {
+        return ConexionBD.obtener("cifrado.clave");
+    }
 
 
 
@@ -41,7 +44,7 @@ public class CifradoServicio {
 
             byte[] claveBytes =
                     sha.digest(
-                    clave.getBytes("UTF-8")
+                    clave().getBytes("UTF-8")
                     );
 
 

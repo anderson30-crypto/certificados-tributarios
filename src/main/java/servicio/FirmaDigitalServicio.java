@@ -1,5 +1,7 @@
 package servicio;
 
+import conexion.ConexionBD;
+
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -52,8 +54,9 @@ public class FirmaDigitalServicio {
 
 
 
+            // Clave del certificado .p12: viene de la configuración, nunca del código
             String password =
-                    "123456";
+                    ConexionBD.obtener("firma.p12.password");
 
 
 

@@ -36,6 +36,9 @@ public class WebServer {
             config.staticFiles.add("/public", Location.CLASSPATH);
         }).start(7000);
 
+        // La pantalla inicial es el login: http://localhost:7000 lleva directo a login.html
+        app.get("/", ctx -> ctx.redirect("/login.html"));
+
         // Estado de la conexión (sirve para probar desde el navegador)
         app.get("/api/conexion", ctx -> {
             try (Connection conn = ConexionBD.obtenerConexion()) {

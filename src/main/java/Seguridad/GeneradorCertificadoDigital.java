@@ -1,5 +1,7 @@
 package Seguridad;
 
+import conexion.ConexionBD;
+
 import java.io.FileOutputStream;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -7,6 +9,7 @@ import java.security.Security;
 import java.util.Date;
 
 import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -124,13 +127,19 @@ public class GeneradorCertificadoDigital {
             );
 
 
+
+            // Clave del certificado .p12: viene de la configuración, nunca del código
+            char[] claveP12 =
+            ConexionBD.obtener("firma.p12.password").toCharArray();
+
+
             keyStore.setKeyEntry(
 
             "certificado",
 
             keyPair.getPrivate(),
 
-            "123456".toCharArray(),
+            claveP12,
 
             new X509Certificate[]{
             certificado
@@ -149,7 +158,7 @@ public class GeneradorCertificadoDigital {
 
             keyStore.store(
             salida,
-            "123456".toCharArray()
+            claveP12
             );
 
 
