@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
 <title>Sistema de Certificados Tributarios - Iniciar Sesión</title>
 <style>
   :root{
@@ -157,6 +158,11 @@
   .error-msg.show{
     display: block;
   }
+  .login-escudo{
+    display: block;
+    width: 110px;
+    margin: 0 auto 12px;
+  }
 </style>
 </head>
 <body>
@@ -168,6 +174,7 @@
     </div>
 
     <div class="login-body">
+      <img class="login-escudo" src="images/upb-escudo-hd.png" alt="Universidad Pontificia Bolivariana">
       <h1 class="login-title">Iniciar sesión</h1>
 
       <div class="error-msg" id="errorMsg">Usuario o contraseña incorrectos.</div>
@@ -221,7 +228,14 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: username, password: password })
       });
-      const json = await resp.json();
+      let json;
+      try {
+        json = await resp.json();
+      } catch (e) {
+        // La respuesta no viene del WebServer de este proyecto (Live Server, otro puerto o una versión vieja)
+        throw new Error('El servidor no respondió como se esperaba. Abra el sistema en http://localhost:7000 ' +
+          '(no con Live Server) y reinicie el WebServer con la versión actual.');
+      }
       if(!resp.ok){
         throw new Error(json.error || 'No se pudo iniciar sesión.');
       }

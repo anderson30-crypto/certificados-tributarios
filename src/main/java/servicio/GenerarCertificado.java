@@ -15,6 +15,7 @@ import java.sql.ResultSet;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.format.TextStyle;
+import java.util.Base64;
 import java.util.Locale;
 
 public class GenerarCertificado {
@@ -103,7 +104,8 @@ public class GenerarCertificado {
                            .replace("{{CESANTIAS_FONDO}}", formatear(rs.getDouble("n_cesantias_fondo")))
                            .replace("{{PENSIONES}}", formatear(rs.getDouble("n_pensiones")))
                            .replace("{{TOTAL_INGRESOS}}", formatear(rs.getDouble("n_total_ing_brutos")))
-                           .replace("{{RET_ICA}}", formatear(rs.getDouble("n_ret_ica")));
+                           .replace("{{RET_ICA}}", formatear(rs.getDouble("n_ret_ica")))
+                           .replace("{{ESCUDO_UPB}}", escudoUpb());
 
                 Files.createDirectories(Paths.get(CARPETA_SALIDA));
                 String rutaSalida = CARPETA_SALIDA + "/certificado_" + documento + ".pdf";
@@ -139,6 +141,22 @@ public class GenerarCertificado {
                 return claves.getInt(1);
             }
         }
+    }
+
+    private static String escudoBase64;
+
+    // El escudo va dentro del PDF como imagen incrustada (data URI), así funciona igual en
+    // Windows, en Red Hat y dentro del .jar, sin depender de rutas de archivos
+    private static String escudoUpb() throws Exception {
+        if (escudoBase64 == null) {
+            try (InputStream imagen = GenerarCertificado.class.getResourceAsStream("/public/images/upb-escudo-hd.png")) {
+                if (imagen == null) {
+                    throw new Exception("No se encontró public/images/upb-escudo-hd.png en src/main/resources");
+                }
+                escudoBase64 = "data:image/png;base64," + Base64.getEncoder().encodeToString(imagen.readAllBytes());
+            }
+        }
+        return escudoBase64;
     }
 
     private static String formatear(double valor) {

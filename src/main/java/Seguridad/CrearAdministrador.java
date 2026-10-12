@@ -14,7 +14,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 
-
+/**
+ * Crea el primer administrador, o le asigna una contraseña nueva a uno existente.
+ * Se ejecuta a mano una sola vez (Run en VS Code, o java -cp ... Seguridad.CrearAdministrador).
+ * No existe ninguna contraseña por defecto: la escribe quien instala el sistema.
+ */
 public class CrearAdministrador {
 
     private static final int LONGITUD_MINIMA = 10;
@@ -68,10 +72,17 @@ public class CrearAdministrador {
                     System.out.println("Cancelado: las contraseñas no coinciden.");
                     return;
                 }
+                // La consola de Windows puede cambiar tildes y ñ, y entonces la contraseña guardada
+                // no coincidiría con la que se escribe en el navegador
+                for (char c : password) {
+                    if (c < 33 || c > 126) {
+                        System.out.println("Cancelado: use solo letras sin tildes ni ñ, números y símbolos " +
+                            "(sin espacios) en la contraseña.");
+                        return;
+                    }
+                }
 
                 String hash = Autenticacion.hash(new String(password));
-                Arrays.fill(password, ' ');
-                Arrays.fill(confirmacion, ' ');
 
                 if (idExistente != null) {
                     try (PreparedStatement ps = conn.prepareStatement(
@@ -95,6 +106,14 @@ public class CrearAdministrador {
                     }
                     System.out.println("Listo: administrador '" + username + "' creado.");
                 }
+
+                // Comprobación final: el mismo inicio de sesión que usa la página
+                boolean puedeEntrar = Autenticacion.validar(username, new String(password)) != null;
+                Arrays.fill(password, ' ');
+                Arrays.fill(confirmacion, ' ');
+                System.out.println(puedeEntrar
+                    ? "Comprobado: '" + username + "' puede iniciar sesión en http://localhost:7000"
+                    : "ATENCIÓN: el usuario se guardó pero la comprobación de inicio de sesión falló (ver mensaje arriba).");
             }
 
         } catch (Exception e) {
@@ -154,6 +173,12 @@ public class CrearAdministrador {
             return password == null ? new char[0] : password;
         }
         System.out.println("(Aviso: esta consola no puede ocultar lo que escribe)");
-        return leer(mensaje).toCharArray();
+        System.out.print(mensaje);
+        System.out.flush();
+        if (entrada == null) {
+            entrada = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
+        }
+        String linea = entrada.readLine();
+        return linea == null ? new char[0] : linea.toCharArray();
     }
 }

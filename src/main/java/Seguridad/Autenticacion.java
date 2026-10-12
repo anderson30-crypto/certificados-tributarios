@@ -58,6 +58,7 @@ public class Autenticacion {
 
         Long hasta = bloqueadosHasta.get(clave);
         if (hasta != null && hasta > System.currentTimeMillis()) {
+            registrarMotivo(username, "usuario bloqueado por intentos fallidos (se desbloquea solo o reiniciando el WebServer)");
             throw new UsuarioBloqueadoException((hasta - System.currentTimeMillis()) / 60000 + 1);
         }
 
@@ -79,6 +80,11 @@ public class Autenticacion {
                 boolean coincide = BCrypt.checkpw(password, esBcrypt ? hashGuardado : HASH_FALSO) && esBcrypt;
 
                 if (!coincide || !activo) {
+                    // El motivo exacto solo va a la consola del servidor; la pantalla muestra un mensaje genérico
+                    registrarMotivo(username, !existe ? "el usuario no existe en la tabla usuarios"
+                        : !esBcrypt ? "la contraseña guardada no está cifrada con BCrypt; asígnele una nueva con Seguridad.CrearAdministrador"
+                        : !activo ? "el usuario está desactivado (b_estado = 0)"
+                        : "la contraseña no coincide");
                     registrarFallo(clave);
                     return null;
                 }
@@ -95,6 +101,10 @@ public class Autenticacion {
                 );
             }
         }
+    }
+
+    private static void registrarMotivo(String username, String motivo) {
+        System.out.println("Inicio de sesión rechazado para '" + username + "': " + motivo);
     }
 
     private static void registrarFallo(String clave) {
