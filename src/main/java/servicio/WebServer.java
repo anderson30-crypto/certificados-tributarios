@@ -4,7 +4,10 @@ import io.javalin.Javalin;
 import io.javalin.http.UploadedFile;
 import io.javalin.http.staticfiles.Location;
 
+import Seguridad.Autenticacion;
 import conexion.ConexionBD;
+import org.eclipse.jetty.http.HttpCookie;
+import org.eclipse.jetty.server.session.SessionHandler;
 import dao.EnvioCertificadoDAO;
 
 import java.io.InputStream;
@@ -34,10 +37,88 @@ public class WebServer {
 
         Javalin app = Javalin.create(config -> {
             config.staticFiles.add("/public", Location.CLASSPATH);
+
+            // Cookie de sesión: no la puede leer JavaScript (HttpOnly), no viaja desde otros sitios
+            // (SameSite=Strict) y vence tras 30 minutos sin uso
+            config.jetty.modifyServletContextHandler(handler -> {
+                SessionHandler sesiones = handler.getSessionHandler();
+                if (sesiones == null) {
+                    sesiones = new SessionHandler();
+                    handler.setSessionHandler(sesiones);
+                }
+                sesiones.setHttpOnly(true);
+                sesiones.setSameSite(HttpCookie.SameSite.STRICT);
+                sesiones.setMaxInactiveInterval(30 * 60);
+            });
         }).start(7000);
 
         // La pantalla inicial es el login: http://localhost:7000 lleva directo a login.html
         app.get("/", ctx -> ctx.redirect("/login.html"));
+
+        // Control de acceso: sin sesión iniciada solo se puede ver el login (y sus imágenes)
+        app.before(ctx -> {
+            String ruta = ctx.path();
+            boolean conSesion = usuarioActual(ctx) != null;
+
+            if (ruta.equals("/login.html") && conSesion) {
+                ctx.redirect("/inicio.html");
+                ctx.skipRemainingHandlers();
+                return;
+            }
+            if (conSesion || esRutaPublica(ruta)) {
+                return;
+            }
+            if (ruta.startsWith("/api/")) {
+                ctx.status(401).json(Map.of("error", "La sesión no está iniciada o venció. Inicie sesión de nuevo."));
+            } else {
+                ctx.redirect("/login.html");
+            }
+            ctx.skipRemainingHandlers();
+        });
+
+        // Iniciar sesión. Cuerpo JSON: { "username": "...", "password": "..." }
+        app.post("/api/login", ctx -> {
+            Map<?, ?> cuerpo = ctx.bodyAsClass(Map.class);
+            Autenticacion.UsuarioSesion usuario;
+
+            try {
+                usuario = Autenticacion.validar(texto(cuerpo.get("username")), texto(cuerpo.get("password")));
+            } catch (Autenticacion.UsuarioBloqueadoException e) {
+                ctx.status(429).json(Map.of("error", e.getMessage()));
+                return;
+            } catch (Exception e) {
+                e.printStackTrace();
+                ctx.status(500).json(Map.of("error", "No se pudo validar el usuario. Revise la conexión a la base de datos."));
+                return;
+            }
+
+            if (usuario == null) {
+                // Mismo mensaje para usuario inexistente, contraseña mala o usuario inactivo
+                ctx.status(401).json(Map.of("error", "Usuario o contraseña incorrectos."));
+                return;
+            }
+
+            // Sesión nueva al iniciar sesión (evita reutilizar un identificador de sesión anterior)
+            if (ctx.req().getSession(false) != null) {
+                ctx.req().getSession(false).invalidate();
+            }
+            ctx.sessionAttribute(SESION_USUARIO, usuario);
+            ctx.json(Map.of("nombre", usuario.nombre(), "rol", usuario.rol()));
+        });
+
+        // Cerrar sesión
+        app.post("/api/logout", ctx -> {
+            if (ctx.req().getSession(false) != null) {
+                ctx.req().getSession(false).invalidate();
+            }
+            ctx.json(Map.of("ok", true));
+        });
+
+        // Quién inició sesión (lo usan las páginas para mostrar el nombre)
+        app.get("/api/sesion", ctx -> {
+            Autenticacion.UsuarioSesion usuario = usuarioActual(ctx);
+            ctx.json(Map.of("nombre", usuario.nombre(), "rol", usuario.rol(), "username", usuario.username()));
+        });
 
         // Estado de la conexión (sirve para probar desde el navegador)
         app.get("/api/conexion", ctx -> {
@@ -237,6 +318,17 @@ public class WebServer {
         });
 
         System.out.println("Servidor corriendo en http://localhost:7000");
+    }
+
+    private static final String SESION_USUARIO = "usuario";
+
+    static Autenticacion.UsuarioSesion usuarioActual(io.javalin.http.Context ctx) {
+        return ctx.sessionAttribute(SESION_USUARIO);
+    }
+
+    private static boolean esRutaPublica(String ruta) {
+        return ruta.equals("/") || ruta.equals("/login.html") || ruta.equals("/api/login")
+            || ruta.equals("/favicon.ico") || ruta.startsWith("/images/");
     }
 
     private static String texto(Object valor) {

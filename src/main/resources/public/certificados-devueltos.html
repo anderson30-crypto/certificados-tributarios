@@ -45,16 +45,14 @@
   }
 
   .brand .logo-mark{
-    width: 28px;
-    height: 28px;
-    background: #ffffff;
-    border-radius: 3px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    font-size: 13px;
-    color: var(--red);
+  }
+
+  .brand .logo-mark img{
+    height: 30px;
+    width: auto;
+    display: block;
   }
 
   .topbar .page-title{
@@ -270,30 +268,30 @@
 
   <header class="topbar">
     <div class="brand">
-      <div class="logo-mark">UPB</div>
+      <div class="logo-mark"><img src="images/upb-logo.png" alt="UPB"></div>
     </div>
     <div class="page-title">Certificados Devueltos</div>
     <div class="topbar-actions">
-      <a class="icon-btn" title="Notificaciones" href="notificaciones-error.html">🔔<span class="dot"></span></a>
-      <a class="user-chip" href="perfil.html">👤 Usuario</a>
+      <a class="icon-btn" title="Notificaciones" href="notificaciones-error.html"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="dot"></span></a>
+      <a class="user-chip" href="perfil.html"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Usuario</a>
     </div>
   </header>
 
   <nav class="sidebar">
     <a class="nav-item" href="inicio.html">
-      <span class="nav-icon">🏠</span> Inicio
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></span> Inicio
     </a>
     <a class="nav-item" href="subir-documentos.html">
-      <span class="nav-icon">📄</span> Certificados
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span> Certificados
     </a>
-    <a class="nav-item" data-page="historial">
-      <span class="nav-icon">🕘</span> Historial
+    <a class="nav-item" href="historial.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span> Historial
     </a>
-    <a class="nav-item" data-page="configuracion">
-      <span class="nav-icon">⚙️</span> Configuración
+    <a class="nav-item" href="perfil.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Configuración
     </a>
     <a class="nav-item logout" href="login.html">
-      <span class="nav-icon">↪</span> Cerrar Sesión
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span> Cerrar Sesión
     </a>
   </nav>
 
@@ -321,13 +319,17 @@
     }
   ];
 
+  // Los certificados devueltos también deben verse reflejados como
+  // solicitudes "Pendientes" en la sección de Solicitudes.
+  sessionStorage.setItem('certificadosDevueltos', JSON.stringify(devoluciones));
+
   const grid = document.getElementById('devolucionesGrid');
 
   devoluciones.forEach(function(d){
     const card = document.createElement('div');
     card.className = 'devolucion-card';
     card.innerHTML =
-      '<span class="badge-devuelto">● DEVUELTO</span>' +
+      '<span class="badge-devuelto"><svg class="icon" viewBox="0 0 24 24" width="0.5em" height="0.5em" style="vertical-align:0.05em;flex-shrink:0" fill="currentColor"><circle cx="12" cy="12" r="12"/></svg> DEVUELTO</span>' +
       '<div class="cliente">Cliente: ' + d.cliente + '</div>' +
       '<div class="detalle">' +
         'Documento ID: ' + d.documento + '<br>' +
@@ -335,7 +337,7 @@
       '</div>' +
       '<div class="motivo">Motivo: ' + d.motivo + '</div>' +
       '<div class="devolucion-actions">' +
-        '<button class="btn-small download">⬇ Descargar</button>' +
+        '<button class="btn-small download"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Descargar</button>' +
         '<button class="btn-small reenviar">Reenviar</button>' +
       '</div>';
     grid.appendChild(card);
@@ -358,5 +360,6 @@
   });
 </script>
 
+<script src="js/sesion.js"></script>
 </body>
 </html>

@@ -45,16 +45,14 @@
   }
 
   .brand .logo-mark{
-    width: 28px;
-    height: 28px;
-    background: #ffffff;
-    border-radius: 3px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    font-size: 13px;
-    color: var(--red);
+  }
+
+  .brand .logo-mark img{
+    height: 30px;
+    width: auto;
+    display: block;
   }
 
   .topbar .page-title{
@@ -243,30 +241,30 @@
 
   <header class="topbar">
     <div class="brand">
-      <div class="logo-mark">UPB</div>
+      <div class="logo-mark"><img src="images/upb-logo.png" alt="UPB"></div>
     </div>
     <div class="page-title">Notificaciones de Error</div>
     <div class="topbar-actions">
-      <button class="icon-btn" title="Notificaciones" id="notifBtn">🔔</button>
-      <a class="user-chip" href="perfil.html">👤 Usuario</a>
+      <button class="icon-btn" title="Notificaciones" id="notifBtn"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+      <a class="user-chip" href="perfil.html"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Usuario</a>
     </div>
   </header>
 
   <nav class="sidebar">
     <a class="nav-item" href="inicio.html">
-      <span class="nav-icon">🏠</span> Inicio
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></span> Inicio
     </a>
     <a class="nav-item" href="subir-documentos.html">
-      <span class="nav-icon">📄</span> Certificados
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span> Certificados
     </a>
-    <a class="nav-item" data-page="historial">
-      <span class="nav-icon">🕘</span> Historial
+    <a class="nav-item" href="historial.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span> Historial
     </a>
-    <a class="nav-item" data-page="configuracion">
-      <span class="nav-icon">⚙️</span> Configuración
+    <a class="nav-item" href="perfil.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Configuración
     </a>
     <a class="nav-item logout" href="login.html">
-      <span class="nav-icon">↪</span> Cerrar Sesión
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span> Cerrar Sesión
     </a>
   </nav>
 
@@ -275,16 +273,16 @@
 
     <div class="notif-layout">
       <div class="notif-rail">
-        <a class="notif-rail-item active"><span>🔔</span> Todas</a>
-        <a class="notif-rail-item" data-page="vistas"><span>👁️</span> Vistas</a>
-        <a class="notif-rail-item" data-page="enviadas"><span>📤</span> Enviadas</a>
-        <a class="notif-rail-item" data-page="pendientes"><span>⏳</span> Pendientes</a>
-        <a class="notif-rail-item" data-page="papelera"><span>🗑️</span> Papelera</a>
+        <a class="notif-rail-item active"><span><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span> Todas</a>
+        <a class="notif-rail-item" data-page="vistas"><span><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span> Vistas</a>
+        <a class="notif-rail-item" data-page="enviadas"><span><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg></span> Enviadas</a>
+        <a class="notif-rail-item" data-page="pendientes"><span><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12"/><path d="M6 22h12"/><path d="M6 2c0 5 5 5 5 10s-5 5-5 10"/><path d="M18 2c0 5-5 5-5 10s5 5 5 10"/></svg></span> Pendientes</a>
+        <a class="notif-rail-item" data-page="papelera"><span><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></span> Papelera</a>
       </div>
 
       <div class="notif-main">
         <div class="empty-state">
-          <div class="icon">🔕</div>
+          <div class="icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M18.63 13A17.89 17.89 0 0 1 18 8"/><path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"/><path d="M18 8a6 6 0 0 0-9.33-5"/><line x1="1" y1="1" x2="23" y2="23"/></svg></div>
           <h3>No hay notificaciones</h3>
           <p>Aquí verás los errores relacionados con la generación o el envío de certificados.</p>
         </div>
@@ -308,5 +306,6 @@
   });
 </script>
 
+<script src="js/sesion.js"></script>
 </body>
 </html>

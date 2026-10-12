@@ -47,16 +47,14 @@
   }
 
   .login-header .logo-mark{
-    width: 26px;
-    height: 26px;
-    background: #ffffff;
-    border-radius: 3px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    font-size: 13px;
-    color: var(--red);
+  }
+
+  .login-header .logo-mark img{
+    height: 28px;
+    width: auto;
+    display: block;
   }
 
   .login-header .logo-text{
@@ -165,7 +163,7 @@
 
   <div class="login-card">
     <div class="login-header">
-      <div class="logo-mark">IPB</div>
+      <div class="logo-mark"><img src="images/upb-logo.png" alt="UPB"></div>
       <div class="logo-text">Certificados Tributarios</div>
     </div>
 
@@ -196,28 +194,51 @@
   const form = document.getElementById('loginForm');
   const errorMsg = document.getElementById('errorMsg');
   const forgotLink = document.getElementById('forgotLink');
+  const boton = form.querySelector('.btn-submit');
 
-  form.addEventListener('submit', function(e){
+  function mostrarError(texto){
+    errorMsg.textContent = texto;
+    errorMsg.classList.add('show');
+  }
+
+  // Valida usuario y contraseña en el servidor (WebServer -> /api/login -> Autenticacion)
+  form.addEventListener('submit', async function(e){
     e.preventDefault();
     const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value.trim();
+    const password = document.getElementById('password').value;
 
-    // Placeholder de validación - reemplazar con llamada real al backend
     if(!username || !password){
-      errorMsg.textContent = 'Por favor complete todos los campos.';
-      errorMsg.classList.add('show');
+      mostrarError('Por favor complete todos los campos.');
       return;
     }
 
     errorMsg.classList.remove('show');
-    console.log('Intentando iniciar sesión con:', username);
-    // Aquí iría la llamada a la API de autenticación
-    window.location.href = 'inicio.html';
+    boton.disabled = true;
+    boton.textContent = 'Validando...';
+    try {
+      const resp = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username, password: password })
+      });
+      const json = await resp.json();
+      if(!resp.ok){
+        throw new Error(json.error || 'No se pudo iniciar sesión.');
+      }
+      window.location.href = 'inicio.html';
+    } catch (err) {
+      mostrarError(err.message === 'Failed to fetch'
+        ? 'No hay conexión con el servidor. Verifique que el aplicativo esté en ejecución.'
+        : err.message);
+      document.getElementById('password').value = '';
+      boton.disabled = false;
+      boton.textContent = 'Iniciar sesión';
+    }
   });
 
   forgotLink.addEventListener('click', function(e){
     e.preventDefault();
-    alert('Funcionalidad de recuperación de contraseña pendiente de implementar.');
+    alert('Para recuperar el acceso, solicite al administrador del sistema que le asigne una contraseña nueva.');
   });
 </script>
 
