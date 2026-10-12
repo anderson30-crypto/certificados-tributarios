@@ -46,14 +46,16 @@
   }
 
   .brand .logo-mark{
+    width: 28px;
+    height: 28px;
+    background: #ffffff;
+    border-radius: 3px;
     display: flex;
     align-items: center;
-  }
-
-  .brand .logo-mark img{
-    height: 30px;
-    width: auto;
-    display: block;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--red);
   }
 
   .topbar .page-title{
@@ -192,6 +194,182 @@
     touch-action: none;
   }
 
+  .field-label{
+    font-size: 12px;
+    font-weight: 700;
+    text-align: left;
+    margin-bottom: 8px;
+  }
+
+  .field-label .required-mark{
+    color: var(--red);
+  }
+
+  .upload-dropzone{
+    background: var(--gray-bg);
+    border: 2px dashed var(--gray-border);
+    border-radius: 6px;
+    padding: 20px 14px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease;
+  }
+
+  .upload-dropzone.dragover,
+  .upload-dropzone.has-file{
+    border-color: var(--red);
+    background: #FDECEC;
+  }
+
+  .upload-dropzone .upload-icon{
+    font-size: 24px;
+    margin-bottom: 8px;
+    color: var(--text-muted);
+  }
+
+  .upload-dropzone .select-link{
+    color: #2D6CDF;
+    font-size: 12px;
+    text-decoration: underline;
+  }
+
+  .upload-hint{
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    line-height: 1.5;
+    text-align: left;
+  }
+
+  .upload-hint strong{
+    color: var(--text-dark);
+  }
+
+  .upload-error{
+    font-size: 11px;
+    color: var(--red);
+    margin-top: 6px;
+    text-align: left;
+    display: none;
+  }
+
+  .upload-error.show{
+    display: block;
+  }
+
+  .compare-list{
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .compare-list.show{
+    display: flex;
+  }
+
+  .compare-row{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border: 1px solid var(--gray-border);
+    border-radius: 6px;
+    font-size: 11px;
+    background: #ffffff;
+  }
+
+  .compare-row.selected{
+    border-color: var(--green-ok);
+    background: #EAF7EE;
+  }
+
+  .compare-row.discarded{
+    opacity: .55;
+  }
+
+  .compare-row .format-tag{
+    font-weight: 700;
+    width: 32px;
+  }
+
+  .compare-row .compare-name{
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .compare-row .compare-size{
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .compare-row .compare-tag{
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .compare-row.selected .compare-tag{
+    color: var(--green-ok);
+  }
+
+  .compare-row.discarded .compare-tag{
+    color: var(--text-muted);
+  }
+
+  .file-preview{
+    display: none;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: #ffffff;
+    border: 1px solid var(--gray-border);
+    border-radius: 6px;
+    text-align: left;
+  }
+
+  .file-preview.show{
+    display: flex;
+  }
+
+  .file-preview img{
+    height: 40px;
+    max-width: 70px;
+    object-fit: contain;
+    border: 1px solid var(--gray-border);
+    border-radius: 4px;
+    background: var(--gray-bg);
+  }
+
+  .file-preview .file-meta{
+    flex: 1;
+    min-width: 0;
+  }
+
+  .file-preview .file-meta .fname{
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .file-preview .file-meta .fsize{
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .file-preview .remove-file{
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 13px;
+  }
+
   .signature-name{
     font-size: 13px;
     font-weight: 700;
@@ -313,30 +491,30 @@
 
   <header class="topbar">
     <div class="brand">
-      <div class="logo-mark"><img src="images/upb-logo.png" alt="UPB"></div>
+      <div class="logo-mark">UPB</div>
     </div>
     <div class="page-title">Firma Digital</div>
     <div class="topbar-actions">
-      <button class="icon-btn" title="Notificaciones"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="dot"></span></button>
-      <a class="user-chip" href="perfil.html"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Usuario</a>
+      <button class="icon-btn" title="Notificaciones">🔔<span class="dot"></span></button>
+      <a class="user-chip" href="perfil.html">👤 Usuario</a>
     </div>
   </header>
 
   <nav class="sidebar">
     <a class="nav-item" href="inicio.html">
-      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></span> Inicio
+      <span class="nav-icon">🏠</span> Inicio
     </a>
     <a class="nav-item" href="subir-documentos.html">
-      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span> Certificados
+      <span class="nav-icon">📄</span> Certificados
     </a>
-    <a class="nav-item" href="historial.html">
-      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span> Historial
+    <a class="nav-item" data-page="historial">
+      <span class="nav-icon">🕘</span> Historial
     </a>
     <a class="nav-item active" href="perfil.html">
-      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Configuración
+      <span class="nav-icon">⚙️</span> Configuración
     </a>
     <a class="nav-item logout" href="login.html">
-      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span> Cerrar Sesión
+      <span class="nav-icon">↪</span> Cerrar Sesión
     </a>
   </nav>
 
@@ -357,11 +535,36 @@
 
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal-box">
-      <h3>Dibuja tu firma</h3>
-      <div class="signature-canvas-box">
-        <canvas id="sigCanvas"></canvas>
+      <h3>Sube tu firma digital</h3>
+
+      <div class="field-label">Imagen de la firma <span class="required-mark">*</span></div>
+
+      <div class="upload-dropzone" id="dropzone">
+        <div class="upload-icon">⬆️</div>
+        <div class="select-link" id="selectLink">Seleccionar archivo(s)</div>
+        <div class="upload-hint" id="hintText">o arrastra aquí tu firma en .PNG y/o .JPG</div>
+        <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,image/png,image/jpeg" multiple style="display:none">
       </div>
-      <span class="link-clear" id="linkClear">Borrar y volver a intentar</span>
+
+      <div class="upload-hint">
+        Sube tu firma en <strong>.PNG</strong>, en <strong>.JPG</strong>, o ambas a la vez.
+        Si subes las dos versiones, el sistema compara el peso de cada archivo automáticamente
+        y usa solo la más liviana; la otra se descarta. Es obligatorio subir al menos una imagen.
+      </div>
+
+      <div class="upload-error" id="uploadError">Debes subir un archivo .png o .jpg antes de guardar.</div>
+
+      <div class="compare-list" id="compareList"></div>
+
+      <div class="file-preview" id="filePreview">
+        <img id="previewImg" src="" alt="Vista previa de la firma">
+        <div class="file-meta">
+          <div class="fname" id="previewName"></div>
+          <div class="fsize" id="previewSize"></div>
+        </div>
+        <button class="remove-file" id="btnQuitarArchivo" title="Quitar archivos">✕</button>
+      </div>
+
       <div class="modal-actions">
         <button class="btn" id="btnGuardarFirma">Guardar Firma</button>
         <button class="btn btn-secondary" id="btnCancelarFirma">Cancelar</button>
@@ -376,60 +579,165 @@
   const modalOverlay = document.getElementById('modalOverlay');
   const btnGuardarFirma = document.getElementById('btnGuardarFirma');
   const btnCancelarFirma = document.getElementById('btnCancelarFirma');
-  const linkClear = document.getElementById('linkClear');
-  const canvas = document.getElementById('sigCanvas');
-  const ctx = canvas.getContext('2d');
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const hintText = document.getElementById('hintText');
+  const uploadError = document.getElementById('uploadError');
+  const compareList = document.getElementById('compareList');
+  const filePreview = document.getElementById('filePreview');
+  const previewImg = document.getElementById('previewImg');
+  const previewName = document.getElementById('previewName');
+  const previewSize = document.getElementById('previewSize');
+  const btnQuitarArchivo = document.getElementById('btnQuitarArchivo');
 
   let signatureDataUrl = null; // null = sin firma registrada
   let isActive = true;
-  let drawing = false;
+  let pendingFile = null;   // el archivo ganador (más liviano), aún no guardado
+  let pendingFiles = [];    // todos los archivos válidos subidos en esta sesión del modal
 
-  function resizeCanvas(){
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * 2;
-    canvas.height = rect.height * 2;
-    ctx.scale(2, 2);
-    ctx.strokeStyle = '#23262B';
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
+  const allowedTypes = ['image/png', 'image/jpeg'];
+
+  function formatSize(bytes){
+    if(bytes < 1024) return bytes + ' B';
+    if(bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
   }
 
-  function getPos(e){
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return { x: clientX - rect.left, y: clientY - rect.top };
+  function resetUploadState(){
+    pendingFile = null;
+    pendingFiles = [];
+    fileInput.value = '';
+    filePreview.classList.remove('show');
+    compareList.classList.remove('show');
+    compareList.innerHTML = '';
+    dropzone.classList.remove('has-file');
+    hintText.textContent = 'o arrastra aquí tu firma en .PNG y/o .JPG';
+    uploadError.classList.remove('show');
   }
 
-  function startDraw(e){
-    drawing = true;
-    const pos = getPos(e);
-    ctx.beginPath();
-    ctx.moveTo(pos.x, pos.y);
+  // Compara los archivos válidos subidos y escoge el de menor tamaño (más liviano).
+  function pickLightestFile(){
+    if(pendingFiles.length === 0) return null;
+    return pendingFiles.reduce(function(lightest, current){
+      return current.size < lightest.size ? current : lightest;
+    });
   }
 
-  function moveDraw(e){
-    if(!drawing) return;
-    e.preventDefault();
-    const pos = getPos(e);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.stroke();
+  function renderCompareList(){
+    compareList.innerHTML = '';
+
+    if(pendingFiles.length === 0){
+      compareList.classList.remove('show');
+      return;
+    }
+
+    const winner = pickLightestFile();
+
+    if(pendingFiles.length === 1){
+      // Un solo archivo: no hay comparación que mostrar, se usa directamente.
+      compareList.classList.remove('show');
+      return;
+    }
+
+    compareList.classList.add('show');
+    pendingFiles.forEach(function(file){
+      const isWinner = file === winner;
+      const row = document.createElement('div');
+      row.className = 'compare-row ' + (isWinner ? 'selected' : 'discarded');
+      const tag = file.type === 'image/png' ? 'PNG' : 'JPG';
+      row.innerHTML =
+        '<span class="format-tag">' + tag + '</span>' +
+        '<span class="compare-name">' + file.name + '</span>' +
+        '<span class="compare-size">' + formatSize(file.size) + '</span>' +
+        '<span class="compare-tag">' + (isWinner ? '✓ Se usará' : 'Descartado') + '</span>';
+      compareList.appendChild(row);
+    });
   }
 
-  function endDraw(){
-    drawing = false;
+  function applySelection(){
+    pendingFile = pickLightestFile();
+
+    if(!pendingFile){
+      filePreview.classList.remove('show');
+      dropzone.classList.remove('has-file');
+      return;
+    }
+
+    dropzone.classList.add('has-file');
+    hintText.textContent = pendingFiles.length > 1
+      ? 'Se comparó el peso de ambos archivos'
+      : 'Archivo listo para guardar';
+
+    const reader = new FileReader();
+    reader.onload = function(e){
+      previewImg.src = e.target.result;
+      previewName.textContent = pendingFile.name;
+      previewSize.textContent = formatSize(pendingFile.size) + ' · ' + (pendingFile.type === 'image/png' ? 'PNG' : 'JPG') +
+        (pendingFiles.length > 1 ? ' (más liviana de las ' + pendingFiles.length + ' subidas)' : '');
+      filePreview.classList.add('show');
+    };
+    reader.readAsDataURL(pendingFile);
+
+    renderCompareList();
   }
 
-  canvas.addEventListener('mousedown', startDraw);
-  canvas.addEventListener('mousemove', moveDraw);
-  window.addEventListener('mouseup', endDraw);
-  canvas.addEventListener('touchstart', startDraw);
-  canvas.addEventListener('touchmove', moveDraw);
-  canvas.addEventListener('touchend', endDraw);
+  function handleFiles(fileList){
+    const incoming = Array.from(fileList || []);
+    if(incoming.length === 0) return;
 
-  function clearCanvas(){
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const rejected = [];
+    incoming.forEach(function(file){
+      if(!allowedTypes.includes(file.type)){
+        rejected.push(file.name);
+        return;
+      }
+      // Si ya existe un archivo del mismo formato, el nuevo lo reemplaza.
+      pendingFiles = pendingFiles.filter(function(f){ return f.type !== file.type; });
+      pendingFiles.push(file);
+    });
+
+    if(rejected.length > 0){
+      uploadError.textContent = 'Se ignoraron archivos no permitidos: ' + rejected.join(', ') + '. Solo .png o .jpg.';
+      uploadError.classList.add('show');
+    } else {
+      uploadError.classList.remove('show');
+    }
+
+    if(pendingFiles.length > 0){
+      applySelection();
+    }
   }
+
+  dropzone.addEventListener('click', function(){
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', function(e){
+    handleFiles(e.target.files);
+  });
+
+  ['dragover'].forEach(function(evt){
+    dropzone.addEventListener(evt, function(e){
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+  });
+
+  ['dragleave', 'drop'].forEach(function(evt){
+    dropzone.addEventListener(evt, function(e){
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+    });
+  });
+
+  dropzone.addEventListener('drop', function(e){
+    handleFiles(e.dataTransfer.files);
+  });
+
+  btnQuitarArchivo.addEventListener('click', function(e){
+    e.stopPropagation();
+    resetUploadState();
+  });
 
   function renderSignature(){
     if(!signatureDataUrl){
@@ -445,27 +753,31 @@
   }
 
   btnAgregar.addEventListener('click', function(){
+    resetUploadState();
     modalOverlay.classList.add('show');
-    setTimeout(function(){
-      resizeCanvas();
-      clearCanvas();
-    }, 10);
   });
 
   btnCancelarFirma.addEventListener('click', function(){
     modalOverlay.classList.remove('show');
-  });
-
-  linkClear.addEventListener('click', function(){
-    clearCanvas();
+    resetUploadState();
   });
 
   btnGuardarFirma.addEventListener('click', function(){
-    signatureDataUrl = canvas.toDataURL('image/png');
+    if(!pendingFile){
+      uploadError.textContent = 'Debes subir un archivo .png o .jpg antes de guardar.';
+      uploadError.classList.add('show');
+      return;
+    }
+    signatureDataUrl = previewImg.src;
     isActive = true;
     renderSignature();
     modalOverlay.classList.remove('show');
-    console.log('Firma digital guardada');
+    console.log(
+      'Firma digital guardada. Archivo elegido automáticamente por ser más liviano:',
+      pendingFile.name, formatSize(pendingFile.size),
+      pendingFiles.length > 1 ? '(descartado: ' + pendingFiles.filter(f => f !== pendingFile).map(f => f.name).join(', ') + ')' : ''
+    );
+    resetUploadState();
   });
 
   btnEliminar.addEventListener('click', function(){

@@ -45,14 +45,16 @@
   }
 
   .brand .logo-mark{
+    width: 28px;
+    height: 28px;
+    background: #ffffff;
+    border-radius: 3px;
     display: flex;
     align-items: center;
-  }
-
-  .brand .logo-mark img{
-    height: 30px;
-    width: auto;
-    display: block;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--red);
   }
 
   .topbar .page-title{
@@ -302,30 +304,30 @@
 
   <header class="topbar">
     <div class="brand">
-      <div class="logo-mark"><img src="images/upb-logo.png" alt="UPB"></div>
+      <div class="logo-mark">UPB</div>
     </div>
-    <div class="page-title"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="M22 6l-10 7L2 6"/></svg> Correo</div>
+    <div class="page-title">📧 Correo</div>
     <div class="topbar-actions">
-      <a class="icon-btn" title="Notificaciones" href="notificaciones-error.html"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="dot"></span></a>
-      <a class="user-chip" href="perfil.html"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Usuario</a>
+      <a class="icon-btn" title="Notificaciones" href="notificaciones-error.html">🔔<span class="dot"></span></a>
+      <a class="user-chip" href="perfil.html">👤 Usuario</a>
     </div>
   </header>
 
   <nav class="sidebar">
     <a class="nav-item" href="inicio.html">
-      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></span> Inicio
+      <span class="nav-icon">🏠</span> Inicio
     </a>
     <a class="nav-item" href="subir-documentos.html">
-      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span> Certificados
+      <span class="nav-icon">📄</span> Certificados
     </a>
-    <a class="nav-item" href="historial.html">
-      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span> Historial
+    <a class="nav-item" data-page="historial">
+      <span class="nav-icon">🕘</span> Historial
     </a>
-    <a class="nav-item" href="perfil.html">
-      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Configuración
+    <a class="nav-item" data-page="configuracion">
+      <span class="nav-icon">⚙️</span> Configuración
     </a>
     <a class="nav-item logout" href="login.html">
-      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span> Cerrar Sesión
+      <span class="nav-icon">↪</span> Cerrar Sesión
     </a>
   </nav>
 
@@ -348,14 +350,14 @@
         <input type="text" id="fieldAsunto" value="Entrega de Certificado Tributario">
       </div>
 
-      <div class="attach-chip"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3 3 0 0 1 4.24 4.24l-9.2 9.19a1 1 0 0 1-1.41-1.41l8.49-8.48"/></svg> <span id="attachName">Certificado_Tributario.pdf</span></div>
+      <div class="attach-chip">📎 <span id="attachName">Certificado_Tributario.pdf</span></div>
 
       <div class="toolbar">
         <button title="Negrita"><b>B</b></button>
         <button title="Cursiva"><i>I</i></button>
         <button title="Subrayado"><u>U</u></button>
-        <button title="Lista"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
-        <button title="Alinear"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="6" x2="3" y2="6"/><line x1="18" y1="10" x2="6" y2="10"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="18" y1="18" x2="6" y2="18"/></svg></button>
+        <button title="Lista">☰</button>
+        <button title="Alinear">↔</button>
       </div>
 
       <div class="compose-body">
@@ -364,7 +366,7 @@
 Adjunto encontrará el certificado tributario solicitado. Cualquier inquietud, quedamos atentos.
 
 Cordialmente,
-Universidad Pontificia Bolivariana</textarea>
+Universidad Politécnica</textarea>
       </div>
 
       <div class="compose-actions">
@@ -375,54 +377,40 @@ Universidad Pontificia Bolivariana</textarea>
   </main>
 
 <script>
-  // Certificados que vienen de "Generar Certificado": [{ idCertificado, contratista, correo, archivo }]
-  const certificados = JSON.parse(sessionStorage.getItem('certificadosParaEnviar') || '[]');
-  const fieldPara = document.getElementById('fieldPara');
-
-  if(certificados.length === 0){
-    alert('Primero genera los certificados en "Generar Certificado" y luego usa "Enviar por correo".');
-    window.location.href = 'generar-certificado.html';
-  }
-
-  // Cada contratista recibe SU certificado en el correo registrado en la base de datos
-  fieldPara.type = 'text';
-  fieldPara.readOnly = true;
-  fieldPara.value = certificados.map(function(c){ return c.correo || '(sin correo: ' + c.contratista + ')'; }).join(', ');
-  fieldPara.title = 'Se usa el correo de cada contratista registrado en la base de datos';
-
-  document.getElementById('attachName').textContent = certificados.length === 1
-    ? certificados[0].archivo
-    : certificados.length + ' certificados (cada contratista recibe el suyo)';
-
-  function leerBorrador(){
-    return {
-      certificados: certificados,
-      cc: document.getElementById('fieldCc').value.trim(),
-      subject: document.getElementById('fieldAsunto').value,
-      body: document.getElementById('fieldMensaje').value
-    };
-  }
-
-  // Si ya había un borrador guardado, se recuperan asunto, CC y mensaje
-  const previo = JSON.parse(sessionStorage.getItem('correoBorrador') || 'null');
-  if(previo){
-    document.getElementById('fieldCc').value = previo.cc || '';
-    document.getElementById('fieldAsunto').value = previo.subject || '';
-    document.getElementById('fieldMensaje').value = previo.body || '';
-  }
+  const attachName = sessionStorage.getItem('certFolio')
+    ? 'Certificado_' + sessionStorage.getItem('certFolio') + '.pdf'
+    : 'Certificado_Tributario.pdf';
+  document.getElementById('attachName').textContent = attachName;
 
   document.getElementById('btnGuardarBorrador').addEventListener('click', function(){
-    sessionStorage.setItem('correoBorrador', JSON.stringify(leerBorrador()));
+    const draft = {
+      to: document.getElementById('fieldPara').value,
+      cc: document.getElementById('fieldCc').value,
+      subject: document.getElementById('fieldAsunto').value,
+      body: document.getElementById('fieldMensaje').value,
+      attachment: attachName
+    };
+    sessionStorage.setItem('correoBorrador', JSON.stringify(draft));
     alert('Borrador guardado.');
   });
+
   document.getElementById('btnRevisar').addEventListener('click', function(){
-    if(!document.getElementById('fieldAsunto').value.trim()){
-      alert('Escribe un asunto antes de continuar.');
+    const to = document.getElementById('fieldPara').value.trim();
+    if(!to){
+      alert('Ingresa un destinatario antes de continuar.');
       return;
     }
-    sessionStorage.setItem('correoBorrador', JSON.stringify(leerBorrador()));
+    const draft = {
+      to: to,
+      cc: document.getElementById('fieldCc').value,
+      subject: document.getElementById('fieldAsunto').value,
+      body: document.getElementById('fieldMensaje').value,
+      attachment: attachName
+    };
+    sessionStorage.setItem('correoBorrador', JSON.stringify(draft));
     window.location.href = 'borrador.html';
   });
+
   document.querySelectorAll('.nav-item[data-page]').forEach(function(item){
     item.addEventListener('click', function(e){
       e.preventDefault();
