@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Certificados Tributarios - Inicio (Administrador)</title>
+<link rel="stylesheet" href="css/roles.css">
+<script src="js/roles.js"></script>
+</head>
+<body>
+<script>
+  if (CT.guard('admin')) CT.shell({ active:'inicio', title:'Administrador de permisos y auditorías' });
+</script>
+
+<main class="main">
+  <div class="welcome">
+    <h1>Bienvenido al Sistema de Certificados Tributarios</h1>
+    <p>¿Qué deseas hacer hoy?</p>
+  </div>
+
+  <div class="action-grid">
+    <a class="action-card" href="admin-usuarios.html">
+      <span class="card-icon" id="icUsers"></span>
+      Gestionar permisos
+      <small>Consulta y modifica los roles y permisos de cada usuario</small>
+    </a>
+    <a class="action-card" href="admin-auditorias.html">
+      <span class="card-icon" id="icAud"></span>
+      Ver auditorías
+      <small>Revisa el registro de acciones realizadas en el sistema</small>
+    </a>
+  </div>
+</main>
+
+<script>
+  document.getElementById('icUsers').innerHTML = CT.svg(CT.ICON.users);
+  document.getElementById('icAud').innerHTML   = CT.svg(CT.ICON.shield);
+</script>
+</body>
+</html>

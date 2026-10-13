@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
+<script src="js/roles.js"></script>
 <title>Sistema de Certificados Tributarios - Perfil</title>
 <style>
   :root{
@@ -366,6 +366,32 @@
     </div>
   </main>
 
+  <script>
+    /* Jefe de Nómina: misma pantalla que Usuario Nómina, con su propio menú lateral */
+    var __esJefe = false;
+    try { __esJefe = sessionStorage.getItem('ct_rol') === 'jefe'; } catch(e){}
+    if (__esJefe && window.CT){
+      document.querySelector('.topbar').remove();
+      document.querySelector('.sidebar').remove();
+      CT.shell({ active:'perfil', title:'Perfil' });
+    }
+  </script>
+  <script>
+    if (__esJefe){
+      var __u = CT.currentUser();
+      document.getElementById('nombre').value = __u.nombre;
+      document.getElementById('correo').value = __u.correo;
+      document.getElementById('telefono').value = __u.telefono || '';
+      document.getElementById('usernameLabel').textContent = __u.usuario.toUpperCase();
+      document.getElementById('profileForm').addEventListener('submit', function(){
+        var us = CT.usuarios();
+        us.forEach(function(x){ if (x.id === __u.id){ x.nombre = document.getElementById('nombre').value.trim(); x.correo = document.getElementById('correo').value.trim(); x.telefono = document.getElementById('telefono').value.trim(); } });
+        CT.saveUsuarios(us);
+        CT.audit('Perfil', 'Actualización de perfil', 'Datos de contacto actualizados');
+      });
+    }
+  </script>
+
 <script>
   const profileForm = document.getElementById('profileForm');
   const btnCancel = document.getElementById('btnCancel');
@@ -402,6 +428,5 @@
   });
 </script>
 
-<script src="js/sesion.js"></script>
 </body>
 </html>

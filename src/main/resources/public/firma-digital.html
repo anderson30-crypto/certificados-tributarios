@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
+<script src="js/roles.js"></script>
 <title>Sistema de Certificados Tributarios - Firma Digital</title>
 <style>
   :root{
@@ -308,6 +308,23 @@
     .main{ margin-left: 0; }
     .topbar .brand, .topbar-actions{ flex: 0 0 auto; }
   }
+
+  .notice{
+    max-width: 560px;
+    margin: 0 auto 26px;
+    background: #EAF1FD;
+    border: 1px solid #C9DAF8;
+    color: #1F4FA8;
+    font-size: 12px;
+    line-height: 1.45;
+    padding: 10px 14px;
+    border-radius: 6px;
+    text-align: center;
+  }
+  .notice.warn{ background:#FBF3DC; border-color:#F0DFA6; color:#7A5C00; }
+  .notice .notice-link{ text-decoration:underline; cursor:pointer; margin-left:8px; }
+  .field-error{ display:none; color:#C40510; font-size:11.5px; text-align:center; margin-top:8px; }
+  .field-error.show{ display:block; }
 </style>
 </head>
 <body>
@@ -346,6 +363,8 @@
 
     <h2 class="section-title">Firmas Digitales Registradas</h2>
 
+    <div class="notice"><b>Importante:</b> la firma digital debe ser una imagen en formato <b>PNG</b>.</div>
+
     <div class="signature-wrap" id="signatureDisplay">
       <!-- se rellena por JS -->
     </div>
@@ -356,6 +375,17 @@
     </div>
   </main>
 
+  <script>
+    /* Jefe de Nómina: misma pantalla que Usuario Nómina, con su propio menú lateral */
+    var __esJefe = false;
+    try { __esJefe = sessionStorage.getItem('ct_rol') === 'jefe'; } catch(e){}
+    if (__esJefe && window.CT){
+      document.querySelector('.topbar').remove();
+      document.querySelector('.sidebar').remove();
+      CT.shell({ active:'perfil', title:'Firma Digital' });
+    }
+  </script>
+
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal-box">
       <h3>Dibuja tu firma</h3>
@@ -363,6 +393,10 @@
         <canvas id="sigCanvas"></canvas>
       </div>
       <span class="link-clear" id="linkClear">Borrar y volver a intentar</span>
+      <div class="notice" style="margin:14px 0 0;max-width:none">La firma debe ser una imagen en formato <b>PNG</b>. Puedes dibujarla aquí (se guarda como PNG) o subir tu propio archivo .png.</div>
+      <span class="link-clear" id="linkSubirPng">Subir imagen PNG desde mi equipo</span>
+      <input type="file" id="pngInput" accept="image/png,.png" style="display:none">
+      <div class="field-error" id="pngError"></div>
       <div class="modal-actions">
         <button class="btn" id="btnGuardarFirma">Guardar Firma</button>
         <button class="btn btn-secondary" id="btnCancelarFirma">Cancelar</button>
@@ -381,6 +415,7 @@
   const canvas = document.getElementById('sigCanvas');
   const ctx = canvas.getContext('2d');
 
+  const firmaNombre = (typeof __esJefe !== 'undefined' && __esJefe) ? CT.esc(CT.currentUser().nombre) : 'Usuario';
   let signatureDataUrl = null; // null = sin firma registrada
   let isActive = true;
   let drawing = false;
@@ -441,11 +476,12 @@
     btnEliminar.disabled = false;
     signatureDisplay.innerHTML =
       '<div class="signature-canvas-box"><img src="' + signatureDataUrl + '" style="height:80px; max-width:100%;"></div>' +
-      '<div class="signature-name">Usuario</div>' +
+      '<div class="signature-name">' + firmaNombre + '</div>' +
       '<div class="signature-status">Estado: <span class="status-badge ' + (isActive ? 'active' : 'inactive') + '">' + (isActive ? 'Activa' : 'Inactiva') + '</span></div>';
   }
 
   btnAgregar.addEventListener('click', function(){
+    pngError.classList.remove('show');
     modalOverlay.classList.add('show');
     setTimeout(function(){
       resizeCanvas();
@@ -459,6 +495,31 @@
 
   linkClear.addEventListener('click', function(){
     clearCanvas();
+  });
+
+  // Subir una firma propia: solo se aceptan imágenes PNG
+  const pngInput = document.getElementById('pngInput');
+  const pngError = document.getElementById('pngError');
+  document.getElementById('linkSubirPng').addEventListener('click', function(){ pngInput.click(); });
+  pngInput.addEventListener('change', function(){
+    const file = pngInput.files[0];
+    pngInput.value = '';
+    if(!file) return;
+    const esPng = file.type === 'image/png' && /\.png$/i.test(file.name);
+    if(!esPng){
+      pngError.textContent = 'El archivo "' + file.name + '" no es válido. La firma digital debe ser una imagen PNG (.png).';
+      pngError.classList.add('show');
+      return;
+    }
+    pngError.classList.remove('show');
+    const reader = new FileReader();
+    reader.onload = function(){
+      signatureDataUrl = reader.result;
+      isActive = true;
+      renderSignature();
+      modalOverlay.classList.remove('show');
+    };
+    reader.readAsDataURL(file);
   });
 
   btnGuardarFirma.addEventListener('click', function(){
@@ -488,6 +549,5 @@
   renderSignature();
 </script>
 
-<script src="js/sesion.js"></script>
 </body>
 </html>

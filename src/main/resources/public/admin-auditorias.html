@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Certificados Tributarios - Auditorías</title>
+<link rel="stylesheet" href="css/roles.css">
+<script src="js/roles.js"></script>
+</head>
+<body>
+<script>
+  if (CT.guard('admin')) CT.shell({ active:'auditorias', title:'Auditorías' });
+</script>
+
+<main class="main">
+  <div class="breadcrumb">Inicio &nbsp;›&nbsp; Auditorías</div>
+  <h2 class="section-title">Auditorías del sistema</h2>
+  <p class="section-subtitle">Registro de acciones realizadas por todos los usuarios (solo lectura)</p>
+
+  <div class="content-wrap">
+    <div class="toolbar">
+      <input type="text" id="q" placeholder="Buscar por usuario, acción o detalle">
+      <select id="fRol"><option value="">Todos los roles</option></select>
+      <select id="fModulo"><option value="">Todos los módulos</option></select>
+      <input type="date" id="fDesde" title="Desde">
+      <input type="date" id="fHasta" title="Hasta">
+      <button class="btn btn-secondary btn-sm" id="btnCsv">Exportar CSV</button>
+    </div>
+    <div class="result-count" id="count"></div>
+
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>Fecha y hora</th><th>Usuario</th><th>Rol</th><th>Módulo</th><th>Acción</th><th>Detalle</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div class="pager">
+      <button class="btn btn-secondary btn-sm" id="prev">‹ Anterior</button>
+      <span id="pageInfo"></span>
+      <button class="btn btn-secondary btn-sm" id="next">Siguiente ›</button>
+    </div>
+  </div>
+</main>
+
+<script>
+  var $ = function(id){ return document.getElementById(id); };
+  var PAGE = 10, page = 1, filtered = [];
+  var data = CT.auditoria().sort(function(a,b){ return new Date(b.fecha) - new Date(a.fecha); });
+
+  Object.keys(CT.ROLES).forEach(function(k){
+    var o = document.createElement('option'); o.value = k; o.textContent = CT.ROLES[k]; $('fRol').appendChild(o);
+  });
+  var mods = {}; data.forEach(function(d){ mods[d.modulo] = 1; });
+  Object.keys(mods).sort().forEach(function(m){
+    var o = document.createElement('option'); o.textContent = m; $('fModulo').appendChild(o);
+  });
+
+  function apply(){
+    var q = $('q').value.toLowerCase();
+    var desde = $('fDesde').value ? new Date($('fDesde').value + 'T00:00:00') : null;
+    var hasta = $('fHasta').value ? new Date($('fHasta').value + 'T23:59:59') : null;
+    filtered = data.filter(function(d){
+      var f = new Date(d.fecha);
+      return (!q || (d.usuario + ' ' + d.accion + ' ' + d.detalle).toLowerCase().indexOf(q) > -1) &&
+             (!$('fRol').value || d.rol === $('fRol').value) &&
+             (!$('fModulo').value || d.modulo === $('fModulo').value) &&
+             (!desde || f >= desde) && (!hasta || f <= hasta);
+    });
+    page = 1; render();
+  }
+
+  function render(){
+    var pages = Math.max(1, Math.ceil(filtered.length / PAGE));
+    page = Math.min(page, pages);
+    var slice = filtered.slice((page-1) * PAGE, page * PAGE);
+    $('rows').innerHTML = slice.length ? slice.map(function(d){
+      var cls = d.accion.indexOf('fallido') > -1 ? 'err' : (d.modulo === 'Usuarios y permisos' ? 'warn' : 'off');
+      return '<tr><td class="nowrap">' + CT.esc(CT.fmt(d.fecha)) + '</td>' +
+             '<td class="nowrap">' + CT.esc(d.usuario) + '</td>' +
+             '<td class="nowrap">' + CT.esc(({nomina:'Nómina',jefe:'Jefe de Nómina',admin:'Administrador'})[d.rol] || d.rol) + '</td>' +
+             '<td class="nowrap"><span class="badge ' + cls + '">' + CT.esc(d.modulo) + '</span></td>' +
+             '<td class="nowrap">' + CT.esc(d.accion) + '</td>' +
+             '<td>' + CT.esc(d.detalle) + '</td></tr>';
+    }).join('') : '<tr><td colspan="6" class="empty">No se encontraron registros con esos filtros.</td></tr>';
+    $('count').textContent = filtered.length + ' de ' + data.length + ' registros';
+    $('pageInfo').textContent = 'Página ' + page + ' de ' + pages;
+    $('prev').disabled = page <= 1; $('next').disabled = page >= pages;
+  }
+
+  $('prev').addEventListener('click', function(){ page--; render(); });
+  $('next').addEventListener('click', function(){ page++; render(); });
+  ['q','fRol','fModulo','fDesde','fHasta'].forEach(function(id){ $(id).addEventListener('input', apply); });
+
+  $('btnCsv').addEventListener('click', function(){
+    function c(v){ return '"' + String(v).replace(/"/g, '""') + '"'; }
+    var lines = [['Fecha','Usuario','Rol','Módulo','Acción','Detalle'].map(c).join(',')].concat(
+      filtered.map(function(d){ return [CT.fmt(d.fecha), d.usuario, CT.ROLES[d.rol] || d.rol, d.modulo, d.accion, d.detalle].map(c).join(','); }));
+    var blob = new Blob(['\uFEFF' + lines.join('\n')], { type:'text/csv;charset=utf-8' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'auditoria.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    CT.audit('Auditorías', 'Exportación de auditoría', filtered.length + ' registros exportados a CSV');
+    CT.toast('Exportado: ' + filtered.length + ' registros');
+  });
+
+  filtered = data.slice(); render();
+</script>
+</body>
+</html>

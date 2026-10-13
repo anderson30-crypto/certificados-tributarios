@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Certificados Tributarios - Perfil</title>
+<link rel="stylesheet" href="css/roles.css">
+<script src="js/roles.js"></script>
+</head>
+<body>
+<script>
+  if (CT.guard(['jefe','admin'])) CT.shell({ active:'perfil', title:'Perfil' });
+</script>
+
+<main class="main">
+  <div class="breadcrumb">Inicio &nbsp;›&nbsp; Perfil</div>
+  <div class="profile-wrap">
+    <div class="avatar-block">
+      <div class="avatar-circle" id="avatar"></div>
+      <div class="avatar-name" id="uName"></div>
+      <div class="avatar-role" id="uRole"></div>
+    </div>
+
+    <form id="form">
+      <div class="field"><label for="nombre">Nombre</label><input type="text" id="nombre" required></div>
+      <div class="field"><label for="correo">Correo Electrónico</label><input type="email" id="correo" required></div>
+      <div class="field"><label for="telefono">Teléfono</label><input type="tel" id="telefono"></div>
+
+      <div class="field"><label>Permisos asignados</label><div class="chips" id="perms"></div>
+        <div class="hint">Solo el administrador puede modificarlos.</div></div>
+
+      <a class="nav-row" href="cambiar-contrasena.html">Cambiar Contraseña <span>›</span></a>
+
+      <div class="actions-row">
+        <button type="submit" class="btn">Guardar Cambios</button>
+        <button type="button" class="btn btn-secondary" id="btnCancel">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<script>
+  var $ = function(id){ return document.getElementById(id); };
+  var u = CT.currentUser();
+  $('avatar').innerHTML = CT.svg(CT.ICON.user);
+
+  function fillForm(){
+    $('uName').textContent = u.nombre; $('uRole').textContent = CT.ROLES[u.rol];
+    $('nombre').value = u.nombre; $('correo').value = u.correo; $('telefono').value = u.telefono || '';
+    $('perms').innerHTML = u.permisos.length
+      ? u.permisos.map(function(k){ return '<span class="chip">' + CT.esc(CT.permLabel(k)) + '</span>'; }).join('')
+      : '<span class="chip none">Sin permisos</span>';
+  }
+  fillForm();
+
+  $('form').addEventListener('submit', function(e){
+    e.preventDefault();
+    var users = CT.usuarios();
+    users.forEach(function(x){
+      if (x.id === u.id){ x.nombre = $('nombre').value.trim(); x.correo = $('correo').value.trim(); x.telefono = $('telefono').value.trim(); }
+    });
+    CT.saveUsuarios(users);
+    CT.audit('Perfil', 'Actualización de perfil', 'Datos de contacto actualizados');
+    u = CT.currentUser(); fillForm(); CT.toast('Cambios guardados correctamente');
+  });
+  $('btnCancel').addEventListener('click', fillForm);
+</script>
+</body>
+</html>

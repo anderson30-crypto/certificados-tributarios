@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Certificados Tributarios - Usuarios y permisos</title>
+<link rel="stylesheet" href="css/roles.css">
+<script src="js/roles.js"></script>
+</head>
+<body>
+<script>
+  if (CT.guard('admin')) CT.shell({ active:'usuarios', title:'Usuarios y permisos' });
+</script>
+
+<main class="main">
+  <div class="breadcrumb">Inicio &nbsp;›&nbsp; Usuarios y permisos</div>
+  <h2 class="section-title">Usuarios y permisos</h2>
+  <p class="section-subtitle">Roles y permisos asignados a cada usuario del sistema</p>
+
+  <div class="content-wrap">
+    <div class="toolbar">
+      <input type="text" id="q" placeholder="Buscar por nombre, usuario o correo">
+      <select id="fRol"><option value="">Todos los roles</option></select>
+    </div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>Usuario</th><th>Rol</th><th>Permisos</th><th>Estado</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<div class="modal-overlay" id="md">
+  <div class="modal-box">
+    <h3 id="mdTitle">Modificar permisos</h3>
+    <p class="modal-sub" id="mdSub"></p>
+
+    <div class="field">
+      <label for="mRol">Rol</label>
+      <select id="mRol"></select>
+      <div class="hint" id="mRolHint"></div>
+    </div>
+
+    <div id="mPerms"></div>
+
+    <label class="check"><input type="checkbox" id="mActivo"> Usuario activo</label>
+    <div class="hint" id="mActivoHint"></div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="mCancel">Cancelar</button>
+      <button class="btn" id="mSave">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  var $ = function(id){ return document.getElementById(id); };
+  var me = CT.currentUser();
+  var editId = null;
+
+  Object.keys(CT.ROLES).forEach(function(k){
+    [$('fRol'), $('mRol')].forEach(function(s){
+      var o = document.createElement('option'); o.value = k; o.textContent = CT.ROLES[k]; s.appendChild(o);
+    });
+  });
+
+  function render(){
+    var q = $('q').value.toLowerCase(), r = $('fRol').value;
+    var list = CT.usuarios().filter(function(u){
+      return (!r || u.rol === r) && (!q || (u.nombre + ' ' + u.usuario + ' ' + u.correo).toLowerCase().indexOf(q) > -1);
+    });
+    $('rows').innerHTML = list.length ? list.map(function(u){
+      var chips = u.permisos.length
+        ? u.permisos.map(function(k){ return '<span class="chip">' + CT.esc(CT.permLabel(k)) + '</span>'; }).join('')
+        : '<span class="chip none">Sin permisos</span>';
+      return '<tr><td><b>' + CT.esc(u.nombre) + '</b>' + (u.id === me.id ? ' <span class="badge info">Tú</span>' : '') +
+             '<div class="sub">' + CT.esc(u.usuario) + ' · ' + CT.esc(u.correo) + '</div></td>' +
+             '<td class="nowrap">' + CT.esc(CT.ROLES[u.rol]) + '</td>' +
+             '<td><div class="chips">' + chips + '</div></td>' +
+             '<td><span class="badge ' + (u.activo ? 'ok' : 'off') + '">' + (u.activo ? 'Activo' : 'Inactivo') + '</span></td>' +
+             '<td><button class="btn btn-sm" data-id="' + u.id + '">Modificar</button></td></tr>';
+    }).join('') : '<tr><td colspan="5" class="empty">No se encontraron usuarios.</td></tr>';
+    document.querySelectorAll('button[data-id]').forEach(function(b){
+      b.addEventListener('click', function(){ openEdit(parseInt(b.dataset.id, 10)); });
+    });
+  }
+
+  function renderPerms(selected){
+    var groups = {};
+    CT.PERMISOS.forEach(function(p){ (groups[p.grupo] = groups[p.grupo] || []).push(p); });
+    $('mPerms').innerHTML = Object.keys(groups).map(function(g){
+      return '<div class="perm-group"><div class="gname">' + CT.esc(g) + '</div>' +
+        groups[g].map(function(p){
+          return '<label class="check"><input type="checkbox" class="perm" value="' + p.key + '"' +
+                 (selected.indexOf(p.key) > -1 ? ' checked' : '') + '> ' + CT.esc(p.label) + '</label>';
+        }).join('') + '</div>';
+    }).join('');
+  }
+  function checkedPerms(){ return Array.prototype.map.call(document.querySelectorAll('.perm:checked'), function(c){ return c.value; }); }
+
+  function openEdit(id){
+    var u = CT.usuarios().filter(function(x){ return x.id === id; })[0];
+    if (!u) return;
+    editId = id;
+    var self = u.id === me.id;
+    $('mdTitle').textContent = 'Modificar permisos';
+    $('mdSub').textContent = u.nombre + ' · ' + u.usuario;
+    $('mRol').value = u.rol; $('mRol').disabled = self;
+    $('mRolHint').textContent = self ? 'No puedes cambiar tu propio rol.' : 'Al cambiar el rol se cargan los permisos por defecto de ese rol; luego puedes ajustarlos.';
+    $('mActivo').checked = u.activo; $('mActivo').disabled = self;
+    $('mActivoHint').textContent = self ? 'No puedes desactivar tu propia cuenta.' : '';
+    renderPerms(u.permisos);
+    $('md').classList.add('show');
+  }
+  function closeEdit(){ $('md').classList.remove('show'); editId = null; }
+
+  $('mRol').addEventListener('change', function(){ renderPerms(CT.PERMISOS_DEFECTO[$('mRol').value] || []); });
+  $('mCancel').addEventListener('click', closeEdit);
+  $('md').addEventListener('click', function(e){ if (e.target === $('md')) closeEdit(); });
+
+  $('mSave').addEventListener('click', function(){
+    var users = CT.usuarios(), u = users.filter(function(x){ return x.id === editId; })[0];
+    if (!u) return;
+    var antes = u.permisos.slice(), rolAntes = u.rol, actAntes = u.activo;
+    var nuevos = checkedPerms();
+    var self = u.id === me.id;
+
+    // Un administrador no puede quedarse sin acceso a la gestión de permisos
+    if (self && nuevos.indexOf('gestionar_permisos') === -1){
+      CT.toast('No puedes retirarte el permiso "Gestionar permisos".'); return;
+    }
+
+    u.rol = $('mRol').value; u.activo = $('mActivo').checked; u.permisos = nuevos;
+    CT.saveUsuarios(users);
+
+    var add = nuevos.filter(function(k){ return antes.indexOf(k) === -1; }).map(CT.permLabel);
+    var rem = antes.filter(function(k){ return nuevos.indexOf(k) === -1; }).map(CT.permLabel);
+    var cambios = [];
+    if (rolAntes !== u.rol) cambios.push('rol: ' + CT.ROLES[rolAntes] + ' → ' + CT.ROLES[u.rol]);
+    if (add.length) cambios.push('se agregó: ' + add.join(', '));
+    if (rem.length) cambios.push('se retiró: ' + rem.join(', '));
+    if (cambios.length) CT.audit('Usuarios y permisos', 'Modificación de permisos', u.nombre + ' · ' + cambios.join(' · '));
+    if (actAntes !== u.activo) CT.audit('Usuarios y permisos', 'Cambio de estado', u.nombre + ' · ' + (u.activo ? 'activado' : 'desactivado'));
+
+    closeEdit(); render();
+    CT.toast(cambios.length || actAntes !== u.activo ? 'Cambios guardados' : 'Sin cambios');
+  });
+
+  $('q').addEventListener('input', render);
+  $('fRol').addEventListener('change', render);
+  render();
+</script>
+</body>
+</html>

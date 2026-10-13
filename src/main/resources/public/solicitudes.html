@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
+<script src="js/devoluciones.js"></script>
 <title>Sistema de Certificados Tributarios - Solicitudes</title>
 <style>
   :root{
@@ -424,14 +424,15 @@
     { cliente: 'Ana Torres', tipo: 'Certificado de IVA', fecha: '06 sep. 2026', estado: 'proceso' }
   ];
 
-  // Los certificados devueltos por los clientes pasan a Solicitudes como "Pendientes"
-  const devueltos = JSON.parse(sessionStorage.getItem('certificadosDevueltos') || 'null') || [];
-  const solicitudesDevueltas = devueltos.map(function(d){
+  // Todo certificado devuelto por un cliente vuelve a aparecer aquí como "Pendiente"
+  // hasta que se vuelva a generar; entonces pasa a "Completada".
+  const solicitudesDevueltas = Devoluciones.todas().map(function(d){
+    const regenerado = Devoluciones.estaRegenerada(d.id);
     return {
       cliente: d.cliente,
-      tipo: 'Certificado devuelto (Doc. ' + d.documento + ') · ' + d.motivo,
+      tipo: (regenerado ? 'Certificado devuelto regenerado' : 'Certificado devuelto por regenerar') + ' (Doc. ' + d.documento + ') · ' + d.motivo,
       fecha: d.fecha,
-      estado: 'pendientes'
+      estado: regenerado ? 'completadas' : 'pendientes'
     };
   });
 
@@ -500,6 +501,5 @@
   renderSolicitudes();
 </script>
 
-<script src="js/sesion.js"></script>
 </body>
 </html>

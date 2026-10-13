@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
 <title>Sistema de Certificados Tributarios - Subir Documentos</title>
 <style>
   :root{
@@ -322,6 +321,23 @@
     .main{ margin-left: 0; }
     .topbar .brand, .topbar-actions{ flex: 0 0 auto; }
   }
+
+  .notice{
+    max-width: 560px;
+    margin: 0 auto 26px;
+    background: #EAF1FD;
+    border: 1px solid #C9DAF8;
+    color: #1F4FA8;
+    font-size: 12px;
+    line-height: 1.45;
+    padding: 10px 14px;
+    border-radius: 6px;
+    text-align: center;
+  }
+  .notice.warn{ background:#FBF3DC; border-color:#F0DFA6; color:#7A5C00; }
+  .notice .notice-link{ text-decoration:underline; cursor:pointer; margin-left:8px; }
+  .field-error{ display:none; color:#C40510; font-size:11.5px; text-align:center; margin-top:8px; }
+  .field-error.show{ display:block; }
 </style>
 </head>
 <body>
@@ -360,13 +376,16 @@
 
     <h2 class="section-title">Subir Documento</h2>
 
+    <div class="notice"><b>Importante:</b> el archivo debe estar en formato <b>Excel</b> (.xlsx o .xls).</div>
+
     <div class="upload-layout">
       <div class="upload-panel">
         <div class="dropzone" id="dropzone">
           <div class="upload-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
           <div class="select-link" id="selectLink">Seleccionar archivo</div>
-          <div class="hint">o arrastra tu documento aquí</div>
-          <input type="file" id="fileInput" multiple accept=".xlsx" style="display:none">
+          <div class="hint">o arrastra tu archivo Excel aquí</div>
+          <input type="file" id="fileInput" multiple accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none">
+          <div class="field-error" id="fileError"></div>
         </div>
         <button class="btn-upload" id="btnUpload">Subir</button>
       </div>
@@ -393,11 +412,23 @@
   const fileList = document.getElementById('fileList');
   const btnUpload = document.getElementById('btnUpload');
   const btnNext = document.getElementById('btnNext');
-  const hint = dropzone.querySelector('.hint');
-  const HINT_INICIAL = 'o arrastra tu documento aquí';
 
+  const fileError = document.getElementById('fileError');
   let pendingFiles = [];
-  // Cada elemento: { nombre: nombre original, archivo: nombre guardado en el servidor }
+
+  // Solo se aceptan archivos Excel (.xlsx / .xls)
+  function soloExcel(files){
+    const validos = [], rechazados = [];
+    files.forEach(function(f){ (/\.(xlsx|xls)$/i.test(f.name) ? validos : rechazados).push(f); });
+    if(rechazados.length){
+      fileError.textContent = 'Formato no válido: ' + rechazados.map(function(f){ return f.name; }).join(', ') +
+        '. El archivo debe ser de Excel (.xlsx o .xls).';
+      fileError.classList.add('show');
+    } else {
+      fileError.classList.remove('show');
+    }
+    return validos;
+  }
   let uploadedFiles = [];
 
   function renderFileList(){
@@ -406,13 +437,13 @@
       fileList.innerHTML = '<li class="empty-row"></li><li class="empty-row"></li><li class="empty-row"></li>';
       return;
     }
-    uploadedFiles.forEach(function(file, index){
+    uploadedFiles.forEach(function(name, index){
       const li = document.createElement('li');
       li.className = 'file-item';
-      li.innerHTML = '<span class="file-name"></span><button class="remove-file" data-index="' + index + '"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>';
-      li.querySelector('.file-name').textContent = file.nombre;
+      li.innerHTML = '<span class="file-name">' + name + '</span><button class="remove-file" data-index="' + index + '"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>';
       fileList.appendChild(li);
     });
+
     document.querySelectorAll('.remove-file').forEach(function(btn){
       btn.addEventListener('click', function(){
         const idx = parseInt(btn.getAttribute('data-index'), 10);
@@ -422,101 +453,57 @@
     });
   }
 
-  function prepararArchivos(files){
-    pendingFiles = files.filter(function(f){ return f.name.toLowerCase().endsWith('.xlsx'); });
-    if(pendingFiles.length < files.length){
-      alert('Solo se aceptan sábanas en Excel (.xlsx). Se ignoraron los demás archivos.');
-    }
-    hint.textContent = pendingFiles.length > 0
-      ? pendingFiles.length + ' archivo(s) listo(s) para subir'
-      : HINT_INICIAL;
-  }
-
   dropzone.addEventListener('click', function(){
     fileInput.click();
   });
+
   fileInput.addEventListener('change', function(e){
-    prepararArchivos(Array.from(e.target.files));
+    pendingFiles = soloExcel(Array.from(e.target.files));
+    if(pendingFiles.length === 0){ fileInput.value = ''; dropzone.querySelector('.hint').textContent = 'o arrastra tu archivo Excel aquí'; return; }
+    dropzone.querySelector('.hint').textContent = pendingFiles.length + ' archivo(s) listo(s) para subir';
   });
+
   ['dragover'].forEach(function(evt){
     dropzone.addEventListener(evt, function(e){
       e.preventDefault();
       dropzone.classList.add('dragover');
     });
   });
+
   ['dragleave', 'drop'].forEach(function(evt){
     dropzone.addEventListener(evt, function(e){
       e.preventDefault();
       dropzone.classList.remove('dragover');
     });
   });
+
   dropzone.addEventListener('drop', function(e){
-    prepararArchivos(Array.from(e.dataTransfer.files));
+    pendingFiles = soloExcel(Array.from(e.dataTransfer.files));
+    if(pendingFiles.length === 0){ dropzone.querySelector('.hint').textContent = 'o arrastra tu archivo Excel aquí'; return; }
+    dropzone.querySelector('.hint').textContent = pendingFiles.length + ' archivo(s) listo(s) para subir';
   });
 
-  // "Subir": envía cada archivo al servidor (WebServer -> /api/sabana), que lo guarda en la carpeta "subidas"
-  btnUpload.addEventListener('click', async function(){
+  btnUpload.addEventListener('click', function(){
     if(pendingFiles.length === 0){
-      alert('Selecciona o arrastra al menos una sábana (.xlsx) antes de subir.');
+      alert('Selecciona o arrastra al menos un archivo Excel (.xlsx o .xls) antes de subir.');
       return;
     }
-    btnUpload.disabled = true;
-    hint.textContent = 'Subiendo...';
-    try {
-      for (const f of pendingFiles) {
-        const datos = new FormData();
-        datos.append('archivo', f);
-        const resp = await fetch('/api/sabana', { method: 'POST', body: datos });
-        const json = await resp.json();
-        if(!resp.ok){
-          throw new Error(json.error || 'No se pudo subir ' + f.name);
-        }
-        uploadedFiles.push({ nombre: json.nombre, archivo: json.archivo });
-      }
-    } catch (err) {
-      alert('Error al subir: ' + err.message);
-    } finally {
-      pendingFiles = [];
-      fileInput.value = '';
-      hint.textContent = HINT_INICIAL;
-      btnUpload.disabled = false;
-      renderFileList();
-    }
+    pendingFiles.forEach(function(f){
+      uploadedFiles.push(f.name);
+    });
+    pendingFiles = [];
+    dropzone.querySelector('.hint').textContent = 'o arrastra tu archivo Excel aquí';
+    fileInput.value = '';
+    renderFileList();
   });
 
-  // "Siguiente": ejecuta el CargueMasivo con cada sábana subida y luego pasa a generar certificados
-  btnNext.addEventListener('click', async function(){
+  btnNext.addEventListener('click', function(){
     if(uploadedFiles.length === 0){
-      alert('Debes subir al menos una sábana para continuar.');
+      alert('Debes subir al menos un archivo Excel para continuar.');
       return;
     }
-    btnNext.disabled = true;
-    btnNext.textContent = 'Cargando datos...';
-    let resumen = '';
-    let huboErrorGrave = false;
-    try {
-      for (const file of uploadedFiles) {
-        const resp = await fetch('/api/sabana/' + encodeURIComponent(file.archivo) + '/cargar', { method: 'POST' });
-        const json = await resp.json();
-        if(!resp.ok){
-          huboErrorGrave = true;
-          resumen += file.nombre + ': ERROR - ' + json.error + '\n';
-          continue;
-        }
-        resumen += file.nombre + ': ' + json.insertados + ' nuevos, ' + json.actualizados + ' actualizados, ' +
-                   json.errores.length + ' con error\n';
-        json.errores.forEach(function(e){ resumen += '   - ' + e + '\n'; });
-      }
-    } catch (err) {
-      huboErrorGrave = true;
-      resumen += 'Error de comunicación con el servidor: ' + err.message;
-    }
-    alert('Resultado del cargue:\n\n' + resumen);
-    btnNext.disabled = false;
-    btnNext.textContent = 'Siguiente ›';
-    if(!huboErrorGrave){
-      window.location.href = 'generar-certificado.html';
-    }
+    console.log('Continuar con documentos:', uploadedFiles);
+    window.location.href = 'generar-certificado.html';
   });
 
   document.querySelectorAll('.nav-item[data-page]').forEach(function(item){
@@ -527,6 +514,5 @@
   });
 </script>
 
-<script src="js/sesion.js"></script>
 </body>
 </html>

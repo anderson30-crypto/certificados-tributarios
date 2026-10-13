@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Certificados Tributarios - Historial de Nómina</title>
+<link rel="stylesheet" href="css/roles.css">
+<script src="js/roles.js"></script>
+</head>
+<body>
+<script>
+  if (CT.guard('jefe')) CT.shell({ active:'historial', title:'Historial de Nómina' });
+</script>
+
+<main class="main">
+  <div class="breadcrumb">Inicio &nbsp;›&nbsp; Historial de Nómina</div>
+  <h2 class="section-title">Historial de actividad de Nómina</h2>
+  <p class="section-subtitle">Consulta de lo realizado por el Usuario Nómina (solo lectura)</p>
+
+  <div class="content-wrap">
+    <div class="stats" id="stats"></div>
+
+    <div class="toolbar">
+      <input type="text" id="q" placeholder="Buscar por usuario, acción o detalle">
+      <select id="fUsuario"><option value="">Todos los usuarios</option></select>
+      <select id="fAccion"><option value="">Todas las acciones</option></select>
+      <select id="fEstado">
+        <option value="">Todos los estados</option>
+        <option>Completado</option><option>Con error</option>
+      </select>
+      <input type="date" id="fDesde" title="Desde">
+      <input type="date" id="fHasta" title="Hasta">
+    </div>
+    <div class="result-count" id="count"></div>
+
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>Fecha y hora</th><th>Usuario</th><th>Acción</th><th>Detalle</th><th>Estado</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+  var data = CT.actividad().sort(function(a,b){ return new Date(b.fecha) - new Date(a.fecha); });
+
+  function fill(sel, key){
+    var seen = {}; data.forEach(function(d){ seen[d[key]] = 1; });
+    Object.keys(seen).sort().forEach(function(v){
+      var o = document.createElement('option'); o.textContent = v; sel.appendChild(o);
+    });
+  }
+  fill(document.getElementById('fUsuario'), 'usuario');
+  fill(document.getElementById('fAccion'),  'accion');
+
+  var els = ['q','fUsuario','fAccion','fEstado','fDesde','fHasta'].reduce(function(o,id){ o[id]=document.getElementById(id); return o; }, {});
+
+  function render(){
+    var q = els.q.value.toLowerCase();
+    var desde = els.fDesde.value ? new Date(els.fDesde.value + 'T00:00:00') : null;
+    var hasta = els.fHasta.value ? new Date(els.fHasta.value + 'T23:59:59') : null;
+    var list = data.filter(function(d){
+      var f = new Date(d.fecha);
+      return (!q || (d.usuario + ' ' + d.accion + ' ' + d.detalle).toLowerCase().indexOf(q) > -1) &&
+             (!els.fUsuario.value || d.usuario === els.fUsuario.value) &&
+             (!els.fAccion.value  || d.accion  === els.fAccion.value) &&
+             (!els.fEstado.value  || d.estado  === els.fEstado.value) &&
+             (!desde || f >= desde) && (!hasta || f <= hasta);
+    });
+
+    var tb = document.getElementById('rows');
+    tb.innerHTML = list.length ? list.map(function(d){
+      var cls = d.estado === 'Completado' ? 'ok' : 'err';
+      var rep = d.rol === 'jefe' ? ' <span class="badge info">Jefe</span>' : '';
+      return '<tr><td class="nowrap">' + CT.esc(CT.fmt(d.fecha)) + '</td>' +
+             '<td class="nowrap">' + CT.esc(d.usuario) + rep + '</td>' +
+             '<td class="nowrap">' + CT.esc(d.accion) + '</td>' +
+             '<td>' + CT.esc(d.detalle) + '</td>' +
+             '<td><span class="badge ' + cls + '">' + CT.esc(d.estado) + '</span></td></tr>';
+    }).join('') : '<tr><td colspan="5" class="empty">No se encontraron registros con esos filtros.</td></tr>';
+
+    document.getElementById('count').textContent = list.length + ' de ' + data.length + ' registros';
+
+    var cnt = function(a){ return list.filter(function(d){ return d.accion === a; }).length; };
+    var errores = list.filter(function(d){ return d.estado === 'Con error'; }).length;
+    document.getElementById('stats').innerHTML = [
+      [cnt('Generar certificado'), 'Certificados generados'],
+      [cnt('Enviar certificado'),  'Certificados enviados'],
+      [cnt('Cargar Excel'),        'Cargas de Excel'],
+      [errores,                    'Acciones con error']
+    ].map(function(s){ return '<div class="stat"><div class="n">' + s[0] + '</div><div class="l">' + s[1] + '</div></div>'; }).join('');
+  }
+
+  Object.keys(els).forEach(function(k){ els[k].addEventListener('input', render); });
+  render();
+  CT.audit('Historial', 'Consulta de historial', 'Revisó la actividad del Usuario Nómina');
+</script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
+<script src="js/devoluciones.js"></script>
 <title>Sistema de Certificados Tributarios - Certificado Generado</title>
 <style>
   :root{
@@ -269,7 +269,7 @@
 
   <header class="topbar">
     <div class="brand">
-      <div class="logo-mark"><img src="images/upb-escudo-hd.png" alt="UPB"></div>
+      <div class="logo-mark"><img src="images/images.png" alt="UPB"></div>
     </div>
     <div class="page-title">Certificados</div>
     <div class="topbar-actions">
@@ -353,6 +353,20 @@
     certList.appendChild(card);
   });
 
+  // Si este certificado se generó para reemplazar uno devuelto, la devolución queda resuelta
+  const regenId = sessionStorage.getItem('regenerarDevuelto');
+  if(regenId){
+    const dev = Devoluciones.buscar(regenId);
+    Devoluciones.marcarRegenerada(regenId);
+    sessionStorage.removeItem('regenerarDevuelto');
+    if(dev){
+      const aviso = document.createElement('div');
+      aviso.style.cssText = 'font-size:12px;color:#6B7078;text-align:center;margin:-8px 0 16px';
+      aviso.innerHTML = 'Certificado devuelto de <b>' + dev.cliente + '</b> regenerado. Su solicitud pasó a <b>Completada</b>.';
+      certList.parentNode.insertBefore(aviso, certList);
+    }
+  }
+
   sessionStorage.setItem('certFolio', folios[0]);
   sessionStorage.setItem('certFecha', fecha);
   sessionStorage.setItem('certFolios', JSON.stringify(folios));
@@ -365,6 +379,5 @@
   });
 </script>
 
-<script src="js/sesion.js"></script>
 </body>
 </html>

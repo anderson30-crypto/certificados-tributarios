@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Certificados Tributarios - Inicio (Jefe de Nómina)</title>
+<link rel="stylesheet" href="css/roles.css">
+<script src="js/roles.js"></script>
+</head>
+<body>
+<script>
+  if (CT.guard('jefe')) CT.shell({ active:'inicio', title:'Jefe de Nómina' });
+</script>
+
+<main class="main">
+  <div class="welcome">
+    <h1>Bienvenido al Sistema de Certificados Tributarios</h1>
+    <p>¿Qué deseas hacer hoy?</p>
+  </div>
+
+  <div class="action-grid">
+    <a class="action-card" href="jefe-historial.html">
+      <span class="card-icon" id="icHist"></span>
+      Historial de Nómina
+      <small>Revisa lo que ha hecho el Usuario Nómina</small>
+    </a>
+    <a class="action-card" href="jefe-firmar.html">
+      <span class="count-badge" id="pendBadge" style="display:none">0</span>
+      <span class="card-icon" id="icFirma"></span>
+      Firmar certificados
+      <small>Disponible cuando el Usuario Nómina no se encuentre</small>
+    </a>
+  </div>
+
+  <div class="status-line" id="statusLine"></div>
+</main>
+
+<script>
+  document.getElementById('icHist').innerHTML  = CT.svg(CT.ICON.clock);
+  document.getElementById('icFirma').innerHTML = CT.svg(CT.ICON.pen);
+
+  var pend = CT.pendientes().filter(function(p){ return p.estado === 'pendiente'; }).length;
+  var badge = document.getElementById('pendBadge');
+  if (pend > 0){ badge.textContent = pend; badge.style.display = 'flex'; }
+
+  var est = CT.nominaEstado();
+  document.getElementById('statusLine').innerHTML = est.disponible
+    ? 'Usuario Nómina: <span class="badge ok">Disponible</span>'
+    : 'Usuario Nómina: <span class="badge warn">No disponible</span> · ' + CT.esc(est.motivo || '');
+</script>
+</body>
+</html>

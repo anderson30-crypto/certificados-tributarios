@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Certificados Tributarios - Firmar certificados</title>
+<link rel="stylesheet" href="css/roles.css">
+<script src="js/roles.js"></script>
+</head>
+<body>
+<script>
+  if (CT.guard('jefe')) CT.shell({ active:'firmar', title:'Firmar certificados' });
+</script>
+
+<main class="main">
+  <div class="breadcrumb">Inicio &nbsp;›&nbsp; Firmar certificados</div>
+  <h2 class="section-title">Firma en reemplazo del Usuario Nómina</h2>
+  <p class="section-subtitle">Solo puedes firmar cuando el Usuario Nómina se encuentra no disponible</p>
+
+  <div class="content-wrap">
+    <div class="status-card" id="statusCard"></div>
+
+    <div class="sub-title">Certificados pendientes de firma</div>
+    <div class="toolbar">
+      <span class="result-count" id="selCount" style="margin:0"></span>
+      <span class="spacer"></span>
+      <button class="btn btn-sm" id="btnFirmarSel" disabled>Firmar seleccionados</button>
+    </div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr>
+          <th style="width:34px"><input type="checkbox" id="chkAll" aria-label="Seleccionar todos"></th>
+          <th>Folio</th><th>Certificado</th><th>Generado por</th><th>Fecha</th><th></th>
+        </tr></thead>
+        <tbody id="pendRows"></tbody>
+      </table>
+    </div>
+
+    <div class="sub-title">Firmados recientemente</div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>Folio</th><th>Certificado</th><th>Firmado por</th><th>Fecha de firma</th></tr></thead>
+        <tbody id="doneRows"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- Modal: marcar no disponible -->
+<div class="modal-overlay" id="mdAusencia">
+  <div class="modal-box">
+    <h3>Registrar ausencia del Usuario Nómina</h3>
+    <p class="modal-sub">Esto habilita la firma en reemplazo y queda registrado en auditoría.</p>
+    <div class="field">
+      <label for="motivo">Motivo</label>
+      <select id="motivo">
+        <option>Incapacidad médica</option><option>Vacaciones</option>
+        <option>Licencia</option><option>Otro</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="nota">Observación (opcional)</label>
+      <textarea id="nota" rows="2" maxlength="200"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" data-close>Cancelar</button>
+      <button class="btn" id="btnGuardarAusencia">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: confirmar firma -->
+<div class="modal-overlay" id="mdFirma">
+  <div class="modal-box">
+    <h3>Confirmar firma</h3>
+    <p class="modal-sub" id="firmaResumen"></p>
+    <label class="check"><input type="checkbox" id="chkConfirma">
+      Confirmo que firmo en reemplazo del Usuario Nómina, quien no se encuentra disponible.</label>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" data-close>Cancelar</button>
+      <button class="btn" id="btnConfirmarFirma" disabled>Firmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  var $ = function(id){ return document.getElementById(id); };
+  var user = CT.currentUser();
+  var porFirmar = [];          // folios en el modal de firma
+
+  function openM(id){ $(id).classList.add('show'); }
+  function closeM(){ document.querySelectorAll('.modal-overlay').forEach(function(m){ m.classList.remove('show'); }); }
+  document.querySelectorAll('[data-close]').forEach(function(b){ b.addEventListener('click', closeM); });
+  document.querySelectorAll('.modal-overlay').forEach(function(m){
+    m.addEventListener('click', function(e){ if (e.target === m) closeM(); });
+  });
+
+  function renderEstado(){
+    var e = CT.nominaEstado(), c = $('statusCard');
+    if (e.disponible){
+      c.className = 'status-card disponible';
+      c.innerHTML = '<span class="dot-lg"></span><div class="info"><b>Usuario Nómina disponible</b>' +
+        '<div>La firma la realiza el Usuario Nómina. La firma en reemplazo está deshabilitada.</div></div>' +
+        '<button class="btn btn-secondary btn-sm" id="btnAusente">Registrar ausencia</button>';
+      $('btnAusente').addEventListener('click', function(){ openM('mdAusencia'); });
+    } else {
+      c.className = 'status-card ausente';
+      c.innerHTML = '<span class="dot-lg"></span><div class="info"><b>Usuario Nómina no disponible</b>' +
+        '<div>' + CT.esc(e.motivo) + (e.nota ? ' · ' + CT.esc(e.nota) : '') + ' · desde ' + CT.esc(CT.fmt(e.desde)) +
+        ' · Puedes firmar en su reemplazo</div></div>' +
+        '<button class="btn btn-secondary btn-sm" id="btnReactivar">Marcar como disponible</button>';
+      $('btnReactivar').addEventListener('click', function(){
+        CT.saveNominaEstado({ disponible:true });
+        CT.audit('Firma digital', 'Disponibilidad de Nómina', 'Usuario Nómina marcado como disponible');
+        CT.toast('Usuario Nómina marcado como disponible'); renderAll();
+      });
+    }
+  }
+
+  function renderTablas(){
+    var puedeFirmar = !CT.nominaEstado().disponible;
+    var all = CT.pendientes();
+    var pend = all.filter(function(p){ return p.estado === 'pendiente'; });
+    var done = all.filter(function(p){ return p.estado === 'firmado'; })
+                  .sort(function(a,b){ return new Date(b.fechaFirma) - new Date(a.fechaFirma); });
+
+    $('pendRows').innerHTML = pend.length ? pend.map(function(p){
+      return '<tr><td><input type="checkbox" class="chk" value="' + CT.esc(p.folio) + '"' + (puedeFirmar ? '' : ' disabled') + '></td>' +
+        '<td class="nowrap">' + CT.esc(p.folio) + '</td><td>' + CT.esc(p.nombre) + '</td>' +
+        '<td class="nowrap">' + CT.esc(p.generadoPor) + '</td><td class="nowrap">' + CT.esc(CT.fmt(p.fecha)) + '</td>' +
+        '<td><button class="btn btn-sm btn-firmar" data-folio="' + CT.esc(p.folio) + '"' + (puedeFirmar ? '' : ' disabled title="El Usuario Nómina está disponible"') + '>Firmar</button></td></tr>';
+    }).join('') : '<tr><td colspan="6" class="empty">No hay certificados pendientes de firma.</td></tr>';
+
+    $('doneRows').innerHTML = done.length ? done.map(function(p){
+      return '<tr><td class="nowrap">' + CT.esc(p.folio) + '</td><td>' + CT.esc(p.nombre) + '</td>' +
+        '<td class="nowrap">' + CT.esc(p.firmadoPor) + (p.enReemplazo ? ' <span class="badge info">En reemplazo</span>' : '') + '</td>' +
+        '<td class="nowrap">' + CT.esc(CT.fmt(p.fechaFirma)) + '</td></tr>';
+    }).join('') : '<tr><td colspan="4" class="empty">Aún no hay firmas registradas.</td></tr>';
+
+    $('chkAll').disabled = !puedeFirmar || !pend.length; $('chkAll').checked = false;
+    document.querySelectorAll('.btn-firmar').forEach(function(b){
+      b.addEventListener('click', function(){ abrirFirma([b.dataset.folio]); });
+    });
+    document.querySelectorAll('.chk').forEach(function(c){ c.addEventListener('change', actualizarSel); });
+    actualizarSel();
+  }
+
+  function seleccionados(){ return Array.prototype.map.call(document.querySelectorAll('.chk:checked'), function(c){ return c.value; }); }
+  function actualizarSel(){
+    var n = seleccionados().length;
+    $('selCount').textContent = n ? n + ' seleccionado(s)' : '';
+    $('btnFirmarSel').disabled = n === 0;
+  }
+  $('chkAll').addEventListener('change', function(){
+    document.querySelectorAll('.chk:not(:disabled)').forEach(function(c){ c.checked = $('chkAll').checked; });
+    actualizarSel();
+  });
+  $('btnFirmarSel').addEventListener('click', function(){ abrirFirma(seleccionados()); });
+
+  function abrirFirma(folios){
+    if (CT.nominaEstado().disponible) return;      // doble verificación
+    porFirmar = folios;
+    $('firmaResumen').textContent = folios.length === 1
+      ? 'Vas a firmar el certificado ' + folios[0] + '.'
+      : 'Vas a firmar ' + folios.length + ' certificados: ' + folios.join(', ') + '.';
+    $('chkConfirma').checked = false; $('btnConfirmarFirma').disabled = true;
+    openM('mdFirma');
+  }
+  $('chkConfirma').addEventListener('change', function(){ $('btnConfirmarFirma').disabled = !this.checked; });
+
+  $('btnConfirmarFirma').addEventListener('click', function(){
+    var est = CT.nominaEstado();
+    if (est.disponible) return;
+    var all = CT.pendientes(), ahora = new Date().toISOString();
+    all.forEach(function(p){
+      if (p.estado === 'pendiente' && porFirmar.indexOf(p.folio) > -1){
+        p.estado = 'firmado'; p.firmadoPor = user.nombre; p.fechaFirma = ahora; p.enReemplazo = true;
+        CT.logActividad('Firma en reemplazo', p.folio + ' · Nómina no disponible (' + est.motivo + ')');
+        CT.audit('Firma digital', 'Firma en reemplazo', p.folio + ' firmado por ' + user.nombre + ' (' + est.motivo + ')');
+      }
+    });
+    CT.savePendientes(all); closeM();
+    CT.toast(porFirmar.length + ' certificado(s) firmado(s)'); porFirmar = [];
+    renderTablas();
+  });
+
+  $('btnGuardarAusencia').addEventListener('click', function(){
+    var e = { disponible:false, motivo:$('motivo').value, nota:$('nota').value.trim(), desde:new Date().toISOString(), por:user.nombre };
+    CT.saveNominaEstado(e);
+    CT.audit('Firma digital', 'Disponibilidad de Nómina', 'Usuario Nómina marcado como no disponible · ' + e.motivo);
+    closeM(); $('nota').value = ''; CT.toast('Ausencia registrada. Ya puedes firmar.'); renderAll();
+  });
+
+  function renderAll(){ renderEstado(); renderTablas(); }
+  renderAll();
+</script>
+</body>
+</html>
