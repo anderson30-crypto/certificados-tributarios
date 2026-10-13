@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
 <title>Sistema de Certificados Tributarios - Perfil</title>
 <link rel="stylesheet" href="css/roles.css">
 <script src="js/roles.js"></script>
@@ -26,10 +27,11 @@
       <div class="field"><label for="correo">Correo Electrónico</label><input type="email" id="correo" required></div>
       <div class="field"><label for="telefono">Teléfono</label><input type="tel" id="telefono"></div>
 
-      <div class="field"><label>Permisos asignados</label><div class="chips" id="perms"></div>
-        <div class="hint">Solo el administrador puede modificarlos.</div></div>
+      <div class="field"><label>Funciones de su rol</label><div class="chips" id="perms"></div>
+        <div class="hint">El rol lo asigna el administrador del sistema.</div></div>
 
       <a class="nav-row" href="cambiar-contrasena.html">Cambiar Contraseña <span>›</span></a>
+      <a class="nav-row" href="firma-digital.html" id="lnkFirma" style="display:none">Firma Digital <span>›</span></a>
 
       <div class="actions-row">
         <button type="submit" class="btn">Guardar Cambios</button>
@@ -44,24 +46,27 @@
   var u = CT.currentUser();
   $('avatar').innerHTML = CT.svg(CT.ICON.user);
 
+  if (CT.esFirmante(u.rol)) $('lnkFirma').style.display = '';
+
   function fillForm(){
-    $('uName').textContent = u.nombre; $('uRole').textContent = CT.ROLES[u.rol];
+    $('uName').textContent = u.nombre; $('uRole').textContent = u.rolNombre;
     $('nombre').value = u.nombre; $('correo').value = u.correo; $('telefono').value = u.telefono || '';
-    $('perms').innerHTML = u.permisos.length
-      ? u.permisos.map(function(k){ return '<span class="chip">' + CT.esc(CT.permLabel(k)) + '</span>'; }).join('')
-      : '<span class="chip none">Sin permisos</span>';
+    $('perms').innerHTML = u.funciones.map(function(f){ return '<span class="chip">' + CT.esc(f) + '</span>'; }).join('');
   }
   fillForm();
 
   $('form').addEventListener('submit', function(e){
     e.preventDefault();
-    var users = CT.usuarios();
-    users.forEach(function(x){
-      if (x.id === u.id){ x.nombre = $('nombre').value.trim(); x.correo = $('correo').value.trim(); x.telefono = $('telefono').value.trim(); }
-    });
-    CT.saveUsuarios(users);
-    CT.audit('Perfil', 'Actualización de perfil', 'Datos de contacto actualizados');
-    u = CT.currentUser(); fillForm(); CT.toast('Cambios guardados correctamente');
+    var cuerpo = { nombre: $('nombre').value.trim(), correo: $('correo').value.trim(), telefono: $('telefono').value.trim() };
+    fetch('/api/perfil', { method:'PUT', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(cuerpo) })
+      .then(function(r){ return r.json().then(function(j){ if (!r.ok) throw new Error(j.error || 'No se pudo guardar'); }); })
+      .then(function(){
+        u.nombre = cuerpo.nombre; u.correo = cuerpo.correo; u.telefono = cuerpo.telefono;
+        fillForm();
+        document.querySelector('.user-chip').lastChild.textContent = ' ' + u.nombre;
+        CT.toast('Cambios guardados correctamente');
+      })
+      .catch(function(err){ CT.toast(err.message); });
   });
   $('btnCancel').addEventListener('click', fillForm);
 </script>

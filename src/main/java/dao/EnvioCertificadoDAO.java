@@ -52,6 +52,12 @@ public class EnvioCertificadoDAO {
 
     /** Guarda el resultado de un envío. Si salió bien, el certificado pasa a estado Enviado. */
     public void registrar(int idCertificado, String correoDestino, boolean exito, String error) throws SQLException {
+        registrar(idCertificado, correoDestino, exito, error, GenerarCertificado.ID_USUARIO_SISTEMA);
+    }
+
+    /** Igual, a nombre de quien hizo el envío (el usuario con sesión iniciada). */
+    public void registrar(int idCertificado, String correoDestino, boolean exito, String error, int idUsuario)
+            throws SQLException {
 
         String sql = "INSERT INTO envio_certificado " +
             "(id_certificado, id_usuario, t_correo_destino, d_fecha_envio, b_envio_correo, id_estado, t_mensaje_error) " +
@@ -61,7 +67,7 @@ public class EnvioCertificadoDAO {
 
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setInt(1, idCertificado);
-                ps.setInt(2, GenerarCertificado.ID_USUARIO_SISTEMA);
+                ps.setInt(2, idUsuario);
                 ps.setString(3, correoDestino);
                 ps.setBoolean(4, exito);
                 ps.setInt(5, exito ? ESTADO_ENVIADO : ESTADO_ERROR);

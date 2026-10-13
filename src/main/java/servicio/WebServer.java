@@ -5,6 +5,10 @@ import io.javalin.http.UploadedFile;
 import io.javalin.http.staticfiles.Location;
 
 import Seguridad.Autenticacion;
+import Seguridad.EsquemaBD;
+import Seguridad.GestionUsuarios;
+import Seguridad.RegistroAuditoria;
+import Seguridad.Roles;
 import conexion.ConexionBD;
 import org.eclipse.jetty.http.HttpCookie;
 import org.eclipse.jetty.server.session.SessionHandler;
@@ -35,6 +39,9 @@ public class WebServer {
         // 1) Probar la conexión antes de levantar el servidor, para ver de una vez si MySQL responde
         probarConexion();
 
+        // 2) Crear lo que falte en la base de datos (roles, columnas nuevas)
+        EsquemaBD.asegurar();
+
         Javalin app = Javalin.create(config -> {
             config.staticFiles.add("/public", Location.CLASSPATH);
 
@@ -55,25 +62,49 @@ public class WebServer {
         // La pantalla inicial es el login: http://localhost:7000 lleva directo a login.html
         app.get("/", ctx -> ctx.redirect("/login.html"));
 
-        // Control de acceso: sin sesión iniciada solo se puede ver el login (y sus imágenes)
+        // Control de acceso por sesión y por rol (ver Seguridad.Roles):
+        // sin sesión solo se ve el login; con sesión, cada rol solo entra a sus pantallas y a su API
         app.before(ctx -> {
             String ruta = ctx.path();
-            boolean conSesion = usuarioActual(ctx) != null;
+            if (esRutaPublica(ruta)) {
+                return;
+            }
+            Autenticacion.UsuarioSesion usuario = usuarioActual(ctx);
 
-            if (ruta.equals("/login.html") && conSesion) {
-                ctx.redirect("/inicio.html");
+            // Si el usuario fue borrado o desactivado mientras tenía la sesión abierta, se le cierra
+            if (usuario != null && !Autenticacion.sigueActivo(usuario.idUsuario())) {
+                ctx.req().getSession().invalidate();
+                usuario = null;
+            }
+
+            if (usuario == null) {
+                if (ruta.equals("/login.html")) {
+                    return;
+                }
+                if (ruta.startsWith("/api/")) {
+                    ctx.status(401).json(Map.of("error", "La sesión no está iniciada o venció. Inicie sesión de nuevo."));
+                } else {
+                    ctx.redirect("/login.html");
+                }
                 ctx.skipRemainingHandlers();
                 return;
             }
-            if (conSesion || esRutaPublica(ruta)) {
+
+            String inicio = Roles.INICIO.get(usuario.claveRol());
+            if (ruta.equals("/login.html")) {
+                ctx.redirect(inicio);
+                ctx.skipRemainingHandlers();
                 return;
             }
-            if (ruta.startsWith("/api/")) {
-                ctx.status(401).json(Map.of("error", "La sesión no está iniciada o venció. Inicie sesión de nuevo."));
-            } else {
-                ctx.redirect("/login.html");
+            if (!Roles.puede(usuario.claveRol(), ruta, ctx.method().name())) {
+                if (ruta.startsWith("/api/")) {
+                    ctx.status(403).json(Map.of("error", "Su rol (" + Roles.NOMBRES.get(usuario.claveRol()) +
+                        ") no tiene permiso para esta acción."));
+                } else {
+                    ctx.redirect(inicio);
+                }
+                ctx.skipRemainingHandlers();
             }
-            ctx.skipRemainingHandlers();
         });
 
         // Iniciar sesión. Cuerpo JSON: { "username": "...", "password": "..." }
@@ -103,21 +134,120 @@ public class WebServer {
                 ctx.req().getSession(false).invalidate();
             }
             ctx.sessionAttribute(SESION_USUARIO, usuario);
-            ctx.json(Map.of("nombre", usuario.nombre(), "rol", usuario.rol()));
+            RegistroAuditoria.registrar(usuario.idUsuario(), "Autenticación", "Inicio de sesión", "Acceso exitoso");
+
+            // La página lleva a cada rol a su propia pantalla de inicio
+            ctx.json(Map.of("nombre", usuario.nombre(), "rol", usuario.claveRol(),
+                "inicio", Roles.INICIO.get(usuario.claveRol()).substring(1)));
         });
 
         // Cerrar sesión
         app.post("/api/logout", ctx -> {
+            Autenticacion.UsuarioSesion usuario = usuarioActual(ctx);
+            if (usuario != null) {
+                RegistroAuditoria.registrar(usuario.idUsuario(), "Autenticación", "Cierre de sesión", "");
+            }
             if (ctx.req().getSession(false) != null) {
                 ctx.req().getSession(false).invalidate();
             }
             ctx.json(Map.of("ok", true));
         });
 
-        // Quién inició sesión (lo usan las páginas para mostrar el nombre)
+        // Quién inició sesión: datos, rol, funciones y pantalla de inicio (lo usan todas las páginas)
         app.get("/api/sesion", ctx -> {
             Autenticacion.UsuarioSesion usuario = usuarioActual(ctx);
-            ctx.json(Map.of("nombre", usuario.nombre(), "rol", usuario.rol(), "username", usuario.username()));
+            Map<String, Object> datos = new HashMap<>(GestionUsuarios.buscar(usuario.idUsuario()));
+            datos.put("inicio", Roles.INICIO.get(usuario.claveRol()).substring(1));
+            datos.remove("registros");
+            ctx.json(datos);
+        });
+
+        // --- Perfil propio (cualquier rol) ---
+
+        // Cuerpo JSON: { "nombre": "...", "correo": "...", "telefono": "..." }
+        app.put("/api/perfil", ctx -> {
+            Autenticacion.UsuarioSesion usuario = usuarioActual(ctx);
+            Map<?, ?> cuerpo = ctx.bodyAsClass(Map.class);
+            try {
+                GestionUsuarios.actualizarPerfil(usuario.idUsuario(), texto(cuerpo.get("nombre")),
+                    texto(cuerpo.get("correo")), texto(cuerpo.get("telefono")));
+                RegistroAuditoria.registrar(usuario.idUsuario(), "Perfil", "Actualización de perfil", "Datos de contacto actualizados");
+                ctx.json(Map.of("ok", true));
+            } catch (GestionUsuarios.ReglaException e) {
+                ctx.status(400).json(Map.of("error", e.getMessage()));
+            }
+        });
+
+        // Cuerpo JSON: { "actual": "...", "nueva": "..." }
+        app.put("/api/perfil/password", ctx -> {
+            Autenticacion.UsuarioSesion usuario = usuarioActual(ctx);
+            Map<?, ?> cuerpo = ctx.bodyAsClass(Map.class);
+            try {
+                GestionUsuarios.cambiarPasswordPropia(usuario.idUsuario(), texto(cuerpo.get("actual")), texto(cuerpo.get("nueva")));
+                RegistroAuditoria.registrar(usuario.idUsuario(), "Perfil", "Cambio de contraseña", "El usuario cambió su contraseña");
+                ctx.json(Map.of("ok", true));
+            } catch (GestionUsuarios.ReglaException e) {
+                ctx.status(400).json(Map.of("error", e.getMessage()));
+            }
+        });
+
+        // --- Usuarios (solo Administrador; lo valida Roles.puede) ---
+
+        app.get("/api/usuarios", ctx -> {
+            ctx.json(Map.of("usuarios", GestionUsuarios.listar(), "idActual", usuarioActual(ctx).idUsuario(),
+                "roles", Roles.NOMBRES, "funciones", Roles.FUNCIONES,
+                "longitudMinima", GestionUsuarios.LONGITUD_MINIMA_PASSWORD));
+        });
+
+        // Cuerpo JSON: { nombre, username, correo, telefono, rol, password }
+        app.post("/api/usuarios", ctx -> {
+            Map<?, ?> c = ctx.bodyAsClass(Map.class);
+            try {
+                int id = GestionUsuarios.crear(texto(c.get("nombre")), texto(c.get("username")), texto(c.get("correo")),
+                    texto(c.get("telefono")), texto(c.get("rol")), texto(c.get("password")));
+                RegistroAuditoria.registrar(usuarioActual(ctx).idUsuario(), "Usuarios", "Creación de usuario",
+                    texto(c.get("username")) + " · rol " + Roles.NOMBRES.get(texto(c.get("rol"))));
+                ctx.json(Map.of("ok", true, "id", id));
+            } catch (GestionUsuarios.ReglaException e) {
+                ctx.status(400).json(Map.of("error", e.getMessage()));
+            }
+        });
+
+        // Cuerpo JSON: { rol, activo, password (opcional: contraseña nueva) }
+        app.put("/api/usuarios/{id}", ctx -> {
+            Map<?, ?> c = ctx.bodyAsClass(Map.class);
+            try {
+                String cambios = GestionUsuarios.actualizar(Integer.parseInt(ctx.pathParam("id")), texto(c.get("rol")),
+                    Boolean.TRUE.equals(c.get("activo")), texto(c.get("password")), usuarioActual(ctx).idUsuario());
+                RegistroAuditoria.registrar(usuarioActual(ctx).idUsuario(), "Usuarios", "Modificación de usuario", cambios);
+                ctx.json(Map.of("ok", true));
+            } catch (GestionUsuarios.ReglaException e) {
+                ctx.status(409).json(Map.of("error", e.getMessage()));
+            }
+        });
+
+        app.delete("/api/usuarios/{id}", ctx -> {
+            try {
+                String username = GestionUsuarios.eliminar(Integer.parseInt(ctx.pathParam("id")), usuarioActual(ctx).idUsuario());
+                RegistroAuditoria.registrar(usuarioActual(ctx).idUsuario(), "Usuarios", "Eliminación de usuario", username);
+                ctx.json(Map.of("ok", true));
+            } catch (GestionUsuarios.ReglaException e) {
+                ctx.status(409).json(Map.of("error", e.getMessage()));
+            }
+        });
+
+        // --- Auditorías ---
+
+        // Últimos 5.000 eventos (solo Administrador)
+        app.get("/api/auditorias", ctx -> ctx.json(RegistroAuditoria.listar(5000)));
+
+        // Eventos que registra una página (por ejemplo, exportar a CSV). Cuerpo: { modulo, accion, detalle }
+        app.post("/api/auditoria/evento", ctx -> {
+            Map<?, ?> c = ctx.bodyAsClass(Map.class);
+            String detalle = texto(c.get("detalle"));
+            RegistroAuditoria.registrar(usuarioActual(ctx).idUsuario(), texto(c.get("modulo")), texto(c.get("accion")),
+                detalle.length() > 1000 ? detalle.substring(0, 1000) : detalle);
+            ctx.json(Map.of("ok", true));
         });
 
         // Estado de la conexión (sirve para probar desde el navegador)
@@ -167,7 +297,11 @@ public class WebServer {
             }
 
             try (InputStream excel = Files.newInputStream(ruta)) {
-                ctx.json(CargueMasivo.cargar(excel));
+                Map<String, Object> resultado = CargueMasivo.cargar(excel);
+                RegistroAuditoria.registrar(usuarioActual(ctx).idUsuario(), "Certificados", "Carga de sábana",
+                    ruta.getFileName() + " · " + resultado.get("insertados") + " nuevos, " + resultado.get("actualizados") +
+                    " actualizados, " + ((List<?>) resultado.get("errores")).size() + " con error");
+                ctx.json(resultado);
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -210,8 +344,10 @@ public class WebServer {
             int id = Integer.parseInt(ctx.pathParam("id"));
 
             try {
-                GenerarCertificado.Resultado resultado = GenerarCertificado.generarParaContratista(id);
+                GenerarCertificado.Resultado resultado = GenerarCertificado.generarParaContratista(id, usuarioActual(ctx).idUsuario());
                 String nombrePdf = Paths.get(resultado.rutaPdf()).getFileName().toString();
+                RegistroAuditoria.registrar(usuarioActual(ctx).idUsuario(), "Certificados", "Generación de certificado",
+                    nombrePdf + " · certificado " + resultado.idCertificado());
                 Map<String, Object> datos = new EnvioCertificadoDAO().datosParaEnvio(resultado.idCertificado());
 
                 Map<String, Object> respuesta = new HashMap<>();
@@ -288,11 +424,11 @@ public class WebServer {
 
                 try {
                     correo.enviar(para, cc, asunto, mensaje, Paths.get((String) datos.get("rutaPdf")));
-                    envios.registrar(idCertificado, correo.destinoEfectivo(para), true, null);
+                    envios.registrar(idCertificado, correo.destinoEfectivo(para), true, null, usuarioActual(ctx).idUsuario());
                     resultado.put("exito", true);
 
                 } catch (Exception e) {
-                    envios.registrar(idCertificado, para, false, e.getMessage());
+                    envios.registrar(idCertificado, para, false, e.getMessage(), usuarioActual(ctx).idUsuario());
                     resultado.put("exito", false);
                     resultado.put("error", e.getMessage());
                 }
@@ -304,6 +440,10 @@ public class WebServer {
                 }
             }
 
+            long enviados = resultados.stream().filter(r -> Boolean.TRUE.equals(r.get("exito"))).count();
+            RegistroAuditoria.registrar(usuarioActual(ctx).idUsuario(), "Certificados", "Envío de certificados",
+                enviados + " enviado(s), " + (resultados.size() - enviados) + " con error" +
+                (correo.modoPrueba() ? " (modo prueba)" : ""));
             ctx.json(Map.of("modoPrueba", correo.modoPrueba(), "resultados", resultados));
         });
 
@@ -326,9 +466,10 @@ public class WebServer {
         return ctx.sessionAttribute(SESION_USUARIO);
     }
 
+    // Lo que se ve sin iniciar sesión: el login y los archivos de diseño (imágenes, estilos, scripts)
     private static boolean esRutaPublica(String ruta) {
-        return ruta.equals("/") || ruta.equals("/login.html") || ruta.equals("/api/login")
-            || ruta.equals("/favicon.ico") || ruta.startsWith("/images/");
+        return ruta.equals("/") || ruta.equals("/api/login") || ruta.equals("/favicon.ico")
+            || ruta.startsWith("/images/") || ruta.startsWith("/css/") || ruta.startsWith("/js/");
     }
 
     private static String texto(Object valor) {

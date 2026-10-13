@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="js/roles.js"></script>
+<link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
 <title>Sistema de Certificados Tributarios - Perfil</title>
 <style>
   :root{
@@ -337,25 +337,21 @@
       <form id="profileForm">
         <div class="field">
           <label for="nombre">Nombre</label>
-          <input type="text" id="nombre" value="Juan Pérez">
+          <input type="text" id="nombre">
         </div>
 
         <div class="field">
           <label for="correo">Correo Electrónico</label>
-          <input type="email" id="correo" value="juan.perez@upb.edu.co">
+          <input type="email" id="correo">
         </div>
 
         <div class="field">
           <label for="telefono">Teléfono</label>
-          <input type="tel" id="telefono" value="300 000 0000">
+          <input type="tel" id="telefono">
         </div>
 
         <a class="nav-row" href="cambiar-contrasena.html">
           Cambiar Contraseña <span class="chevron">›</span>
-        </a>
-
-        <a class="nav-row" href="firma-digital.html">
-          Modificar Firma Digital <span class="chevron">›</span>
         </a>
 
         <div class="actions-row">
@@ -366,66 +362,39 @@
     </div>
   </main>
 
-  <script>
-    /* Jefe de Nómina: misma pantalla que Usuario Nómina, con su propio menú lateral */
-    var __esJefe = false;
-    try { __esJefe = sessionStorage.getItem('ct_rol') === 'jefe'; } catch(e){}
-    if (__esJefe && window.CT){
-      document.querySelector('.topbar').remove();
-      document.querySelector('.sidebar').remove();
-      CT.shell({ active:'perfil', title:'Perfil' });
-    }
-  </script>
-  <script>
-    if (__esJefe){
-      var __u = CT.currentUser();
-      document.getElementById('nombre').value = __u.nombre;
-      document.getElementById('correo').value = __u.correo;
-      document.getElementById('telefono').value = __u.telefono || '';
-      document.getElementById('usernameLabel').textContent = __u.usuario.toUpperCase();
-      document.getElementById('profileForm').addEventListener('submit', function(){
-        var us = CT.usuarios();
-        us.forEach(function(x){ if (x.id === __u.id){ x.nombre = document.getElementById('nombre').value.trim(); x.correo = document.getElementById('correo').value.trim(); x.telefono = document.getElementById('telefono').value.trim(); } });
-        CT.saveUsuarios(us);
-        CT.audit('Perfil', 'Actualización de perfil', 'Datos de contacto actualizados');
-      });
-    }
-  </script>
-
+<script src="js/sesion.js"></script>
 <script>
   const profileForm = document.getElementById('profileForm');
-  const btnCancel = document.getElementById('btnCancel');
-  const usernameLabel = document.getElementById('usernameLabel');
-  const nombreInput = document.getElementById('nombre');
+  const campos = ['nombre', 'correo', 'telefono'];
+  let original = {};
 
-  const originalValues = {
-    nombre: nombreInput.value,
-    correo: document.getElementById('correo').value,
-    telefono: document.getElementById('telefono').value
-  };
+  function llenar(datos){
+    original = datos;
+    campos.forEach(function(c){ document.getElementById(c).value = datos[c] || ''; });
+  }
 
-  profileForm.addEventListener('submit', function(e){
+  // Datos del usuario con sesión
+  fetch('/api/sesion').then(function(r){ return r.json(); }).then(function(u){
+    document.getElementById('usernameLabel').textContent = u.username.toUpperCase();
+    llenar({ nombre: u.nombre, correo: u.correo, telefono: u.telefono });
+  });
+
+  profileForm.addEventListener('submit', async function(e){
     e.preventDefault();
-    console.log('Guardando cambios de perfil:', {
-      nombre: nombreInput.value,
-      correo: document.getElementById('correo').value,
-      telefono: document.getElementById('telefono').value
+    const cuerpo = {};
+    campos.forEach(function(c){ cuerpo[c] = document.getElementById(c).value.trim(); });
+    const r = await fetch('/api/perfil', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) });
+    const j = await r.json().catch(function(){ return {}; });
+    if (!r.ok){ alert(j.error || 'No se pudieron guardar los cambios.'); return; }
+    llenar(cuerpo);
+    document.querySelectorAll('.user-chip').forEach(function(chip){
+      const t = Array.from(chip.childNodes).filter(function(n){ return n.nodeType === Node.TEXT_NODE; });
+      if (t.length) t[t.length - 1].textContent = ' ' + cuerpo.nombre;
     });
     alert('Cambios guardados correctamente.');
   });
 
-  btnCancel.addEventListener('click', function(){
-    document.getElementById('nombre').value = originalValues.nombre;
-    document.getElementById('correo').value = originalValues.correo;
-    document.getElementById('telefono').value = originalValues.telefono;
-  });
-
-  document.querySelectorAll('.nav-item[data-page]').forEach(function(item){
-    item.addEventListener('click', function(e){
-      e.preventDefault();
-      console.log('Sección aún no implementada:', item.dataset.page);
-    });
-  });
+  document.getElementById('btnCancel').addEventListener('click', function(){ llenar(original); });
 </script>
 
 </body>

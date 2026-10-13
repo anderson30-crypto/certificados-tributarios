@@ -19,7 +19,13 @@ public class Autenticacion {
 
     /** Lo que queda guardado en la sesión del navegador tras iniciar sesión. */
     public record UsuarioSesion(int idUsuario, int idRol, String rol, String nombre, String username)
-        implements Serializable { }
+        implements Serializable {
+
+        /** admin, nomina, jefe o gh (ver Roles). */
+        public String claveRol() {
+            return Roles.clave(rol);
+        }
+    }
 
     // Costo de BCrypt: 12 tarda ~0,25 s por intento, suficiente para frenar ataques de fuerza bruta
     private static final int COSTO_BCRYPT = 12;
@@ -58,7 +64,7 @@ public class Autenticacion {
 
         Long hasta = bloqueadosHasta.get(clave);
         if (hasta != null && hasta > System.currentTimeMillis()) {
-            registrarMotivo(username, "usuario bloqueado por intentos fallidos (se desbloquea solo o reiniciando el WebServer)");
+            registrarMotivo(null, username, "usuario bloqueado por intentos fallidos (se desbloquea solo o reiniciando el WebServer)");
             throw new UsuarioBloqueadoException((hasta - System.currentTimeMillis()) / 60000 + 1);
         }
 
@@ -81,7 +87,7 @@ public class Autenticacion {
 
                 if (!coincide || !activo) {
                     // El motivo exacto solo va a la consola del servidor; la pantalla muestra un mensaje genérico
-                    registrarMotivo(username, !existe ? "el usuario no existe en la tabla usuarios"
+                    registrarMotivo(existe ? rs.getInt("id_usuario") : null, username, !existe ? "el usuario no existe en la tabla usuarios"
                         : !esBcrypt ? "la contraseña guardada no está cifrada con BCrypt; asígnele una nueva con Seguridad.CrearAdministrador"
                         : !activo ? "el usuario está desactivado (b_estado = 0)"
                         : "la contraseña no coincide");
@@ -103,8 +109,22 @@ public class Autenticacion {
         }
     }
 
-    private static void registrarMotivo(String username, String motivo) {
+    /** true si el usuario existe y sigue activo (se revisa en cada petición de una sesión abierta). */
+    public static boolean sigueActivo(int idUsuario) throws SQLException {
+        try (Connection conn = ConexionBD.obtenerConexion();
+             PreparedStatement ps = conn.prepareStatement("SELECT b_estado FROM usuarios WHERE id_usuario = ?")) {
+            ps.setInt(1, idUsuario);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() && rs.getBoolean(1);
+            }
+        }
+    }
+
+    // El motivo exacto va a la consola del servidor y a la auditoría; la pantalla muestra un mensaje genérico
+    private static void registrarMotivo(Integer idUsuario, String username, String motivo) {
         System.out.println("Inicio de sesión rechazado para '" + username + "': " + motivo);
+        RegistroAuditoria.registrar(idUsuario, "Autenticación", "Intento de sesión fallido",
+            "Usuario '" + username + "': " + motivo);
     }
 
     private static void registrarFallo(String clave) {

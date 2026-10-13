@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
 <title>Sistema de Certificados Tributarios - Inicio (Administrador)</title>
 <link rel="stylesheet" href="css/roles.css">
 <script src="js/roles.js"></script>
 </head>
 <body>
 <script>
-  if (CT.guard('admin')) CT.shell({ active:'inicio', title:'Administrador de permisos y auditorías' });
+  if (CT.guard('admin')) CT.shell({ active:'inicio', title:'Administración del sistema' });
 </script>
 
 <main class="main">
@@ -21,8 +22,8 @@
   <div class="action-grid">
     <a class="action-card" href="admin-usuarios.html">
       <span class="card-icon" id="icUsers"></span>
-      Gestionar permisos
-      <small>Consulta y modifica los roles y permisos de cada usuario</small>
+      Gestionar usuarios
+      <small>Crea, modifica o elimina usuarios, asigna roles y cambia contraseñas</small>
     </a>
     <a class="action-card" href="admin-auditorias.html">
       <span class="card-icon" id="icAud"></span>

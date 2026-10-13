@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
 <script src="js/roles.js"></script>
 <title>Sistema de Certificados Tributarios - Firma Digital</title>
 <style>
@@ -376,10 +377,8 @@
   </main>
 
   <script>
-    /* Jefe de Nómina: misma pantalla que Usuario Nómina, con su propio menú lateral */
-    var __esJefe = false;
-    try { __esJefe = sessionStorage.getItem('ct_rol') === 'jefe'; } catch(e){}
-    if (__esJefe && window.CT){
+    /* Solo Jefe de Nómina y Gestión Humana firman: se usa su menú lateral */
+    if (CT.guard('jefe')){
       document.querySelector('.topbar').remove();
       document.querySelector('.sidebar').remove();
       CT.shell({ active:'perfil', title:'Firma Digital' });
@@ -415,7 +414,7 @@
   const canvas = document.getElementById('sigCanvas');
   const ctx = canvas.getContext('2d');
 
-  const firmaNombre = (typeof __esJefe !== 'undefined' && __esJefe) ? CT.esc(CT.currentUser().nombre) : 'Usuario';
+  const firmaNombre = CT.esc(CT.currentUser().nombre);
   let signatureDataUrl = null; // null = sin firma registrada
   let isActive = true;
   let drawing = false;

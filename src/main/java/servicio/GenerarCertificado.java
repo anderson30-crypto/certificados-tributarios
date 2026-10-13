@@ -25,7 +25,7 @@ public class GenerarCertificado {
     // Carpeta (en la raíz del proyecto) donde quedan los PDF generados
     public static final String CARPETA_SALIDA = "certificados_generados";
 
-    // Usuario que queda registrado como generador mientras no exista inicio de sesión (tabla usuarios)
+    // Usuario que queda registrado cuando se genera sin sesión (por ejemplo, desde el main de prueba)
     public static final int ID_USUARIO_SISTEMA = 1;
 
     // Tabla estados: 2 = Generado
@@ -46,6 +46,11 @@ public class GenerarCertificado {
     }
 
     public static Resultado generarParaContratista(int idContratista) throws Exception {
+        return generarParaContratista(idContratista, ID_USUARIO_SISTEMA);
+    }
+
+    /** Genera el PDF y lo registra a nombre de quien lo generó (el usuario con sesión iniciada). */
+    public static Resultado generarParaContratista(int idContratista, int idUsuario) throws Exception {
 
         try (Connection conn = ConexionBD.obtenerConexion()) {
 
@@ -117,21 +122,21 @@ public class GenerarCertificado {
                     builder.run();
                 }
 
-                int idCertificado = registrarCertificado(conn, rs.getInt("id_contrato"), rutaSalida);
+                int idCertificado = registrarCertificado(conn, rs.getInt("id_contrato"), rutaSalida, idUsuario);
                 return new Resultado(idCertificado, rutaSalida);
             }
         }
     }
 
     // Deja constancia del PDF en la tabla certificados (la necesita envio_certificado para el historial)
-    private static int registrarCertificado(Connection conn, int idContrato, String rutaPdf) throws Exception {
+    private static int registrarCertificado(Connection conn, int idContrato, String rutaPdf, int idUsuario) throws Exception {
         String sql = "INSERT INTO certificados " +
             "(id_contrato, id_usuario, id_estado, d_fecha_generacion, t_ruta_pdf, t_formato_certificado) " +
             "VALUES (?, ?, ?, CURDATE(), ?, 'PDF')";
 
         try (PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, idContrato);
-            ps.setInt(2, ID_USUARIO_SISTEMA);
+            ps.setInt(2, idUsuario);
             ps.setInt(3, ESTADO_GENERADO);
             ps.setString(4, rutaPdf);
             ps.executeUpdate();

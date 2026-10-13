@@ -3,153 +3,232 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema de Certificados Tributarios - Usuarios y permisos</title>
+<link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
+<title>Sistema de Certificados Tributarios - Usuarios</title>
 <link rel="stylesheet" href="css/roles.css">
 <script src="js/roles.js"></script>
+<style>
+  .btn-danger{ background:#fff; color:#C40510; border:1px solid #C40510; }
+  .btn-danger:hover{ background:#FDECEC; }
+  .btn-danger:disabled{ opacity:.45; cursor:not-allowed; }
+  .modal-box .field input, .modal-box .field select{ width:100%; }
+  .form-error{ display:none; background:#FDECEC; color:#C40510; border:1px solid #F5C2C2; font-size:12px; padding:8px 10px; border-radius:4px; margin-bottom:12px; }
+  .form-error.show{ display:block; }
+  .modal-actions .left{ margin-right:auto; }
+</style>
 </head>
 <body>
 <script>
-  if (CT.guard('admin')) CT.shell({ active:'usuarios', title:'Usuarios y permisos' });
+  if (CT.guard('admin')) CT.shell({ active:'usuarios', title:'Usuarios' });
 </script>
 
 <main class="main">
-  <div class="breadcrumb">Inicio &nbsp;›&nbsp; Usuarios y permisos</div>
-  <h2 class="section-title">Usuarios y permisos</h2>
-  <p class="section-subtitle">Roles y permisos asignados a cada usuario del sistema</p>
+  <div class="breadcrumb">Inicio &nbsp;›&nbsp; Usuarios</div>
+  <h2 class="section-title">Usuarios</h2>
+  <p class="section-subtitle">Cree usuarios, asígneles un rol, cambie contraseñas y elimine cuentas que no se usan</p>
 
   <div class="content-wrap">
     <div class="toolbar">
       <input type="text" id="q" placeholder="Buscar por nombre, usuario o correo">
       <select id="fRol"><option value="">Todos los roles</option></select>
+      <button class="btn" id="btnNuevo">+ Nuevo usuario</button>
     </div>
     <div class="table-wrap">
       <table class="data">
-        <thead><tr><th>Usuario</th><th>Rol</th><th>Permisos</th><th>Estado</th><th></th></tr></thead>
-        <tbody id="rows"></tbody>
+        <thead><tr><th>Usuario</th><th>Rol</th><th>Funciones del rol</th><th>Estado</th><th></th></tr></thead>
+        <tbody id="rows"><tr><td colspan="5" class="empty">Cargando usuarios...</td></tr></tbody>
       </table>
     </div>
   </div>
 </main>
 
+<!-- Modificar usuario -->
 <div class="modal-overlay" id="md">
   <div class="modal-box">
-    <h3 id="mdTitle">Modificar permisos</h3>
+    <h3>Modificar usuario</h3>
     <p class="modal-sub" id="mdSub"></p>
+    <div class="form-error" id="mErr"></div>
 
     <div class="field">
       <label for="mRol">Rol</label>
       <select id="mRol"></select>
       <div class="hint" id="mRolHint"></div>
     </div>
+    <div class="chips" id="mFunciones" style="margin-bottom:14px"></div>
 
-    <div id="mPerms"></div>
+    <div class="field">
+      <label for="mPass">Contraseña nueva (opcional)</label>
+      <input type="password" id="mPass" autocomplete="new-password" placeholder="Dejar en blanco para no cambiarla">
+      <div class="hint" id="mPassHint"></div>
+    </div>
 
     <label class="check"><input type="checkbox" id="mActivo"> Usuario activo</label>
     <div class="hint" id="mActivoHint"></div>
 
     <div class="modal-actions">
+      <button class="btn btn-danger left" id="mDelete">Eliminar usuario</button>
       <button class="btn btn-secondary" id="mCancel">Cancelar</button>
       <button class="btn" id="mSave">Guardar cambios</button>
+    </div>
+    <div class="hint" id="mDeleteHint"></div>
+  </div>
+</div>
+
+<!-- Nuevo usuario -->
+<div class="modal-overlay" id="mn">
+  <div class="modal-box">
+    <h3>Nuevo usuario</h3>
+    <p class="modal-sub">La persona podrá cambiar su contraseña desde su perfil</p>
+    <div class="form-error" id="nErr"></div>
+    <div class="field"><label for="nNombre">Nombre completo</label><input type="text" id="nNombre" maxlength="100"></div>
+    <div class="field"><label for="nUser">Nombre de usuario</label><input type="text" id="nUser" maxlength="50" autocomplete="off">
+      <div class="hint">Letras, números, punto, guion o guion bajo (3 a 50 caracteres)</div></div>
+    <div class="field"><label for="nCorreo">Correo</label><input type="email" id="nCorreo" maxlength="100"></div>
+    <div class="field"><label for="nTel">Teléfono (opcional)</label><input type="text" id="nTel" maxlength="30"></div>
+    <div class="field"><label for="nRol">Rol</label><select id="nRol"></select></div>
+    <div class="chips" id="nFunciones" style="margin-bottom:14px"></div>
+    <div class="field"><label for="nPass">Contraseña inicial</label><input type="password" id="nPass" autocomplete="new-password">
+      <div class="hint" id="nPassHint"></div></div>
+    <div class="field"><label for="nPass2">Confirmar contraseña</label><input type="password" id="nPass2" autocomplete="new-password"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="nCancel">Cancelar</button>
+      <button class="btn" id="nSave">Crear usuario</button>
     </div>
   </div>
 </div>
 
 <script>
   var $ = function(id){ return document.getElementById(id); };
-  var me = CT.currentUser();
-  var editId = null;
+  var datos = { usuarios:[], roles:{}, funciones:{}, idActual:0, longitudMinima:10 };
+  var editando = null;
 
-  Object.keys(CT.ROLES).forEach(function(k){
-    [$('fRol'), $('mRol')].forEach(function(s){
-      var o = document.createElement('option'); o.value = k; o.textContent = CT.ROLES[k]; s.appendChild(o);
+  function chips(rol){
+    return (datos.funciones[rol] || []).map(function(f){ return '<span class="chip">' + CT.esc(f) + '</span>'; }).join('');
+  }
+  function error(id, texto){ $(id).textContent = texto; $(id).classList.toggle('show', !!texto); }
+
+  // Llama al servidor y devuelve el JSON; si responde con error lanza su mensaje
+  function api(url, metodo, cuerpo){
+    return fetch(url, { method: metodo || 'GET', headers: { 'Content-Type':'application/json' },
+                        body: cuerpo ? JSON.stringify(cuerpo) : undefined })
+      .then(function(r){
+        return r.json().catch(function(){ return {}; }).then(function(j){
+          if (!r.ok) throw new Error(j.error || ('Error del servidor (' + r.status + ')'));
+          return j;
+        });
+      });
+  }
+
+  function cargar(){
+    return api('/api/usuarios').then(function(j){
+      var primeraVez = !Object.keys(datos.roles).length;
+      datos = j;
+      if (primeraVez){
+        Object.keys(datos.roles).forEach(function(k){
+          [$('fRol'), $('mRol'), $('nRol')].forEach(function(s){
+            var o = document.createElement('option'); o.value = k; o.textContent = datos.roles[k]; s.appendChild(o);
+          });
+        });
+        var txt = 'Mínimo ' + datos.longitudMinima + ' caracteres, sin espacios, tildes ni ñ.';
+        $('mPassHint').textContent = txt; $('nPassHint').textContent = txt;
+      }
+      render();
+    }).catch(function(e){
+      $('rows').innerHTML = '<tr><td colspan="5" class="empty">' + CT.esc(e.message) + '</td></tr>';
     });
-  });
+  }
 
   function render(){
     var q = $('q').value.toLowerCase(), r = $('fRol').value;
-    var list = CT.usuarios().filter(function(u){
-      return (!r || u.rol === r) && (!q || (u.nombre + ' ' + u.usuario + ' ' + u.correo).toLowerCase().indexOf(q) > -1);
+    var list = datos.usuarios.filter(function(u){
+      return (!r || u.rol === r) && (!q || (u.nombre + ' ' + u.username + ' ' + u.correo).toLowerCase().indexOf(q) > -1);
     });
     $('rows').innerHTML = list.length ? list.map(function(u){
-      var chips = u.permisos.length
-        ? u.permisos.map(function(k){ return '<span class="chip">' + CT.esc(CT.permLabel(k)) + '</span>'; }).join('')
-        : '<span class="chip none">Sin permisos</span>';
-      return '<tr><td><b>' + CT.esc(u.nombre) + '</b>' + (u.id === me.id ? ' <span class="badge info">Tú</span>' : '') +
-             '<div class="sub">' + CT.esc(u.usuario) + ' · ' + CT.esc(u.correo) + '</div></td>' +
-             '<td class="nowrap">' + CT.esc(CT.ROLES[u.rol]) + '</td>' +
-             '<td><div class="chips">' + chips + '</div></td>' +
+      return '<tr><td><b>' + CT.esc(u.nombre) + '</b>' + (u.id === datos.idActual ? ' <span class="badge info">Tú</span>' : '') +
+             '<div class="sub">' + CT.esc(u.username) + ' · ' + CT.esc(u.correo) + (u.telefono ? ' · ' + CT.esc(u.telefono) : '') + '</div></td>' +
+             '<td class="nowrap">' + CT.esc(u.rolNombre) + '</td>' +
+             '<td><div class="chips">' + chips(u.rol) + '</div></td>' +
              '<td><span class="badge ' + (u.activo ? 'ok' : 'off') + '">' + (u.activo ? 'Activo' : 'Inactivo') + '</span></td>' +
              '<td><button class="btn btn-sm" data-id="' + u.id + '">Modificar</button></td></tr>';
     }).join('') : '<tr><td colspan="5" class="empty">No se encontraron usuarios.</td></tr>';
     document.querySelectorAll('button[data-id]').forEach(function(b){
-      b.addEventListener('click', function(){ openEdit(parseInt(b.dataset.id, 10)); });
+      b.addEventListener('click', function(){ abrirEdicion(parseInt(b.dataset.id, 10)); });
     });
   }
 
-  function renderPerms(selected){
-    var groups = {};
-    CT.PERMISOS.forEach(function(p){ (groups[p.grupo] = groups[p.grupo] || []).push(p); });
-    $('mPerms').innerHTML = Object.keys(groups).map(function(g){
-      return '<div class="perm-group"><div class="gname">' + CT.esc(g) + '</div>' +
-        groups[g].map(function(p){
-          return '<label class="check"><input type="checkbox" class="perm" value="' + p.key + '"' +
-                 (selected.indexOf(p.key) > -1 ? ' checked' : '') + '> ' + CT.esc(p.label) + '</label>';
-        }).join('') + '</div>';
-    }).join('');
-  }
-  function checkedPerms(){ return Array.prototype.map.call(document.querySelectorAll('.perm:checked'), function(c){ return c.value; }); }
-
-  function openEdit(id){
-    var u = CT.usuarios().filter(function(x){ return x.id === id; })[0];
+  /* ---------- Modificar ---------- */
+  function abrirEdicion(id){
+    var u = datos.usuarios.filter(function(x){ return x.id === id; })[0];
     if (!u) return;
-    editId = id;
-    var self = u.id === me.id;
-    $('mdTitle').textContent = 'Modificar permisos';
-    $('mdSub').textContent = u.nombre + ' · ' + u.usuario;
-    $('mRol').value = u.rol; $('mRol').disabled = self;
-    $('mRolHint').textContent = self ? 'No puedes cambiar tu propio rol.' : 'Al cambiar el rol se cargan los permisos por defecto de ese rol; luego puedes ajustarlos.';
-    $('mActivo').checked = u.activo; $('mActivo').disabled = self;
-    $('mActivoHint').textContent = self ? 'No puedes desactivar tu propia cuenta.' : '';
-    renderPerms(u.permisos);
+    editando = u;
+    var yo = u.id === datos.idActual;
+    error('mErr', '');
+    $('mdSub').textContent = u.nombre + ' · ' + u.username;
+    $('mRol').value = u.rol; $('mRol').disabled = yo;
+    $('mRolHint').textContent = yo ? 'No puede cambiar su propio rol.' : '';
+    $('mFunciones').innerHTML = chips(u.rol);
+    $('mPass').value = '';
+    $('mActivo').checked = u.activo; $('mActivo').disabled = yo;
+    $('mActivoHint').textContent = yo ? 'No puede desactivar su propia cuenta.' : '';
+    var motivo = yo ? 'No puede eliminar su propia cuenta.'
+      : u.registros > 0 ? 'No se puede eliminar: tiene ' + u.registros + ' registro(s) en el sistema (certificados, envíos o auditoría). Desactívelo en su lugar.'
+      : '';
+    $('mDelete').disabled = !!motivo;
+    $('mDeleteHint').textContent = motivo;
     $('md').classList.add('show');
   }
-  function closeEdit(){ $('md').classList.remove('show'); editId = null; }
+  function cerrarEdicion(){ $('md').classList.remove('show'); editando = null; }
 
-  $('mRol').addEventListener('change', function(){ renderPerms(CT.PERMISOS_DEFECTO[$('mRol').value] || []); });
-  $('mCancel').addEventListener('click', closeEdit);
-  $('md').addEventListener('click', function(e){ if (e.target === $('md')) closeEdit(); });
+  $('mRol').addEventListener('change', function(){ $('mFunciones').innerHTML = chips($('mRol').value); });
+  $('mCancel').addEventListener('click', cerrarEdicion);
+  $('md').addEventListener('click', function(e){ if (e.target === $('md')) cerrarEdicion(); });
 
   $('mSave').addEventListener('click', function(){
-    var users = CT.usuarios(), u = users.filter(function(x){ return x.id === editId; })[0];
-    if (!u) return;
-    var antes = u.permisos.slice(), rolAntes = u.rol, actAntes = u.activo;
-    var nuevos = checkedPerms();
-    var self = u.id === me.id;
+    if (!editando) return;
+    var cuerpo = { rol: $('mRol').value, activo: $('mActivo').checked, password: $('mPass').value };
+    $('mSave').disabled = true;
+    api('/api/usuarios/' + editando.id, 'PUT', cuerpo)
+      .then(function(){ cerrarEdicion(); CT.toast('Cambios guardados'); return cargar(); })
+      .catch(function(e){ error('mErr', e.message); })
+      .then(function(){ $('mSave').disabled = false; });
+  });
 
-    // Un administrador no puede quedarse sin acceso a la gestión de permisos
-    if (self && nuevos.indexOf('gestionar_permisos') === -1){
-      CT.toast('No puedes retirarte el permiso "Gestionar permisos".'); return;
-    }
+  $('mDelete').addEventListener('click', function(){
+    if (!editando) return;
+    if (!confirm('¿Eliminar definitivamente al usuario "' + editando.username + '"?')) return;
+    api('/api/usuarios/' + editando.id, 'DELETE')
+      .then(function(){ cerrarEdicion(); CT.toast('Usuario eliminado'); return cargar(); })
+      .catch(function(e){ error('mErr', e.message); });
+  });
 
-    u.rol = $('mRol').value; u.activo = $('mActivo').checked; u.permisos = nuevos;
-    CT.saveUsuarios(users);
+  /* ---------- Nuevo ---------- */
+  $('btnNuevo').addEventListener('click', function(){
+    ['nNombre','nUser','nCorreo','nTel','nPass','nPass2'].forEach(function(id){ $(id).value = ''; });
+    $('nRol').value = 'nomina';
+    $('nFunciones').innerHTML = chips('nomina');
+    error('nErr', '');
+    $('mn').classList.add('show');
+    $('nNombre').focus();
+  });
+  $('nRol').addEventListener('change', function(){ $('nFunciones').innerHTML = chips($('nRol').value); });
+  function cerrarNuevo(){ $('mn').classList.remove('show'); }
+  $('nCancel').addEventListener('click', cerrarNuevo);
+  $('mn').addEventListener('click', function(e){ if (e.target === $('mn')) cerrarNuevo(); });
 
-    var add = nuevos.filter(function(k){ return antes.indexOf(k) === -1; }).map(CT.permLabel);
-    var rem = antes.filter(function(k){ return nuevos.indexOf(k) === -1; }).map(CT.permLabel);
-    var cambios = [];
-    if (rolAntes !== u.rol) cambios.push('rol: ' + CT.ROLES[rolAntes] + ' → ' + CT.ROLES[u.rol]);
-    if (add.length) cambios.push('se agregó: ' + add.join(', '));
-    if (rem.length) cambios.push('se retiró: ' + rem.join(', '));
-    if (cambios.length) CT.audit('Usuarios y permisos', 'Modificación de permisos', u.nombre + ' · ' + cambios.join(' · '));
-    if (actAntes !== u.activo) CT.audit('Usuarios y permisos', 'Cambio de estado', u.nombre + ' · ' + (u.activo ? 'activado' : 'desactivado'));
-
-    closeEdit(); render();
-    CT.toast(cambios.length || actAntes !== u.activo ? 'Cambios guardados' : 'Sin cambios');
+  $('nSave').addEventListener('click', function(){
+    if ($('nPass').value !== $('nPass2').value){ error('nErr', 'Las contraseñas no coinciden.'); return; }
+    var cuerpo = { nombre: $('nNombre').value.trim(), username: $('nUser').value.trim(), correo: $('nCorreo').value.trim(),
+                   telefono: $('nTel').value.trim(), rol: $('nRol').value, password: $('nPass').value };
+    $('nSave').disabled = true;
+    api('/api/usuarios', 'POST', cuerpo)
+      .then(function(){ cerrarNuevo(); CT.toast('Usuario creado'); return cargar(); })
+      .catch(function(e){ error('nErr', e.message); })
+      .then(function(){ $('nSave').disabled = false; });
   });
 
   $('q').addEventListener('input', render);
   $('fRol').addEventListener('change', render);
-  render();
+  cargar();
 </script>
 </body>
 </html>

@@ -114,7 +114,7 @@ td .sub{ font-size:11px; color:var(--text-muted); margin-top:2px; }
 .modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
 .field{ margin-bottom:14px; }
 .field label{ display:block; font-size:12px; font-weight:600; margin-bottom:5px; }
-.field input[type=text], .field input[type=email], .field input[type=tel], .field select, .field textarea{ width:100%; padding:9px 12px; border:1px solid var(--gray-border); border-radius:4px; background:var(--gray-bg); font-size:13px; font-family:inherit; outline:none; color:var(--text-dark); }
+.field input[type=text], .field input[type=email], .field input[type=tel], .field input[type=password], .field select, .field textarea{ width:100%; padding:9px 12px; border:1px solid var(--gray-border); border-radius:4px; background:var(--gray-bg); font-size:13px; font-family:inherit; outline:none; color:var(--text-dark); }
 .field input:focus, .field select:focus, .field textarea:focus{ border-color:var(--red); background:#fff; }
 .field input:disabled, .field select:disabled{ opacity:.6; cursor:not-allowed; }
 .perm-group{ margin-bottom:12px; }

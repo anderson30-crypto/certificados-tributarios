@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
 <title>Sistema de Certificados Tributarios - Iniciar Sesión</title>
 <style>
   :root{
@@ -157,6 +158,11 @@
   .error-msg.show{
     display: block;
   }
+  .login-escudo{
+    display: block;
+    width: 110px;
+    margin: 0 auto 12px;
+  }
 </style>
 </head>
 <body>
@@ -168,6 +174,7 @@
     </div>
 
     <div class="login-body">
+      <img class="login-escudo" src="images/upb-escudo-hd.png" alt="Universidad Pontificia Bolivariana">
       <h1 class="login-title">Iniciar sesión</h1>
 
       <div class="error-msg" id="errorMsg">Usuario o contraseña incorrectos.</div>
@@ -187,41 +194,65 @@
 
         <button type="submit" class="btn-submit">Iniciar sesión</button>
       </form>
-      <p style="font-size:11px;color:#6B7078;text-align:center;margin:14px 0 0;line-height:1.5">
-        Demo: usa <b>jefe</b> (Jefe de Nómina), <b>admin</b> (Administrador) o cualquier otro usuario (Nómina).
-      </p>
     </div>
   </div>
 
-<script src="js/roles.js"></script>
 <script>
   const form = document.getElementById('loginForm');
   const errorMsg = document.getElementById('errorMsg');
   const forgotLink = document.getElementById('forgotLink');
+  const boton = form.querySelector('.btn-submit');
 
-  form.addEventListener('submit', function(e){
+  function mostrarError(texto){
+    errorMsg.textContent = texto;
+    errorMsg.classList.add('show');
+  }
+
+  // Valida usuario y contraseña en el servidor (WebServer -> /api/login -> Autenticacion)
+  form.addEventListener('submit', async function(e){
     e.preventDefault();
     const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value.trim();
+    const password = document.getElementById('password').value;
 
-    // Placeholder de validación - reemplazar con llamada real al backend
     if(!username || !password){
-      errorMsg.textContent = 'Por favor complete todos los campos.';
-      errorMsg.classList.add('show');
+      mostrarError('Por favor complete todos los campos.');
       return;
     }
 
     errorMsg.classList.remove('show');
-    console.log('Intentando iniciar sesión con:', username);
-    // Aquí iría la llamada a la API de autenticación.
-    // DEMO: el rol se deduce del nombre de usuario ("jefe..." → Jefe de Nómina,
-    // "admin..." → Administrador, cualquier otro → Usuario Nómina).
-    window.location.href = CT.login(username);
+    boton.disabled = true;
+    boton.textContent = 'Validando...';
+    try {
+      const resp = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username, password: password })
+      });
+      let json;
+      try {
+        json = await resp.json();
+      } catch (e) {
+        // La respuesta no viene del WebServer de este proyecto (Live Server, otro puerto o una versión vieja)
+        throw new Error('El servidor no respondió como se esperaba. Abra el sistema en http://localhost:7000 ' +
+          '(no con Live Server) y reinicie el WebServer con la versión actual.');
+      }
+      if(!resp.ok){
+        throw new Error(json.error || 'No se pudo iniciar sesión.');
+      }
+      window.location.href = json.inicio || 'inicio.html';
+    } catch (err) {
+      mostrarError(err.message === 'Failed to fetch'
+        ? 'No hay conexión con el servidor. Verifique que el aplicativo esté en ejecución.'
+        : err.message);
+      document.getElementById('password').value = '';
+      boton.disabled = false;
+      boton.textContent = 'Iniciar sesión';
+    }
   });
 
   forgotLink.addEventListener('click', function(e){
     e.preventDefault();
-    alert('Funcionalidad de recuperación de contraseña pendiente de implementar.');
+    alert('Para recuperar el acceso, solicite al administrador del sistema que le asigne una contraseña nueva.');
   });
 </script>
 

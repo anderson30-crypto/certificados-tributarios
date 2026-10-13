@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
 <title>Sistema de Certificados Tributarios - Cambiar Contraseña</title>
 <style>
   :root{
@@ -317,7 +318,7 @@
           <label for="newPass">Nueva Contraseña</label>
           <input type="password" id="newPass" required>
           <ul class="hint-list" id="hintList">
-            <li id="hintLength">Al menos 8 caracteres</li>
+            <li id="hintLength">Al menos 10 caracteres, sin espacios, tildes ni ñ</li>
             <li id="hintUpper">Una letra mayúscula</li>
             <li id="hintSpecial">Un número y un carácter especial</li>
           </ul>
@@ -330,54 +331,70 @@
 
         <div class="actions-row">
           <button type="submit" class="btn btn-save" id="btnSave">Guardar Contraseña</button>
-          <a class="btn btn-close" href="perfil.html">Cerrar</a>
+          <a class="btn btn-close" href="perfil.html" id="btnCerrar">Cerrar</a>
         </div>
       </form>
     </div>
   </main>
 
+<script src="js/roles.js"></script>
+<script src="js/sesion.js"></script>
 <script>
+  // Pantalla común a todos los roles: Administrador, Jefe y Gestión Humana usan su propio menú
+  const usuario = CT.currentUser();
+  const perfil = usuario.rol === 'nomina' ? 'perfil.html' : 'perfil-rol.html';
+  if (usuario.rol !== 'nomina'){
+    document.querySelector('.topbar').remove();
+    document.querySelector('.sidebar').remove();
+    CT.shell({ active:'perfil', title:'Cambiar Contraseña' });
+  }
+  document.getElementById('btnCerrar').href = perfil;
+
   const currentPass = document.getElementById('currentPass');
   const newPass = document.getElementById('newPass');
   const confirmPass = document.getElementById('confirmPass');
   const passForm = document.getElementById('passForm');
-
+  const btnSave = document.getElementById('btnSave');
   const hintLength = document.getElementById('hintLength');
   const hintUpper = document.getElementById('hintUpper');
   const hintSpecial = document.getElementById('hintSpecial');
 
+  // Mismas reglas que valida el servidor (GestionUsuarios): 10+ caracteres ASCII visibles
+  function largoValido(val){ return val.length >= 10 && /^[\x21-\x7E]+$/.test(val); }
+
   newPass.addEventListener('input', function(){
     const val = newPass.value;
-    hintLength.classList.toggle('ok', val.length >= 8);
+    hintLength.classList.toggle('ok', largoValido(val));
     hintUpper.classList.toggle('ok', /[A-Z]/.test(val));
     hintSpecial.classList.toggle('ok', /[0-9]/.test(val) && /[^A-Za-z0-9]/.test(val));
   });
 
-  passForm.addEventListener('submit', function(e){
+  passForm.addEventListener('submit', async function(e){
     e.preventDefault();
-
-    if(newPass.value.length < 8 || !/[A-Z]/.test(newPass.value) || !/[0-9]/.test(newPass.value) || !/[^A-Za-z0-9]/.test(newPass.value)){
+    const val = newPass.value;
+    if(!largoValido(val) || !/[A-Z]/.test(val) || !/[0-9]/.test(val) || !/[^A-Za-z0-9]/.test(val)){
       alert('La nueva contraseña no cumple con todos los requisitos.');
       return;
     }
-
-    if(newPass.value !== confirmPass.value){
+    if(val !== confirmPass.value){
       alert('La confirmación no coincide con la nueva contraseña.');
       return;
     }
-
-    console.log('Cambiando contraseña...');
-    alert('Contraseña actualizada correctamente.');
-    window.location.href = 'perfil.html';
-  });
-
-  document.querySelectorAll('.nav-item[data-page]').forEach(function(item){
-    item.addEventListener('click', function(e){
-      e.preventDefault();
-      console.log('Sección aún no implementada:', item.dataset.page);
-    });
+    btnSave.disabled = true;
+    try {
+      const r = await fetch('/api/perfil/password', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actual: currentPass.value, nueva: val })
+      });
+      const j = await r.json().catch(function(){ return {}; });
+      if (!r.ok) throw new Error(j.error || 'No se pudo cambiar la contraseña.');
+      alert('Contraseña actualizada correctamente.');
+      window.location.href = perfil;
+    } catch (err) {
+      alert(err.message);
+      btnSave.disabled = false;
+    }
   });
 </script>
-
 </body>
 </html>

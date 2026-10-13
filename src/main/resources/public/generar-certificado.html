@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="js/devoluciones.js"></script>
+<link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
 <title>Sistema de Certificados Tributarios - Generar Certificado</title>
 <style>
   :root{
@@ -228,9 +228,8 @@
 
   .doc-grid{
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: repeat(3, auto);
-    grid-auto-flow: column;
+    /* 2 columnas que crecen hacia abajo, sin importar cuántos contratistas haya */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px 40px;
     margin-bottom: 10px;
   }
@@ -337,23 +336,6 @@
     .main{ margin-left: 0; }
     .topbar .brand, .topbar-actions{ flex: 0 0 auto; }
   }
-
-  .notice{
-    max-width: 560px;
-    margin: 0 auto 26px;
-    background: #EAF1FD;
-    border: 1px solid #C9DAF8;
-    color: #1F4FA8;
-    font-size: 12px;
-    line-height: 1.45;
-    padding: 10px 14px;
-    border-radius: 6px;
-    text-align: center;
-  }
-  .notice.warn{ background:#FBF3DC; border-color:#F0DFA6; color:#7A5C00; }
-  .notice .notice-link{ text-decoration:underline; cursor:pointer; margin-left:8px; }
-  .field-error{ display:none; color:#C40510; font-size:11.5px; text-align:center; margin-top:8px; }
-  .field-error.show{ display:block; }
 </style>
 </head>
 <body>
@@ -391,16 +373,15 @@
     <div class="breadcrumb">Inicio &nbsp;›&nbsp; Generar Certificado</div>
 
     <h2 class="section-title">Generar Certificado</h2>
-    <p class="section-subtitle">Busca el documento que desee</p>
-    <div class="notice warn" id="regenBanner" style="display:none"></div>
+    <p class="section-subtitle">Busca el contratista al que le quieres generar el certificado</p>
 
     <div class="content-wrap">
       <div class="search-row">
-        <input type="text" id="searchInput" placeholder="Buscar Certificado">
+        <input type="text" id="searchInput" placeholder="Buscar por nombre o documento">
         <span class="search-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg></span>
       </div>
 
-      <div class="list-label">Documentos Encontrados ▾</div>
+      <div class="list-label">Contratistas Encontrados ▾</div>
 
       <div class="doc-grid" id="docGrid">
         <!-- generado por JS -->
@@ -413,94 +394,143 @@
 
       <div class="generate-btn-wrap">
         <button class="btn-generate" id="btnGenerate" disabled>Generar Certificado Tributario</button>
-        <div class="selected-count" id="selectedCount">0 documentos seleccionados</div>
+        <div class="selected-count" id="selectedCount">0 contratista(s) seleccionado(s)</div>
       </div>
     </div>
   </main>
 
 <script>
-  // Si venimos de "Certificados Devueltos", se está regenerando un certificado devuelto
-  const regenId = sessionStorage.getItem('regenerarDevuelto');
-  const regenDev = regenId ? Devoluciones.buscar(regenId) : null;
-  if(regenDev){
-    const b = document.getElementById('regenBanner');
-    b.innerHTML = 'Vas a <b>volver a generar</b> el certificado devuelto de <b>' + regenDev.cliente + '</b> (Doc. ' + regenDev.documento + ').' +
-      '<span class="notice-link" id="regenCancel">Cancelar</span>';
-    b.style.display = 'block';
-    document.getElementById('regenCancel').addEventListener('click', function(){
-      sessionStorage.removeItem('regenerarDevuelto');
-      b.style.display = 'none';
-    });
-  }
-
-  const documentos = [
-    { name: 'Certificado de Retención en la Fuente', checked: true },
-    { name: 'Certificado de IVA', checked: true },
-    { name: 'Certificado de ICA', checked: true },
-    { name: 'Declaración de Renta', checked: false },
-    { name: 'RUT Actualizado', checked: true },
-    { name: 'Estados Financieros', checked: false }
-  ];
-
+  // Contratistas cargados desde la base de datos (WebServer -> /api/contratistas)
+  let documentos = [];
   const docGrid = document.getElementById('docGrid');
   const selectAll = document.getElementById('selectAll');
   const btnGenerate = document.getElementById('btnGenerate');
   const selectedCount = document.getElementById('selectedCount');
   const searchInput = document.getElementById('searchInput');
 
+  // Lista con los enlaces a los PDF generados, debajo del botón
+  const resultados = document.createElement('ul');
+  resultados.style.cssText = 'margin-top:16px; line-height:1.9;';
+  document.querySelector('.generate-btn-wrap').appendChild(resultados);
+
+  // Botón para pasar a enviar por correo los certificados recién generados
+  const btnCorreo = document.createElement('button');
+  btnCorreo.className = 'btn-generate';
+  btnCorreo.textContent = 'Enviar por correo';
+  btnCorreo.style.cssText = 'display:none; margin-top:12px;';
+  document.querySelector('.generate-btn-wrap').appendChild(btnCorreo);
+  let generados = [];
+  btnCorreo.addEventListener('click', function(){
+    // El formulario de correo lee esta lista (id del certificado, contratista, correo y PDF)
+    sessionStorage.setItem('certificadosParaEnviar', JSON.stringify(generados));
+    window.location.href = 'enviar-correo-formulario.html';
+  });
+
+  function mostrarMensaje(texto){
+    docGrid.innerHTML = '';
+    const p = document.createElement('p');
+    p.textContent = texto;
+    docGrid.appendChild(p);
+  }
+
+  async function cargarContratistas(){
+    mostrarMensaje('Cargando contratistas...');
+    try {
+      const resp = await fetch('/api/contratistas');
+      const json = await resp.json();
+      if(!resp.ok){
+        throw new Error(json.error);
+      }
+      documentos = json.map(function(c){
+        return { id: c.id, name: c.nombre + ' - ' + c.documento, checked: false };
+      });
+      if(documentos.length === 0){
+        mostrarMensaje('No hay contratistas. Primero sube la sábana en "Subir Documentos".');
+        updateState();
+        return;
+      }
+      renderDocs(searchInput.value);
+    } catch (err) {
+      mostrarMensaje('No se pudieron cargar los contratistas: ' + err.message);
+    }
+  }
+
   function renderDocs(filter){
     docGrid.innerHTML = '';
     const filtered = documentos.filter(function(doc){
       return doc.name.toLowerCase().includes((filter || '').toLowerCase());
     });
-
     filtered.forEach(function(doc){
       const row = document.createElement('div');
       row.className = 'doc-row';
-      row.innerHTML = '<div class="doc-bar" title="' + doc.name + '">' + doc.name + '</div><div class="doc-checkbox' + (doc.checked ? ' checked' : '') + '" data-name="' + doc.name + '"></div>';
+      row.innerHTML = '<div class="doc-bar"></div><div class="doc-checkbox' + (doc.checked ? ' checked' : '') + '" data-id="' + doc.id + '"></div>';
+      row.querySelector('.doc-bar').textContent = doc.name;
+      row.querySelector('.doc-bar').title = doc.name;
       docGrid.appendChild(row);
     });
-
     attachCheckboxEvents();
     updateState();
   }
-
   function attachCheckboxEvents(){
     document.querySelectorAll('.doc-grid .doc-checkbox').forEach(function(box){
       box.addEventListener('click', function(){
-        const name = box.dataset.name;
-        const doc = documentos.find(d => d.name === name);
+        const doc = documentos.find(d => String(d.id) === box.dataset.id);
         doc.checked = !doc.checked;
         box.classList.toggle('checked', doc.checked);
         updateState();
       });
     });
   }
-
   function updateState(){
     const total = documentos.length;
     const checkedCount = documentos.filter(d => d.checked).length;
-    selectedCount.textContent = checkedCount + ' documento(s) seleccionado(s)';
+    selectedCount.textContent = checkedCount + ' contratista(s) seleccionado(s)';
     btnGenerate.disabled = checkedCount === 0;
     selectAll.classList.toggle('checked', total > 0 && checkedCount === total);
   }
-
   selectAll.addEventListener('click', function(){
     const shouldCheck = !selectAll.classList.contains('checked');
     documentos.forEach(function(doc){ doc.checked = shouldCheck; });
     renderDocs(searchInput.value);
   });
-
   searchInput.addEventListener('input', function(){
     renderDocs(searchInput.value);
   });
 
-  btnGenerate.addEventListener('click', function(){
-    const selected = documentos.filter(d => d.checked).map(d => d.name);
-    console.log('Generando certificado con documentos:', selected);
-    sessionStorage.setItem('certDocs', String(selected.length));
-    sessionStorage.setItem('certDocNames', JSON.stringify(selected));
-    window.location.href = 'certificado-generado.html';
+  // Genera el PDF de cada contratista seleccionado (WebServer -> GenerarCertificado)
+  btnGenerate.addEventListener('click', async function(){
+    const seleccionados = documentos.filter(d => d.checked);
+    btnGenerate.disabled = true;
+    btnGenerate.textContent = 'Generando...';
+    resultados.innerHTML = '';
+    generados = [];
+    btnCorreo.style.display = 'none';
+
+    for (const doc of seleccionados) {
+      const li = document.createElement('li');
+      try {
+        const resp = await fetch('/api/certificados/' + doc.id, { method: 'POST' });
+        const json = await resp.json();
+        if(!resp.ok){
+          throw new Error(json.error);
+        }
+        const enlace = document.createElement('a');
+        enlace.href = json.url;
+        enlace.target = '_blank';
+        enlace.textContent = 'Ver certificado de ' + doc.name;
+        li.appendChild(enlace);
+        generados.push({ idCertificado: json.idCertificado, contratista: doc.name,
+                         correo: json.correo, archivo: json.archivo });
+      } catch (err) {
+        li.textContent = doc.name + ': ERROR - ' + err.message;
+        li.style.color = '#c00';
+      }
+      resultados.appendChild(li);
+    }
+
+    btnGenerate.textContent = 'Generar Certificado Tributario';
+    btnCorreo.style.display = generados.length > 0 ? 'inline-block' : 'none';
+    updateState();
   });
 
   document.querySelectorAll('.nav-item[data-page]').forEach(function(item){
@@ -509,9 +539,9 @@
       console.log('Sección aún no implementada:', item.dataset.page);
     });
   });
-
-  renderDocs('');
+  cargarContratistas();
 </script>
 
+<script src="js/sesion.js"></script>
 </body>
 </html>
