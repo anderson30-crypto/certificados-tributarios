@@ -43,7 +43,12 @@ public class WebServer {
         EsquemaBD.asegurar();
 
         Javalin app = Javalin.create(config -> {
-            config.staticFiles.add("/public", Location.CLASSPATH);
+            // Páginas, scripts y estilos: el navegador siempre pregunta si cambiaron (evita usar versiones viejas)
+            config.staticFiles.add(archivos -> {
+                archivos.directory = "/public";
+                archivos.location = Location.CLASSPATH;
+                archivos.headers = Map.of("Cache-Control", "no-cache");
+            });
 
             // Cookie de sesión: no la puede leer JavaScript (HttpOnly), no viaja desde otros sitios
             // (SameSite=Strict) y vence tras 30 minutos sin uso
@@ -58,6 +63,12 @@ public class WebServer {
                 sesiones.setMaxInactiveInterval(30 * 60);
             });
         }).start(7000);
+
+        // Cualquier error no controlado: se muestra en la consola y la página recibe el mensaje
+        app.exception(Exception.class, (e, ctx) -> {
+            e.printStackTrace();
+            ctx.status(500).json(Map.of("error", e.getClass().getSimpleName() + ": " + e.getMessage()));
+        });
 
         // La pantalla inicial es el login: http://localhost:7000 lleva directo a login.html
         app.get("/", ctx -> ctx.redirect("/login.html"));

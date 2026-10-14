@@ -14,10 +14,20 @@
   };
 
   fetchOriginal('/api/sesion')
-    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (r) {
+      if (r.status === 401) { window.location.href = 'login.html'; return null; }
+      // Otro error: se avisa en vez de volver al login (eso causaba un ciclo de recargas)
+      if (!r.ok) {
+        return r.text().then(function (t) {
+          let msg = t; try { msg = JSON.parse(t).error || t; } catch (e) { }
+          alert('No se pudo cargar su sesión (error ' + r.status + '):\n' + msg + '\n\nRevise la consola del WebServer.');
+          return null;
+        });
+      }
+      return r.json();
+    })
     .then(function (usuario) {
       if (!usuario) {
-        window.location.href = 'login.html';
         return;
       }
       document.querySelectorAll('.user-chip').forEach(function (chip) {
@@ -25,7 +35,7 @@
         if (textos.length > 0) {
           textos[textos.length - 1].textContent = ' ' + usuario.nombre;
         }
-        chip.title = usuario.nombre + ' (' + usuario.rol + ')';
+        chip.title = usuario.nombre + ' (' + usuario.rolNombre + ')';
       });
     });
 

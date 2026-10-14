@@ -1,19 +1,18 @@
 /* =====================================================================
-   Capa compartida de las vistas por rol (Jefe de Nómina / Administrador)
-   - Datos de demostración persistidos en localStorage (reemplazar por API)
-   - Sesión simulada en sessionStorage
+   Capa compartida de las vistas por rol (Administrador / Jefe de Nómina / Gestión Humana)
+   - La sesión, el usuario y su rol vienen del servidor (/api/sesion); el servidor además
+     impide entrar a pantallas o acciones de otro rol (Seguridad.Roles)
+   - Las pantallas del Jefe todavía usan datos de demostración (pendientes por firmar,
+     historial) hasta conectar la firma de certificados
    - Layout (topbar + sidebar) según el rol
    ===================================================================== */
 (function (w) {
   'use strict';
 
-  /* ---------- Almacenamiento seguro ---------- */
+  /* ---------- Almacenamiento local (solo datos de demostración del Jefe) ---------- */
   var mem = {};
   function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return mem[k] || null; } }
   function lsSet(k,v){ try { localStorage.setItem(k,v); } catch(e){ mem[k] = v; } }
-  function ssGet(k){ try { return sessionStorage.getItem(k); } catch(e){ return mem['s_'+k] || null; } }
-  function ssSet(k,v){ try { sessionStorage.setItem(k,v); } catch(e){ mem['s_'+k] = v; } }
-  function ssDel(k){ try { sessionStorage.removeItem(k); } catch(e){ delete mem['s_'+k]; } }
   function read(key, seed){
     var raw = lsGet(key);
     if (raw) { try { return JSON.parse(raw); } catch(e){} }
@@ -23,28 +22,48 @@
 
   /* ---------- Catálogos ---------- */
   var ROLES = {
-    nomina: 'Usuario Nómina',
+    nomina: 'Nómina',
     jefe:   'Jefe de Nómina',
-    admin:  'Administrador de permisos y auditorías'
+    gh:     'Gestión Humana',
+    admin:  'Administrador'
   };
-  var PERMISOS = [
-    { key:'subir_documentos',    label:'Subir documentos',        grupo:'Operación de certificados' },
-    { key:'cargar_excel',        label:'Cargar Excel',            grupo:'Operación de certificados' },
-    { key:'generar_certificados',label:'Generar certificados',    grupo:'Operación de certificados' },
-    { key:'gestionar_firma',     label:'Gestionar firma digital', grupo:'Operación de certificados' },
-    { key:'enviar_certificados', label:'Enviar certificados',     grupo:'Operación de certificados' },
-    { key:'ver_historial',       label:'Ver historial de Nómina', grupo:'Supervisión' },
-    { key:'firmar_reemplazo',    label:'Firmar en reemplazo',     grupo:'Supervisión' },
-    { key:'gestionar_permisos',  label:'Gestionar permisos',      grupo:'Administración' },
-    { key:'ver_auditorias',      label:'Ver auditorías',          grupo:'Administración' }
-  ];
-  var PERMISOS_DEFECTO = {
-    nomina: ['subir_documentos','cargar_excel','generar_certificados','gestionar_firma','enviar_certificados'],
-    jefe:   ['ver_historial','firmar_reemplazo','gestionar_firma'],
-    admin:  ['gestionar_permisos','ver_auditorias']
+  // Jefe de Nómina y Gestión Humana comparten pantallas: los dos firman
+  var FIRMANTES = ['jefe', 'gh'];
+
+  /* ---------- Si la sesión vence en cualquier llamada al servidor, volver al login ---------- */
+  var fetchOriginal = w.fetch.bind(w);
+  w.fetch = function(){
+    return fetchOriginal.apply(w, arguments).then(function(r){
+      if (r.status === 401) { location.replace('login.html'); }
+      return r;
+    });
   };
-  var HOME = { nomina:'inicio.html', jefe:'jefe-inicio.html', admin:'admin-inicio.html' };
-  var DEMO_USER_ID = { nomina:1, jefe:2, admin:3 };
+
+  /* ---------- Usuario de la sesión (una sola consulta por página) ---------- */
+  var sesion = null;
+  function cargarSesion(){
+    if (sesion) return sesion;
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/api/sesion', false);   // síncrono: las páginas lo necesitan antes de dibujarse
+    try { xhr.send(); } catch(e){}
+    if (xhr.status === 401){ location.replace('login.html'); throw new Error('Sin sesión'); }
+    if (xhr.status !== 200){
+      // Error del servidor: se muestra en vez de volver al login (eso causaba un ciclo de recargas)
+      var detalle = '';
+      try { detalle = JSON.parse(xhr.responseText).error || ''; } catch(e){ detalle = xhr.responseText || ''; }
+      document.documentElement.innerHTML =
+        '<body style="font-family:Segoe UI,Arial,sans-serif;max-width:640px;margin:60px auto;padding:0 16px;color:#23262B">' +
+        '<h2 style="color:#C40510">No se pudo cargar su sesión</h2>' +
+        '<p>El servidor respondió con el código ' + xhr.status + (detalle ? ':' : '.') + '</p>' +
+        (detalle ? '<pre style="white-space:pre-wrap;background:#F4F5F7;padding:12px;border-radius:6px">' + esc(detalle) + '</pre>' : '') +
+        '<p>Revise la consola donde corre el WebServer. Después puede <a href="#" onclick="fetch(\'/api/logout\',{method:\'POST\'}).then(function(){location.href=\'login.html\'});return false">cerrar sesión</a>.</p></body>';
+      throw new Error('Error ' + xhr.status + ' en /api/sesion');
+    }
+    var d = JSON.parse(xhr.responseText);
+    sesion = { id:d.id, nombre:d.nombre, usuario:d.username, correo:d.correo, telefono:d.telefono || '',
+               rol:d.rol, rolNombre:d.rolNombre, funciones:d.funciones || [], inicio:d.inicio };
+    return sesion;
+  }
 
   /* ---------- Utilidades ---------- */
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
@@ -52,7 +71,6 @@
   function fmt(iso){
     return new Date(iso).toLocaleString('es-CO', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
   }
-  function permLabel(k){ for (var i=0;i<PERMISOS.length;i++) if (PERMISOS[i].key===k) return PERMISOS[i].label; return k; }
   function nextId(arr){ return arr.reduce(function(m,x){ return Math.max(m, x.id||0); }, 0) + 1; }
   function toast(msg){
     var t = document.getElementById('ctToast');
@@ -61,16 +79,7 @@
     clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove('show'); }, 2600);
   }
 
-  /* ---------- Datos semilla ---------- */
-  function seedUsuarios(){
-    return [
-      { id:1, nombre:'Juan Pérez',    usuario:'jperez',   correo:'juan.perez@upb.edu.co',    telefono:'300 000 0000', rol:'nomina', activo:true,  permisos: PERMISOS_DEFECTO.nomina.slice() },
-      { id:2, nombre:'María Ramírez', usuario:'mramirez', correo:'maria.ramirez@upb.edu.co', telefono:'301 111 1111', rol:'jefe',   activo:true,  permisos: PERMISOS_DEFECTO.jefe.slice() },
-      { id:3, nombre:'Carlos Gómez',  usuario:'cgomez',   correo:'carlos.gomez@upb.edu.co',  telefono:'302 222 2222', rol:'admin',  activo:true,  permisos: PERMISOS_DEFECTO.admin.slice() },
-      { id:4, nombre:'Laura Torres',  usuario:'ltorres',  correo:'laura.torres@upb.edu.co',  telefono:'303 333 3333', rol:'nomina', activo:true,  permisos: ['subir_documentos','cargar_excel','generar_certificados'] },
-      { id:5, nombre:'Andrés Molina', usuario:'amolina',  correo:'andres.molina@upb.edu.co', telefono:'304 444 4444', rol:'nomina', activo:false, permisos: [] }
-    ];
-  }
+  /* ---------- Datos de demostración del Jefe (se reemplazan al conectar la firma) ---------- */
   function seedActividad(){
     var J='Juan Pérez', L='Laura Torres';
     var rows = [
@@ -107,102 +116,50 @@
       return o;
     });
   }
-  function seedAuditoria(){
-    var rows = [
-      [0.5,'Carlos Gómez','admin','Autenticación','Inicio de sesión','Acceso exitoso'],
-      [1,  'María Ramírez','jefe','Historial','Consulta de historial','Revisó la actividad del Usuario Nómina'],
-      [2,  'Juan Pérez','nomina','Certificados','Envío de certificado','CT-548213 → 128 destinatarios'],
-      [3,  'Juan Pérez','nomina','Certificados','Generación de certificado','Folio CT-548213'],
-      [3.5,'Juan Pérez','nomina','Certificados','Carga de Excel','retenciones_docentes_2025.xlsx'],
-      [4,  'Juan Pérez','nomina','Autenticación','Inicio de sesión','Acceso exitoso'],
-      [8,  'Carlos Gómez','admin','Usuarios y permisos','Modificación de permisos','Laura Torres · se retiró: Enviar certificados'],
-      [9,  'Carlos Gómez','admin','Autenticación','Inicio de sesión','Acceso exitoso'],
-      [25, 'Laura Torres','nomina','Autenticación','Intento de sesión fallido','Contraseña incorrecta'],
-      [25.2,'Laura Torres','nomina','Autenticación','Inicio de sesión','Acceso exitoso'],
-      [26, 'Laura Torres','nomina','Certificados','Carga de Excel','retenciones_administrativos.xlsx · error de validación'],
-      [30, 'Juan Pérez','nomina','Firma digital','Actualización de firma','Firma digital reemplazada'],
-      [48, 'Carlos Gómez','admin','Usuarios y permisos','Cambio de estado','Andrés Molina · desactivado'],
-      [52, 'Juan Pérez','nomina','Certificados','Envío de certificado','CT-547990 · correo rebotado'],
-      [72, 'María Ramírez','jefe','Autenticación','Inicio de sesión','Acceso exitoso'],
-      [76, 'Laura Torres','nomina','Certificados','Generación de certificado','Folio CT-547812'],
-      [96, 'Carlos Gómez','admin','Usuarios y permisos','Modificación de permisos','María Ramírez · se agregó: Firmar en reemplazo'],
-      [100,'Juan Pérez','nomina','Certificados','Carga de Excel','retenciones_proveedores.xlsx'],
-      [124,'Juan Pérez','nomina','Certificados','Generación de certificado','Folio CT-546712'],
-      [150,'Laura Torres','nomina','Certificados','Envío de certificado','CT-546500 → 41 destinatarios'],
-      [170,'Juan Pérez','nomina','Certificados','Subida de documentos','soportes_agosto.pdf']
-    ];
-    return rows.map(function(r,i){
-      return { id:i+1, fecha:hoursAgo(r[0]), usuario:r[1], rol:r[2], modulo:r[3], accion:r[4], detalle:r[5] };
-    });
-  }
 
-  /* ---------- Acceso a datos ---------- */
-  var K = { u:'ct2_usuarios', a:'ct2_actividad', p:'ct2_pendientes', au:'ct2_auditoria', n:'ct2_nomina_estado' };
+  var K = { a:'ct2_actividad', p:'ct2_pendientes', n:'ct2_nomina_estado' };
   var CT = {
-    ROLES: ROLES, PERMISOS: PERMISOS, PERMISOS_DEFECTO: PERMISOS_DEFECTO,
-    esc: esc, fmt: fmt, toast: toast, permLabel: permLabel,
+    ROLES: ROLES,
+    esc: esc, fmt: fmt, toast: toast,
 
-    usuarios:   function(){ return read(K.u,  seedUsuarios); },
-    saveUsuarios: function(v){ write(K.u, v); },
     actividad:  function(){ return read(K.a,  seedActividad); },
     pendientes: function(){ return read(K.p,  seedPendientes); },
     savePendientes: function(v){ write(K.p, v); },
-    auditoria:  function(){ return read(K.au, seedAuditoria); },
     nominaEstado: function(){ return read(K.n, function(){ return { disponible:true }; }); },
     saveNominaEstado: function(v){ write(K.n, v); },
-
-    currentUser: function(){
-      var rol = ssGet('ct_rol');
-      var users = CT.usuarios();
-      var id = parseInt(ssGet('ct_uid'), 10) || DEMO_USER_ID[rol];
-      for (var i=0;i<users.length;i++) if (users[i].id === id) return users[i];
-      return { id:0, nombre:'Usuario', rol:rol, permisos:[] };
-    },
-
-    audit: function(modulo, accion, detalle){
-      var u = CT.currentUser(), list = CT.auditoria();
-      list.push({ id: nextId(list), fecha: new Date().toISOString(), usuario:u.nombre, rol:u.rol, modulo:modulo, accion:accion, detalle:detalle || '' });
-      write(K.au, list);
-    },
     logActividad: function(accion, detalle, estado){
       var u = CT.currentUser(), list = CT.actividad();
       list.push({ id: nextId(list), fecha: new Date().toISOString(), usuario:u.nombre, rol:u.rol, accion:accion, detalle:detalle, estado: estado || 'Completado' });
       write(K.a, list);
     },
 
+    /** Usuario con sesión: { id, nombre, usuario, correo, telefono, rol, rolNombre, funciones, inicio } */
+    currentUser: function(){ return cargarSesion(); },
+    esFirmante: function(rol){ return FIRMANTES.indexOf(rol) > -1; },
+
+    /** Guarda un evento en la auditoría del servidor */
+    audit: function(modulo, accion, detalle){
+      fetch('/api/auditoria/evento', { method:'POST', headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ modulo:modulo, accion:accion, detalle:detalle || '' }) });
+    },
+
     /* ---------- Sesión ---------- */
-    roleFromUsername: function(name){
-      var u = String(name || '').toLowerCase();
-      if (/^jefe/.test(u)) return 'jefe';
-      if (/^admin/.test(u)) return 'admin';
-      return 'nomina';
-    },
-    login: function(username){
-      var rol = CT.roleFromUsername(username);
-      ssSet('ct_rol', rol); ssSet('ct_uid', String(DEMO_USER_ID[rol]));
-      CT.audit('Autenticación', 'Inicio de sesión', 'Acceso exitoso');
-      return HOME[rol];
-    },
     logout: function(){
-      if (ssGet('ct_rol')) CT.audit('Autenticación', 'Cierre de sesión', '');
-      ssDel('ct_rol'); ssDel('ct_uid');
-      location.href = 'login.html';
+      fetchOriginal('/api/logout', { method:'POST' }).then(function(){ location.href = 'login.html'; },
+                                                          function(){ location.href = 'login.html'; });
     },
-    /* Atajo para el índice de demostración */
-    enterAs: function(rol){
-      ssSet('ct_rol', rol); ssSet('ct_uid', String(DEMO_USER_ID[rol]));
-      location.href = HOME[rol];
-    },
-    /* Protege la página: role = 'jefe' | 'admin' | ['jefe','admin'] */
+    /* Protege la página: role = 'jefe' | 'admin' | ['jefe','admin'] ('jefe' incluye a Gestión Humana).
+       El servidor ya bloquea el acceso; esto solo evita dibujar una pantalla ajena. */
     guard: function(role){
-      var allowed = [].concat(role), actual = ssGet('ct_rol');
-      if (allowed.indexOf(actual) === -1){ location.replace('login.html'); return false; }
+      var allowed = [].concat(role), u = cargarSesion();
+      if (allowed.indexOf('jefe') > -1) allowed = allowed.concat(['gh']);
+      if (allowed.indexOf(u.rol) === -1){ location.replace(u.inicio || 'login.html'); return false; }
       return true;
     },
 
     /* ---------- Layout ---------- */
     shell: function(opts){
-      var rol = ssGet('ct_rol'), user = CT.currentUser();
+      var user = CT.currentUser(), rol = CT.esFirmante(user.rol) ? 'jefe' : user.rol;
       var ICON = {
         home:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/>',
         clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>',
@@ -219,11 +176,11 @@
           ['inicio',   'Inicio',              'jefe-inicio.html',    ICON.home],
           ['historial','Historial de Nómina', 'jefe-historial.html', ICON.clock],
           ['firmar',   'Firmar certificados', 'jefe-firmar.html',    ICON.pen],
-          ['perfil',   'Perfil',              'perfil.html',         ICON.user]
+          ['perfil',   'Perfil',              'perfil-rol.html',     ICON.user]
         ],
         admin: [
           ['inicio',     'Inicio',              'admin-inicio.html',     ICON.home],
-          ['usuarios',   'Usuarios y permisos', 'admin-usuarios.html',   ICON.users],
+          ['usuarios',   'Usuarios'          , 'admin-usuarios.html',   ICON.users],
           ['auditorias', 'Auditorías',          'admin-auditorias.html', ICON.shield],
           ['perfil',     'Perfil',              'perfil-rol.html',       ICON.user]
         ]
@@ -236,7 +193,7 @@
         '<header class="topbar">' +
           '<div class="brand"><div class="logo-mark"><img src="images/upb-logo.png" alt="UPB"></div></div>' +
           '<div class="page-title">' + esc(opts.title) + '</div>' +
-          '<div class="topbar-actions"><a class="user-chip" href="' + (rol === 'jefe' ? 'perfil.html' : 'perfil-rol.html') + '">' + svg(ICON.user) + ' ' + esc(user.nombre) + '</a></div>' +
+          '<div class="topbar-actions"><a class="user-chip" href="' + 'perfil-rol.html' + '">' + svg(ICON.user) + ' ' + esc(user.nombre) + '</a></div>' +
         '</header>' +
         '<nav class="sidebar">' + items +
           '<a class="nav-item logout" href="#" id="ctLogout"><span class="nav-icon">' + svg(ICON.out) + '</span> Cerrar Sesión</a>' +
