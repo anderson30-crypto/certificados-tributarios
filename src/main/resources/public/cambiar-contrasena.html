@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
+<script src="js/avisos.js"></script>
 <title>Sistema de Certificados Tributarios - Cambiar Contraseña</title>
 <style>
   :root{
@@ -373,11 +374,11 @@
     e.preventDefault();
     const val = newPass.value;
     if(!largoValido(val) || !/[A-Z]/.test(val) || !/[0-9]/.test(val) || !/[^A-Za-z0-9]/.test(val)){
-      alert('La nueva contraseña no cumple con todos los requisitos.');
+      Avisos.mostrar('La nueva contraseña no cumple con todos los requisitos.', 'aviso', 'Contraseña no válida');
       return;
     }
     if(val !== confirmPass.value){
-      alert('La confirmación no coincide con la nueva contraseña.');
+      Avisos.mostrar('La confirmación no coincide con la nueva contraseña.', 'aviso', 'Las contraseñas no coinciden');
       return;
     }
     btnSave.disabled = true;
@@ -388,10 +389,10 @@
       });
       const j = await r.json().catch(function(){ return {}; });
       if (!r.ok) throw new Error(j.error || 'No se pudo cambiar la contraseña.');
-      alert('Contraseña actualizada correctamente.');
+      Avisos.alSiguiente('Su contraseña se actualizó correctamente.', 'exito', 'Contraseña actualizada');
       window.location.href = perfil;
     } catch (err) {
-      alert(err.message);
+      Avisos.mostrar(err.message, 'error', 'No se pudo cambiar la contraseña');
       btnSave.disabled = false;
     }
   });

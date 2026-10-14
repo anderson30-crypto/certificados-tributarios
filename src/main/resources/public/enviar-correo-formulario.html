@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
+<script src="js/avisos.js"></script>
 <title>Sistema de Certificados Tributarios - Redactar Correo</title>
 <style>
   :root{
@@ -381,7 +382,7 @@ Universidad Pontificia Bolivariana</textarea>
   const fieldPara = document.getElementById('fieldPara');
 
   if(certificados.length === 0){
-    alert('Primero genera los certificados en "Generar Certificado" y luego usa "Enviar por correo".');
+    Avisos.alSiguiente('Primero genera los certificados y luego usa "Enviar por correo".', 'aviso');
     window.location.href = 'generar-certificado.html';
   }
 
@@ -414,11 +415,11 @@ Universidad Pontificia Bolivariana</textarea>
 
   document.getElementById('btnGuardarBorrador').addEventListener('click', function(){
     sessionStorage.setItem('correoBorrador', JSON.stringify(leerBorrador()));
-    alert('Borrador guardado.');
+    Avisos.mostrar('El borrador quedó guardado.', 'exito', 'Borrador guardado');
   });
   document.getElementById('btnRevisar').addEventListener('click', function(){
     if(!document.getElementById('fieldAsunto').value.trim()){
-      alert('Escribe un asunto antes de continuar.');
+      Avisos.mostrar('Escribe un asunto antes de continuar.', 'aviso', 'Falta el asunto');
       return;
     }
     sessionStorage.setItem('correoBorrador', JSON.stringify(leerBorrador()));

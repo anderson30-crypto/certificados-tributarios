@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
+<script src="js/avisos.js"></script>
 <script src="js/roles.js"></script>
 <title>Sistema de Certificados Tributarios - Firma Digital</title>
 <style>
@@ -531,11 +532,13 @@
 
   btnEliminar.addEventListener('click', function(){
     if(!signatureDataUrl) return;
-    if(confirm('¿Seguro que deseas eliminar tu firma digital registrada?')){
+    Avisos.confirmar('¿Seguro que deseas eliminar tu firma digital registrada?',
+                     { titulo:'Eliminar firma', aceptar:'Eliminar', peligro:true }).then(function(si){
+      if(!si) return;
       signatureDataUrl = null;
       renderSignature();
-      console.log('Firma digital eliminada');
-    }
+      Avisos.mostrar('Tu firma digital fue eliminada.', 'exito', 'Firma eliminada');
+    });
   });
 
   document.querySelectorAll('.nav-item[data-page]').forEach(function(item){

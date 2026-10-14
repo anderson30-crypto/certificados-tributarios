@@ -20,7 +20,7 @@
       if (!r.ok) {
         return r.text().then(function (t) {
           let msg = t; try { msg = JSON.parse(t).error || t; } catch (e) { }
-          alert('No se pudo cargar su sesión (error ' + r.status + '):\n' + msg + '\n\nRevise la consola del WebServer.');
+          (window.Avisos ? Avisos.mostrar : alert)(msg + '\n\nRevise la consola del WebServer.', 'error', 'No se pudo cargar su sesión (error ' + r.status + ')');
           return null;
         });
       }

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
+<script src="js/avisos.js"></script>
 <title>Sistema de Certificados Tributarios - Perfil</title>
 <style>
   :root{
@@ -385,13 +386,13 @@
     campos.forEach(function(c){ cuerpo[c] = document.getElementById(c).value.trim(); });
     const r = await fetch('/api/perfil', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) });
     const j = await r.json().catch(function(){ return {}; });
-    if (!r.ok){ alert(j.error || 'No se pudieron guardar los cambios.'); return; }
+    if (!r.ok){ Avisos.mostrar(j.error || 'No se pudieron guardar los cambios.', 'error', 'No se guardaron los cambios'); return; }
     llenar(cuerpo);
     document.querySelectorAll('.user-chip').forEach(function(chip){
       const t = Array.from(chip.childNodes).filter(function(n){ return n.nodeType === Node.TEXT_NODE; });
       if (t.length) t[t.length - 1].textContent = ' ' + cuerpo.nombre;
     });
-    alert('Cambios guardados correctamente.');
+    Avisos.mostrar('Sus datos de contacto se actualizaron.', 'exito', 'Cambios guardados');
   });
 
   document.getElementById('btnCancel').addEventListener('click', function(){ llenar(original); });

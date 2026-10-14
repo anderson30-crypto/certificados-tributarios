@@ -375,6 +375,40 @@ public class WebServer {
             }
         });
 
+        // --- Certificados devueltos (no se editan: se vuelven a generar) ---
+
+        app.get("/api/devoluciones", ctx -> ctx.json(Devoluciones.listar()));
+
+        // Cuerpo JSON: { documento, motivo }
+        app.post("/api/devoluciones", ctx -> {
+            Map<?, ?> c = ctx.bodyAsClass(Map.class);
+            int idUsuario = usuarioActual(ctx).idUsuario();
+            try {
+                int id = Devoluciones.registrar(texto(c.get("documento")), texto(c.get("motivo")), idUsuario);
+                RegistroAuditoria.registrar(idUsuario, "Certificados", "Devolución de certificado",
+                    "Certificado " + id + " · documento " + texto(c.get("documento")) + " · " + texto(c.get("motivo")));
+                ctx.json(Map.of("ok", true, "idCertificado", id));
+            } catch (Devoluciones.ReglaException e) {
+                ctx.status(409).json(Map.of("error", e.getMessage(), "codigo", e.codigo()));
+            }
+        });
+
+        // Cuerpo JSON: { forzar: true|false }  (forzar: regenerar aunque los datos no hayan cambiado)
+        app.post("/api/devoluciones/{id}/regenerar", ctx -> {
+            int idDevuelto = Integer.parseInt(ctx.pathParam("id"));
+            Map<?, ?> c = ctx.body().isBlank() ? Map.of() : ctx.bodyAsClass(Map.class);
+            int idUsuario = usuarioActual(ctx).idUsuario();
+            try {
+                Map<String, Object> r = Devoluciones.regenerar(idDevuelto, Boolean.TRUE.equals(c.get("forzar")), idUsuario);
+                RegistroAuditoria.registrar(idUsuario, "Certificados", "Regeneración de certificado",
+                    "Certificado devuelto " + idDevuelto + " reemplazado por " + r.get("idCertificado") + " · " + r.get("archivo") +
+                    (Boolean.TRUE.equals(r.get("sinCambios")) ? " · sin cambios en los datos (confirmado)" : ""));
+                ctx.json(r);
+            } catch (Devoluciones.ReglaException e) {
+                ctx.status(409).json(Map.of("error", e.getMessage(), "codigo", e.codigo()));
+            }
+        });
+
         // Ver / descargar un PDF generado
         app.get("/api/certificados/pdf/{archivo}", ctx -> {
             Path ruta = Paths.get(GenerarCertificado.CARPETA_SALIDA)

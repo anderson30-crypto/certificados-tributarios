@@ -72,12 +72,8 @@
     return new Date(iso).toLocaleString('es-CO', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
   }
   function nextId(arr){ return arr.reduce(function(m,x){ return Math.max(m, x.id||0); }, 0) + 1; }
-  function toast(msg){
-    var t = document.getElementById('ctToast');
-    if (!t){ t = document.createElement('div'); t.id = 'ctToast'; t.className = 'toast'; document.body.appendChild(t); }
-    t.textContent = msg; t.classList.add('show');
-    clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove('show'); }, 2600);
-  }
+  // Avisos del aplicativo (js/avisos.js); tipo por defecto: éxito
+  function toast(msg, tipo, titulo){ Avisos.mostrar(msg, tipo || 'exito', titulo); }
 
   /* ---------- Datos de demostración del Jefe (se reemplazan al conectar la firma) ---------- */
   function seedActividad(){

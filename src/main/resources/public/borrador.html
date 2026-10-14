@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
+<script src="js/avisos.js"></script>
 <title>Sistema de Certificados Tributarios - Revisar Borrador</title>
 <style>
   :root{
@@ -392,7 +393,7 @@
 <script>
   const draft = JSON.parse(sessionStorage.getItem('correoBorrador') || 'null');
   if(!draft || !draft.certificados || draft.certificados.length === 0){
-    alert('No hay ningún correo por revisar. Genera los certificados primero.');
+    Avisos.alSiguiente('No hay ningún correo por revisar. Genera los certificados primero.', 'aviso');
     window.location.href = 'generar-certificado.html';
   }
   const btnEnviar = document.getElementById('btnEnviarFinal');
@@ -428,12 +429,14 @@
         resumen += (r.exito ? 'OK    ' : 'ERROR ') + (r.contratista || ('certificado ' + r.idCertificado)) +
                    (r.exito ? ' -> ' + r.destino : ': ' + r.error) + '\n';
       });
-      alert('Resultado del envío:\n\n' + resumen);
+      const fallidos = json.resultados.filter(function(r){ return !r.exito; }).length;
+      Avisos.alSiguiente(resumen.trim(), fallidos ? (fallidos === json.resultados.length ? 'error' : 'aviso') : 'exito',
+        fallidos ? 'Envío con ' + fallidos + ' error(es)' : 'Correos enviados');
       sessionStorage.removeItem('correoBorrador');
       sessionStorage.removeItem('certificadosParaEnviar');
       window.location.href = 'enviar-correo.html';
     } catch (err) {
-      alert('No se pudo enviar: ' + err.message);
+      Avisos.mostrar(err.message, 'error', 'No se pudo enviar');
       btnEnviar.disabled = false;
       btnEnviar.textContent = 'Enviar';
     }

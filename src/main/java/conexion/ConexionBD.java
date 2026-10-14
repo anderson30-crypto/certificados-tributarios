@@ -26,7 +26,8 @@ public class ConexionBD {
         "url", "usuario", "password",
         "correo.host", "correo.puerto", "correo.usuario", "correo.password",
         "correo.starttls", "correo.pausa_ms", "correo.redirigir_a",
-        "firma.p12.password", "cifrado.clave"
+        "firma.p12.password", "cifrado.clave",
+        "certificado.firmante.nombre", "certificado.firmante.cargo"
     };
 
 
@@ -67,6 +68,16 @@ public class ConexionBD {
                 "o en la variable de entorno " + nombreVariable(clave));
         }
         return valor.trim();
+    }
+
+    /** Un valor de configuración opcional: si no está definido se usa el valor por defecto. */
+    public static String obtener(String clave, String porDefecto) {
+        try {
+            String valor = cargarConfiguracion().getProperty(clave);
+            return valor == null || valor.isBlank() ? porDefecto : valor.trim();
+        } catch (IOException e) {
+            return porDefecto;
+        }
     }
 
     /** url -> CT_DB_URL, correo.host -> CT_CORREO_HOST, firma.p12.password -> CT_FIRMA_P12_PASSWORD */

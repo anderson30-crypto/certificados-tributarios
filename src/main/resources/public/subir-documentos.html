@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
+<script src="js/avisos.js"></script>
 <title>Sistema de Certificados Tributarios - Subir Documentos</title>
 <style>
   :root{
@@ -442,7 +443,7 @@
   function prepararArchivos(files){
     pendingFiles = files.filter(function(f){ return f.name.toLowerCase().endsWith('.xlsx'); });
     if(pendingFiles.length < files.length){
-      alert('Solo se aceptan sábanas en Excel (.xlsx). Se ignoraron los demás archivos.');
+      Avisos.mostrar('Solo se aceptan sábanas en Excel (.xlsx). Se ignoraron los demás archivos.', 'aviso', 'Formato no válido');
     }
     hint.textContent = pendingFiles.length > 0
       ? pendingFiles.length + ' archivo(s) listo(s) para subir'
@@ -474,7 +475,7 @@
   // "Subir": envía cada archivo al servidor (WebServer -> /api/sabana), que lo guarda en la carpeta "subidas"
   btnUpload.addEventListener('click', async function(){
     if(pendingFiles.length === 0){
-      alert('Selecciona o arrastra al menos una sábana (.xlsx) antes de subir.');
+      Avisos.mostrar('Selecciona o arrastra al menos una sábana (.xlsx) antes de subir.', 'aviso', 'No hay archivos');
       return;
     }
     btnUpload.disabled = true;
@@ -491,7 +492,7 @@
         uploadedFiles.push({ nombre: json.nombre, archivo: json.archivo });
       }
     } catch (err) {
-      alert('Error al subir: ' + err.message);
+      Avisos.mostrar(err.message, 'error', 'No se pudo subir el archivo');
     } finally {
       pendingFiles = [];
       fileInput.value = '';
@@ -504,13 +505,14 @@
   // "Siguiente": ejecuta el CargueMasivo con cada sábana subida y luego pasa a generar certificados
   btnNext.addEventListener('click', async function(){
     if(uploadedFiles.length === 0){
-      alert('Debes subir al menos una sábana para continuar.');
+      Avisos.mostrar('Debes subir al menos una sábana para continuar.', 'aviso', 'No hay sábanas subidas');
       return;
     }
     btnNext.disabled = true;
     btnNext.textContent = 'Cargando datos...';
     let resumen = '';
     let huboErrorGrave = false;
+    let filasConError = 0;
     try {
       for (const file of uploadedFiles) {
         const resp = await fetch('/api/sabana/' + encodeURIComponent(file.archivo) + '/cargar', { method: 'POST' });
@@ -522,16 +524,21 @@
         }
         resumen += file.nombre + ': ' + json.insertados + ' nuevos, ' + json.actualizados + ' actualizados, ' +
                    json.errores.length + ' con error\n';
+        filasConError += json.errores.length;
         json.errores.forEach(function(e){ resumen += '   - ' + e + '\n'; });
       }
     } catch (err) {
       huboErrorGrave = true;
       resumen += 'Error de comunicación con el servidor: ' + err.message;
     }
-    alert('Resultado del cargue:\n\n' + resumen);
+    const tipo = huboErrorGrave ? 'error' : (filasConError ? 'aviso' : 'exito');
+    const titulo = huboErrorGrave ? 'El cargue no se completó' : (filasConError ? 'Cargue con ' + filasConError + ' fila(s) con error' : 'Cargue completado');
     btnNext.disabled = false;
     btnNext.textContent = 'Siguiente ›';
-    if(!huboErrorGrave){
+    if(huboErrorGrave){
+      Avisos.mostrar(resumen.trim(), tipo, titulo);
+    } else {
+      Avisos.alSiguiente(resumen.trim(), tipo, titulo);
       window.location.href = 'generar-certificado.html';
     }
   });

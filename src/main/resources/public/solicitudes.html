@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
-<script src="js/devoluciones.js"></script>
+<script src="js/avisos.js"></script>
 <title>Sistema de Certificados Tributarios - Solicitudes</title>
 <style>
   :root{
@@ -425,19 +425,22 @@
     { cliente: 'Ana Torres', tipo: 'Certificado de IVA', fecha: '06 sep. 2026', estado: 'proceso' }
   ];
 
-  // Todo certificado devuelto por un cliente vuelve a aparecer aquí como "Pendiente"
-  // hasta que se vuelva a generar; entonces pasa a "Completada".
-  const solicitudesDevueltas = Devoluciones.todas().map(function(d){
-    const regenerado = Devoluciones.estaRegenerada(d.id);
-    return {
-      cliente: d.cliente,
-      tipo: (regenerado ? 'Certificado devuelto regenerado' : 'Certificado devuelto por regenerar') + ' (Doc. ' + d.documento + ') · ' + d.motivo,
-      fecha: d.fecha,
-      estado: regenerado ? 'completadas' : 'pendientes'
-    };
+  // Todo certificado devuelto por un cliente aparece aquí como "Pendiente" hasta que se vuelve
+  // a generar; entonces pasa a "Completada" (datos reales: WebServer -> /api/devoluciones)
+  let solicitudes = solicitudesBase.slice();
+  function esc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+  function fechaCorta(iso){ return iso ? new Date(iso).toLocaleDateString('es-CO', { day:'2-digit', month:'short', year:'numeric' }) : ''; }
+  fetch('/api/devoluciones').then(function(r){ return r.ok ? r.json() : []; }).then(function(lista){
+    solicitudes = solicitudesBase.concat(lista.map(function(d){
+      return {
+        cliente: d.contratista,
+        tipo: (d.regenerado ? 'Certificado devuelto regenerado' : 'Certificado devuelto por regenerar') + ' (Doc. ' + d.documento + ') · ' + d.motivo,
+        fecha: fechaCorta(d.regenerado ? d.regenerado.fecha : d.fechaDevolucion),
+        estado: d.regenerado ? 'completadas' : 'pendientes'
+      };
+    }));
+    renderSolicitudes();
   });
-
-  const solicitudes = solicitudesBase.concat(solicitudesDevueltas);
 
   const estadoLabel = { completadas: 'Completada', proceso: 'En Proceso', pendientes: 'Pendiente' };
 
@@ -475,8 +478,8 @@
       item.innerHTML =
         '<span class="icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span>' +
         '<div class="info">' +
-          '<div class="cliente">' + s.cliente + '</div>' +
-          '<div class="detalle">' + s.tipo + ' &middot; ' + s.fecha + '</div>' +
+          '<div class="cliente">' + esc(s.cliente) + '</div>' +
+          '<div class="detalle">' + esc(s.tipo) + ' &middot; ' + esc(s.fecha) + '</div>' +
         '</div>' +
         '<span class="estado-badge ' + s.estado + '"><span class="dot"></span>' + estadoLabel[s.estado] + '</span>';
       solicitudesList.appendChild(item);

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
+<script src="js/avisos.js"></script>
 <title>Sistema de Certificados Tributarios - Iniciar Sesión</title>
 <style>
   :root{
@@ -252,7 +253,7 @@
 
   forgotLink.addEventListener('click', function(e){
     e.preventDefault();
-    alert('Para recuperar el acceso, solicite al administrador del sistema que le asigne una contraseña nueva.');
+    Avisos.mostrar('Solicite al administrador del sistema que le asigne una contraseña nueva.', 'info', 'Recuperar el acceso');
   });
 </script>
 

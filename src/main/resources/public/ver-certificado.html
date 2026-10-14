@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
+<script src="js/avisos.js"></script>
 <title>Sistema de Certificados Tributarios - Ver Certificado</title>
 <style>
   :root{
@@ -391,7 +392,7 @@
 
   document.getElementById('btnDescargarPdf').addEventListener('click', function(){
     console.log('Descargando PDF del certificado', folio);
-    alert('Descargando certificado ' + folio + ' en PDF (simulado)');
+    Avisos.mostrar('Descargando certificado ' + folio + ' en PDF (simulado).', 'info');
   });
 
   document.querySelectorAll('.nav-item[data-page]').forEach(function(item){

@@ -14,6 +14,9 @@ import java.sql.Statement;
  */
 public final class EsquemaBD {
 
+    /** Tabla estados: 6 = Devuelto */
+    public static final int ESTADO_DEVUELTO = 6;
+
     private EsquemaBD() { }
 
     public static void asegurar() {
@@ -46,6 +49,24 @@ public final class EsquemaBD {
             if (largoColumna(conn, "contratistas", "t_tipo_documento") < 60) {
                 ejecutar(conn, "ALTER TABLE contratistas MODIFY t_tipo_documento VARCHAR(60) NOT NULL");
                 System.out.println("Base de datos: contratistas.t_tipo_documento ampliado a 60 caracteres");
+            }
+
+            // 4) Estado "Devuelto": certificado que el contratista devolvió y se debe volver a generar
+            try (PreparedStatement ps = conn.prepareStatement("SELECT 1 FROM estados WHERE id_estado = ?")) {
+                ps.setInt(1, ESTADO_DEVUELTO);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) {
+                        ejecutar(conn, "INSERT INTO estados (id_estado, t_nombre_estado, t_descripcion) VALUES (" +
+                            ESTADO_DEVUELTO + ", 'Devuelto', 'Certificado devuelto, pendiente de volver a generar')");
+                        System.out.println("Base de datos: estado 'Devuelto' creado");
+                    }
+                }
+            }
+
+            // 5) Huella de los datos con que se generó cada certificado (valida las regeneraciones)
+            if (!existeColumna(conn, "certificados", "t_huella_datos")) {
+                ejecutar(conn, "ALTER TABLE certificados ADD COLUMN t_huella_datos CHAR(64) NULL");
+                System.out.println("Base de datos: columna certificados.t_huella_datos creada");
             }
 
         } catch (SQLException e) {

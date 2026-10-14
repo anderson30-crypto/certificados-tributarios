@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
+<script src="js/avisos.js"></script>
 <title>Sistema de Certificados Tributarios - Usuarios</title>
 <link rel="stylesheet" href="css/roles.css">
 <script src="js/roles.js"></script>
@@ -195,10 +196,15 @@
 
   $('mDelete').addEventListener('click', function(){
     if (!editando) return;
-    if (!confirm('¿Eliminar definitivamente al usuario "' + editando.username + '"?')) return;
-    api('/api/usuarios/' + editando.id, 'DELETE')
-      .then(function(){ cerrarEdicion(); CT.toast('Usuario eliminado'); return cargar(); })
-      .catch(function(e){ error('mErr', e.message); });
+    var u = editando;
+    Avisos.confirmar('Se eliminará definitivamente al usuario "' + u.username + '" (' + u.nombre + '). Esta acción no se puede deshacer.',
+                     { titulo:'Eliminar usuario', aceptar:'Eliminar', peligro:true })
+      .then(function(si){
+        if (!si) return;
+        return api('/api/usuarios/' + u.id, 'DELETE')
+          .then(function(){ cerrarEdicion(); CT.toast('Usuario eliminado'); return cargar(); })
+          .catch(function(e){ error('mErr', e.message); });
+      });
   });
 
   /* ---------- Nuevo ---------- */
