@@ -1,0 +1,279 @@
+#!/usr/bin/env bash
+###############################################################################
+# srv-dns  -  BIND9  -  instalacion automatica  -  FLORIDABLANCA
+# IPv4 172.23.1.4/24   IPv6 2801:23:1::4/64   VLAN 2 (DMZ)
+# Dominio: neuroimpulso.com
+# Ubuntu Server 24.04 - adaptador en PUENTE
+#
+# Uso:   sudo bash srv-dns-floridablanca.sh
+#
+# Orden: primero se instala y configura todo con la red actual (DHCP, con
+# internet) y la IP fija se aplica AL FINAL, cuando BIND ya esta funcionando.
+###############################################################################
+
+set -euo pipefail
+
+#-----------------------------------------------------------------------------
+# Variables
+#-----------------------------------------------------------------------------
+HOSTNAME_SRV="srv-dns"
+DOMINIO="neuroimpulso.com"
+IPV4="172.23.1.4"                  # coincide con el dns-server del DHCP del router
+IPV6="2801:23:1::4"
+GW4="172.23.1.1"
+GW6="2801:23:1::1"
+
+IP_WEB="172.23.1.20";   IP6_WEB="2801:23:1::20"
+IP_MAIL="172.23.1.40";  IP6_MAIL="2801:23:1::40"
+IP_VOIP="172.23.1.50";  IP6_VOIP="2801:23:1::50"
+
+DNS_BUCARAMANGA="172.17.1.4"       # para reenviar la zona vit.com
+SERIAL="$(date +%Y%m%d)01"
+
+VERDE='\e[32m'; ROJO='\e[31m'; AMARILLO='\e[33m'; NC='\e[0m'
+paso()  { echo -e "\n${VERDE}==> $*${NC}"; }
+aviso() { echo -e "${AMARILLO}[!] $*${NC}"; }
+error() { echo -e "${ROJO}[X] $*${NC}"; exit 1; }
+
+#-----------------------------------------------------------------------------
+# Comprobaciones previas
+#-----------------------------------------------------------------------------
+[[ $EUID -eq 0 ]] || error "Ejecuta el script con sudo:  sudo bash $0"
+
+IFACE=$(ip route show default 2>/dev/null | awk '{print $5; exit}')
+[[ -n "${IFACE:-}" ]] || IFACE=$(ls /sys/class/net | grep -v '^lo$' | head -1)
+[[ -n "${IFACE:-}" ]] || error "No se encontro ninguna interfaz de red"
+echo "Interfaz detectada: $IFACE"
+
+paso "Comprobando acceso a internet (necesario para apt)"
+if ! getent hosts archive.ubuntu.com >/dev/null 2>&1 || \
+   ! timeout 15 bash -c 'exec 3<>/dev/tcp/archive.ubuntu.com/80' 2>/dev/null; then
+    error "Sin internet. Deja la VM con DHCP (como viene por defecto) y vuelve a ejecutar."
+fi
+
+#=============================================================================
+# 1 - Hostname, hosts y zona horaria
+#=============================================================================
+paso "1/7 Hostname, /etc/hosts y zona horaria"
+
+cat > /etc/hosts <<EOF
+127.0.0.1       localhost
+::1             localhost ip6-localhost ip6-loopback
+${IPV4}     ${HOSTNAME_SRV}.${DOMINIO}    ${HOSTNAME_SRV}
+EOF
+
+hostnamectl set-hostname "$HOSTNAME_SRV"
+timedatectl set-timezone America/Bogota
+
+#=============================================================================
+# 2 - Instalar BIND9 (todavia con la red DHCP)
+#=============================================================================
+paso "2/7 Instalando BIND9"
+
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=a
+APT_OPTS=(-o DPkg::Lock::Timeout=600 -o Acquire::ForceIPv4=true -o Acquire::Retries=3)
+
+cambiar_espejo() {
+    local f
+    for f in /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list; do
+        [[ -f $f ]] && sed -i -E 's#http://[a-z]{2}\.archive\.ubuntu\.com#http://archive.ubuntu.com#g' "$f"
+    done
+    aviso "Espejo cambiado a archive.ubuntu.com"
+    apt-get "${APT_OPTS[@]}" update || true
+}
+
+intentar() {
+    local n
+    for n in {1..10}; do
+        "$@" && return 0
+        aviso "apt ocupado o fallo de red, reintento $n/10 en 30 s..."
+        [[ $n -eq 2 ]] && cambiar_espejo
+        sleep 30
+    done
+    error "No se pudo ejecutar: $*"
+}
+
+intentar apt-get "${APT_OPTS[@]}" update
+intentar apt-get "${APT_OPTS[@]}" -y install bind9 bind9utils bind9-dnsutils
+
+command -v named >/dev/null || error "BIND9 no quedo instalado; no se aplica netplan"
+
+#=============================================================================
+# 3 - Opciones globales
+#=============================================================================
+paso "3/7 Configurando BIND9"
+
+cat > /etc/bind/named.conf.options <<EOF
+acl redes-internas {
+    127.0.0.0/8;
+    ::1;
+    172.23.0.0/16;
+    172.16.0.0/16;
+    2801:23::/32;
+};
+
+options {
+    directory "/var/cache/bind";
+
+    recursion yes;
+    allow-query     { redes-internas; };
+    allow-recursion { redes-internas; };
+
+    forwarders { 8.8.8.8; 8.8.4.4; };
+    forward only;
+
+    dnssec-validation no;
+
+    listen-on    { 127.0.0.1; ${IPV4}; };
+    listen-on-v6 { ::1; ${IPV6}; };
+};
+EOF
+
+#=============================================================================
+# 4 - Zonas
+#=============================================================================
+cat > /etc/bind/named.conf.local <<EOF
+zone "${DOMINIO}" {
+    type master;
+    file "/etc/bind/db.${DOMINIO}";
+};
+
+zone "1.23.172.in-addr.arpa" {
+    type master;
+    file "/etc/bind/db.172.23.1";
+};
+
+zone "vit.com" {
+    type forward;
+    forward only;
+    forwarders { ${DNS_BUCARAMANGA}; };
+};
+EOF
+
+# Zona directa
+cat > /etc/bind/db.${DOMINIO} <<EOF
+\$TTL    604800
+@   IN  SOA dns.${DOMINIO}. admin.${DOMINIO}. (
+            ${SERIAL}  ; Serial - subir en cada cambio
+            604800      ; Refresh
+            86400       ; Retry
+            2419200     ; Expire
+            604800 )    ; Negative TTL
+;
+@       IN  NS      dns.${DOMINIO}.
+@       IN  MX  10  email.${DOMINIO}.
+;
+dns     IN  A       ${IPV4}
+dns     IN  AAAA    ${IPV6}
+web     IN  A       ${IP_WEB}
+web     IN  AAAA    ${IP6_WEB}
+ftp     IN  A       ${IP_WEB}
+ftp     IN  AAAA    ${IP6_WEB}
+email   IN  A       ${IP_MAIL}
+email   IN  AAAA    ${IP6_MAIL}
+vop     IN  A       ${IP_VOIP}
+vop     IN  AAAA    ${IP6_VOIP}
+www     IN  CNAME   web.${DOMINIO}.
+EOF
+
+# Zona inversa
+cat > /etc/bind/db.172.23.1 <<EOF
+\$TTL    604800
+@   IN  SOA dns.${DOMINIO}. admin.${DOMINIO}. (
+            ${SERIAL} 604800 86400 2419200 604800 )
+;
+@       IN  NS      dns.${DOMINIO}.
+;
+4       IN  PTR     dns.${DOMINIO}.
+20      IN  PTR     web.${DOMINIO}.
+40      IN  PTR     email.${DOMINIO}.
+50      IN  PTR     vop.${DOMINIO}.
+EOF
+
+#=============================================================================
+# 5 - Comprobar sintaxis y arrancar BIND
+#=============================================================================
+paso "4/7 Comprobando sintaxis y arrancando BIND"
+
+named-checkconf                                             || error "Error en named.conf"
+named-checkzone "$DOMINIO" /etc/bind/db.${DOMINIO}          || error "Error en zona directa"
+named-checkzone 1.23.172.in-addr.arpa /etc/bind/db.172.23.1 || error "Error en zona inversa"
+
+systemctl enable named
+systemctl restart named
+systemctl is-active --quiet named || error "named no arranco. Revisa: journalctl -u named"
+
+echo "Prueba local: web.${DOMINIO} -> $(dig @127.0.0.1 web.${DOMINIO} +short)"
+
+#=============================================================================
+# 6 - Firewall
+#=============================================================================
+paso "5/7 Firewall"
+
+ufw allow 22/tcp
+ufw allow 53/tcp
+ufw allow 53/udp
+ufw --force enable
+
+#=============================================================================
+# 7 - Red fija (AL FINAL)
+#=============================================================================
+paso "6/7 Aplicando IP fija (netplan)"
+
+mkdir -p /root/netplan-backup
+find /etc/netplan -maxdepth 1 -name '*.yaml' ! -name '01-netcfg.yaml' \
+     -exec mv {} /root/netplan-backup/ \;
+
+mkdir -p /etc/cloud/cloud.cfg.d
+echo "network: {config: disabled}" > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+
+cat > /etc/netplan/01-netcfg.yaml <<EOF
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    ${IFACE}:
+      dhcp4: no
+      dhcp6: no
+      accept-ra: no
+      addresses:
+        - ${IPV4}/24
+        - ${IPV6}/64
+      routes:
+        - to: default
+          via: ${GW4}
+        - to: "::/0"
+          via: ${GW6}
+      nameservers:
+        search: [${DOMINIO}]
+        addresses: [${IPV4}]
+EOF
+chmod 600 /etc/netplan/01-netcfg.yaml
+
+aviso "Si estas conectado por SSH a la IP DHCP, la sesion se va a cortar aqui."
+aviso "Reconecta a ${IPV4}."
+netplan apply
+sleep 3
+
+systemctl restart named
+
+#=============================================================================
+# 8 - Pruebas finales
+#=============================================================================
+paso "7/7 Pruebas"
+
+ip -br addr
+ping -c2 -W2 "$GW4" || aviso "No responde el gateway ${GW4} (normal si el router aun no esta montado)"
+
+echo "dns  A    : $(dig @${IPV4} dns.${DOMINIO} +short)"
+echo "web  A    : $(dig @${IPV4} web.${DOMINIO} +short)"
+echo "web  AAAA : $(dig @${IPV4} web.${DOMINIO} AAAA +short)"
+echo "vop  A    : $(dig @${IPV4} vop.${DOMINIO} +short)"
+echo "PTR .20   : $(dig @${IPV4} -x ${IP_WEB} +short)"
+echo "MX        : $(dig @${IPV4} ${DOMINIO} MX +short)"
+echo "google    : $(dig @${IPV4} google.com +short | head -1)"
+
+echo -e "\n${VERDE}Listo. srv-dns configurado en ${IPV4} / ${IPV6}${NC}"
+echo "Si 'google' sale vacio es que el laboratorio no tiene salida a internet:"
+echo "no afecta a la resolucion interna de ${DOMINIO}."
