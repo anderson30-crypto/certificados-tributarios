@@ -34,6 +34,17 @@ public class WebServer {
     // Carpeta (en la raíz del proyecto) donde se guardan las sábanas subidas
     private static final Path CARPETA_SUBIDAS = Paths.get("subidas");
 
+    // Cabeceras de seguridad en todas las respuestas: la app no se puede meter dentro de otra página
+    // (clickjacking), el navegador no adivina tipos de archivo y solo se cargan recursos del propio servidor.
+    // 'unsafe-inline' hace falta porque las páginas tienen sus scripts y estilos dentro del HTML.
+    private static final Map<String, String> CABECERAS_SEGURIDAD = Map.of(
+        "X-Frame-Options", "SAMEORIGIN",
+        "X-Content-Type-Options", "nosniff",
+        "Referrer-Policy", "same-origin",
+        "Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; " +
+            "img-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+    );
+
     public static void main(String[] args) {
 
         // 1) Probar la conexión antes de levantar el servidor, para ver de una vez si MySQL responde
@@ -47,7 +58,9 @@ public class WebServer {
             config.staticFiles.add(archivos -> {
                 archivos.directory = "/public";
                 archivos.location = Location.CLASSPATH;
-                archivos.headers = Map.of("Cache-Control", "no-cache");
+                Map<String, String> cabeceras = new HashMap<>(CABECERAS_SEGURIDAD);
+                cabeceras.put("Cache-Control", "no-cache");
+                archivos.headers = cabeceras;
             });
 
             // Cookie de sesión: no la puede leer JavaScript (HttpOnly), no viaja desde otros sitios
@@ -64,6 +77,10 @@ public class WebServer {
             });
         }).start(7000);
 
+        // Un número de la dirección o de la petición que no es número (por ejemplo ?anio=abc): petición inválida
+        app.exception(NumberFormatException.class, (e, ctx) ->
+            ctx.status(400).json(Map.of("error", "La petición tiene un dato que debía ser un número y no lo es.")));
+
         // Cualquier error no controlado: se muestra en la consola y la página recibe el mensaje
         app.exception(Exception.class, (e, ctx) -> {
             e.printStackTrace();
@@ -76,6 +93,7 @@ public class WebServer {
         // Control de acceso por sesión y por rol (ver Seguridad.Roles):
         // sin sesión solo se ve el login; con sesión, cada rol solo entra a sus pantallas y a su API
         app.before(ctx -> {
+            CABECERAS_SEGURIDAD.forEach(ctx::header);
             String ruta = ctx.path();
             if (esRutaPublica(ruta)) {
                 return;
@@ -126,17 +144,15 @@ public class WebServer {
             try {
                 usuario = Autenticacion.validar(texto(cuerpo.get("username")), texto(cuerpo.get("password")));
             } catch (Autenticacion.UsuarioBloqueadoException e) {
-                ctx.status(429).json(Map.of("error", e.getMessage()));
+                ctx.status(429).json(Map.of("error", e.getMessage(), "bloqueado", true));
+                return;
+            } catch (Autenticacion.CredencialesInvalidasException e) {
+                // Mismo mensaje para usuario inexistente, contraseña mala o usuario inactivo
+                ctx.status(401).json(Map.of("error", e.getMessage(), "intentosRestantes", e.restantes()));
                 return;
             } catch (Exception e) {
                 e.printStackTrace();
                 ctx.status(500).json(Map.of("error", "No se pudo validar el usuario. Revise la conexión a la base de datos."));
-                return;
-            }
-
-            if (usuario == null) {
-                // Mismo mensaje para usuario inexistente, contraseña mala o usuario inactivo
-                ctx.status(401).json(Map.of("error", "Usuario o contraseña incorrectos."));
                 return;
             }
 
@@ -237,6 +253,19 @@ public class WebServer {
             }
         });
 
+        // Quitar el bloqueo por intentos fallidos antes de que pase el tiempo
+        app.put("/api/usuarios/{id}/desbloquear", ctx -> {
+            int id = Integer.parseInt(ctx.pathParam("id"));
+            Map<String, Object> u = GestionUsuarios.buscar(id);
+            if (u == null) {
+                ctx.status(404).json(Map.of("error", "El usuario ya no existe."));
+                return;
+            }
+            Autenticacion.desbloquear(id);
+            RegistroAuditoria.registrar(usuarioActual(ctx).idUsuario(), "Usuarios", "Desbloqueo de usuario", String.valueOf(u.get("username")));
+            ctx.json(Map.of("ok", true));
+        });
+
         app.delete("/api/usuarios/{id}", ctx -> {
             try {
                 String username = GestionUsuarios.eliminar(Integer.parseInt(ctx.pathParam("id")), usuarioActual(ctx).idUsuario());
@@ -323,6 +352,11 @@ public class WebServer {
                     " actualizados, " + errores.size() + " con error");
                 ctx.json(resultado);
 
+            } catch (com.github.pjfanning.xlsx.exceptions.ReadException e) {
+                // Se llama .xlsx pero no es un Excel (por ejemplo, otro archivo renombrado): se borra
+                System.out.println("Sábana rechazada, no es un Excel válido: " + ruta.getFileName() + " (" + e.getMessage() + ")");
+                Files.deleteIfExists(ruta);
+                ctx.status(400).json(Map.of("error", "El archivo no es un Excel .xlsx válido. Ábralo en Excel, guárdelo como .xlsx y súbalo de nuevo."));
             } catch (Exception e) {
                 e.printStackTrace();
                 ctx.status(500).json(Map.of("error", e.getMessage()));

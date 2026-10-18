@@ -41,6 +41,7 @@ public final class GestionUsuarios {
 
     private static final String SELECT_USUARIO =
         "SELECT u.id_usuario, u.t_nombre_usuario, u.t_username, u.t_correo, u.t_telefono, u.b_estado, r.t_rol, " +
+        "CASE WHEN u.d_bloqueado_hasta > NOW() THEN u.d_bloqueado_hasta END AS bloqueado_hasta, " +
         REGISTROS + " AS registros FROM usuarios u JOIN roles r ON r.id_rol = u.id_rol ";
 
     /** null si la contraseña cumple la política; si no, el motivo. */
@@ -154,7 +155,7 @@ public final class GestionUsuarios {
                 exigirOtroAdministradorActivo(conn, u);
             }
 
-            String sql = "UPDATE usuarios SET id_rol = ?, b_estado = ?" + (cambiaPassword ? ", t_password_hash = ?" : "") +
+            String sql = "UPDATE usuarios SET id_rol = ?, b_estado = ?" + (cambiaPassword ? ", t_password_hash = ?, n_intentos_fallidos = 0, d_bloqueado_hasta = NULL" : "") +
                 " WHERE id_usuario = ?";
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 int i = 1;
@@ -297,6 +298,8 @@ public final class GestionUsuarios {
         u.put("funciones", Roles.FUNCIONES.get(rol));
         u.put("activo", rs.getBoolean("b_estado"));
         u.put("registros", rs.getInt("registros"));
+        java.sql.Timestamp bloqueo = rs.getTimestamp("bloqueado_hasta");
+        u.put("bloqueadoHasta", bloqueo == null ? null : bloqueo.toLocalDateTime().toString());
         return u;
     }
 

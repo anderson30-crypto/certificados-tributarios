@@ -92,6 +92,13 @@ public final class EsquemaBD {
                 System.out.println("Base de datos: columna certificados.t_huella_datos creada");
             }
 
+            // 7) Bloqueo de inicio de sesión: intentos fallidos seguidos y hasta cuándo está bloqueado
+            if (!existeColumna(conn, "usuarios", "n_intentos_fallidos")) {
+                ejecutar(conn, "ALTER TABLE usuarios ADD COLUMN n_intentos_fallidos INT NOT NULL DEFAULT 0, " +
+                    "ADD COLUMN d_bloqueado_hasta DATETIME NULL");
+                System.out.println("Base de datos: columnas de bloqueo de inicio de sesión creadas");
+            }
+
         } catch (SQLException e) {
             System.out.println("ATENCIÓN: no se pudieron revisar o ajustar las tablas (" + e.getMessage() + "). " +
                 "Si el usuario de MySQL no tiene permiso para ALTER/INSERT, aplique los cambios con un usuario administrador.");

@@ -66,6 +66,11 @@
     <label class="check"><input type="checkbox" id="mActivo"> Usuario activo</label>
     <div class="hint" id="mActivoHint"></div>
 
+    <div class="field" id="mBloqueo" style="display:none;margin-top:12px">
+      <span class="badge err" id="mBloqueoTxt"></span>
+      <button class="btn btn-secondary btn-sm" id="mDesbloquear" style="margin-left:8px">Desbloquear ahora</button>
+    </div>
+
     <div class="modal-actions">
       <button class="btn btn-danger left" id="mDelete">Eliminar usuario</button>
       <button class="btn btn-secondary" id="mCancel">Cancelar</button>
@@ -149,13 +154,16 @@
              '<div class="sub">' + CT.esc(u.username) + ' · ' + CT.esc(u.correo) + (u.telefono ? ' · ' + CT.esc(u.telefono) : '') + '</div></td>' +
              '<td class="nowrap">' + CT.esc(u.rolNombre) + '</td>' +
              '<td><div class="chips">' + chips(u.rol) + '</div></td>' +
-             '<td><span class="badge ' + (u.activo ? 'ok' : 'off') + '">' + (u.activo ? 'Activo' : 'Inactivo') + '</span></td>' +
+             '<td><span class="badge ' + (u.activo ? 'ok' : 'off') + '">' + (u.activo ? 'Activo' : 'Inactivo') + '</span>' +
+             (u.bloqueadoHasta ? ' <span class="badge err" title="Por contraseñas incorrectas seguidas">Bloqueado hasta ' + hora(u.bloqueadoHasta) + '</span>' : '') + '</td>' +
              '<td><button class="btn btn-sm" data-id="' + u.id + '">Modificar</button></td></tr>';
     }).join('') : '<tr><td colspan="5" class="empty">No se encontraron usuarios.</td></tr>';
     document.querySelectorAll('button[data-id]').forEach(function(b){
       b.addEventListener('click', function(){ abrirEdicion(parseInt(b.dataset.id, 10)); });
     });
   }
+
+  function hora(fecha){ return fecha.substring(11, 16); }
 
   /* ---------- Modificar ---------- */
   function abrirEdicion(id){
@@ -174,6 +182,8 @@
     var motivo = yo ? 'No puede eliminar su propia cuenta.'
       : u.registros > 0 ? 'No se puede eliminar: tiene ' + u.registros + ' registro(s) en el sistema (certificados, envíos o auditoría). Desactívelo en su lugar.'
       : '';
+    $('mBloqueo').style.display = u.bloqueadoHasta ? '' : 'none';
+    $('mBloqueoTxt').textContent = u.bloqueadoHasta ? 'Bloqueado hasta las ' + hora(u.bloqueadoHasta) + ' por contraseñas incorrectas' : '';
     $('mDelete').disabled = !!motivo;
     $('mDeleteHint').textContent = motivo;
     $('md').classList.add('show');
@@ -192,6 +202,17 @@
       .then(function(){ cerrarEdicion(); CT.toast('Cambios guardados'); return cargar(); })
       .catch(function(e){ error('mErr', e.message); })
       .then(function(){ $('mSave').disabled = false; });
+  });
+
+  // Quita el bloqueo por intentos fallidos (asignar una contraseña nueva también lo quita)
+  $('mDesbloquear').addEventListener('click', function(){
+    if (!editando) return;
+    var u = editando;
+    $('mDesbloquear').disabled = true;
+    api('/api/usuarios/' + u.id + '/desbloquear', 'PUT', {})
+      .then(function(){ cerrarEdicion(); CT.toast('Usuario desbloqueado'); return cargar(); })
+      .catch(function(e){ error('mErr', e.message); })
+      .then(function(){ $('mDesbloquear').disabled = false; });
   });
 
   $('mDelete').addEventListener('click', function(){

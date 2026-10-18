@@ -11,3 +11,9 @@
 # Archivos que genera la aplicación al ejecutarse
 /subidas/
 /certificados_generados/
+# Copias de la base de datos (datos personales de contratistas y usuarios): nunca al repositorio
+/Backup/
+# Certificado digital con llave privada: se genera en cada equipo con Seguridad.GeneradorCertificadoDigital
+/Seguridad/*.p12
+*.p12
+*.pfx

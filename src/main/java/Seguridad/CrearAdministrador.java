@@ -28,6 +28,8 @@ public class CrearAdministrador {
         try {
             System.out.println("=== Crear administrador del Sistema de Certificados Tributarios ===");
             System.out.println("Conectando a " + ConexionBD.describirConexion());
+            // Las mismas columnas que crea el WebServer al arrancar (por ejemplo, las del bloqueo de sesión)
+            EsquemaBD.asegurar();
 
             String username = leer("Nombre de usuario para iniciar sesión: ");
             if (username.isBlank()) {
@@ -86,7 +88,8 @@ public class CrearAdministrador {
 
                 if (idExistente != null) {
                     try (PreparedStatement ps = conn.prepareStatement(
-                            "UPDATE usuarios SET t_password_hash = ?, id_rol = ?, b_estado = 1 WHERE id_usuario = ?")) {
+                            "UPDATE usuarios SET t_password_hash = ?, id_rol = ?, b_estado = 1, " +
+                            "n_intentos_fallidos = 0, d_bloqueado_hasta = NULL WHERE id_usuario = ?")) {
                         ps.setString(1, hash);
                         ps.setInt(2, idRol);
                         ps.setInt(3, idExistente);
@@ -108,7 +111,12 @@ public class CrearAdministrador {
                 }
 
                 // Comprobación final: el mismo inicio de sesión que usa la página
-                boolean puedeEntrar = Autenticacion.validar(username, new String(password)) != null;
+                boolean puedeEntrar;
+                try {
+                    puedeEntrar = Autenticacion.validar(username, new String(password)) != null;
+                } catch (Autenticacion.CredencialesInvalidasException | Autenticacion.UsuarioBloqueadoException e) {
+                    puedeEntrar = false;
+                }
                 Arrays.fill(password, ' ');
                 Arrays.fill(confirmacion, ' ');
                 System.out.println(puedeEntrar

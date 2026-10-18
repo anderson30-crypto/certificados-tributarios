@@ -27,7 +27,8 @@ public class ConexionBD {
         "correo.host", "correo.puerto", "correo.usuario", "correo.password",
         "correo.starttls", "correo.pausa_ms", "correo.redirigir_a", "correo.resolucion",
         "firma.p12.password", "cifrado.clave",
-        "certificado.firmante.nombre", "certificado.firmante.cargo"
+        "certificado.firmante.nombre", "certificado.firmante.cargo",
+        "seguridad.login.intentos", "seguridad.login.bloqueo_minutos"
     };
 
 

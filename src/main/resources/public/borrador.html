@@ -402,10 +402,11 @@
   </main>
 
 <script>
-  const draft = JSON.parse(sessionStorage.getItem('correoBorrador') || 'null');
+  let draft = JSON.parse(sessionStorage.getItem('correoBorrador') || 'null');
   if(!draft || !draft.certificados || draft.certificados.length === 0){
     Avisos.alSiguiente('No hay ningún correo por revisar. Genera los certificados primero.', 'aviso');
     window.location.href = 'generar-certificado.html';
+    draft = { certificados: [] };   // la página se está yendo; así el resto del script no falla
   }
   const btnEnviar = document.getElementById('btnEnviarFinal');
 

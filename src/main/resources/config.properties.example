@@ -54,3 +54,10 @@ certificado.firmante.cargo=Coordinador de Nómina
 # --- Correo a los contratistas (plantilla en src/main/resources/correo/) ---
 # CT_CORREO_RESOLUCION  número y fecha de la resolución de Floridablanca que se transcribe (cambia cada año)
 correo.resolucion=6059 del 31/10/2025
+
+# --- Inicio de sesión ---
+# Contraseñas incorrectas seguidas antes de bloquear el usuario, y minutos que dura el bloqueo.
+# El Administrador puede desbloquear antes desde Usuarios (también al asignar una contraseña nueva).
+# CT_SEGURIDAD_LOGIN_INTENTOS / CT_SEGURIDAD_LOGIN_BLOQUEO_MINUTOS
+seguridad.login.intentos=3
+seguridad.login.bloqueo_minutos=15
