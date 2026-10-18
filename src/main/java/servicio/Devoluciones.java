@@ -64,6 +64,10 @@ public final class Devoluciones {
             if (estado == ESTADO_DEVUELTO) {
                 throw new ReglaException("YA_DEVUELTO", "El último certificado de ese documento ya está registrado como devuelto.");
             }
+            if (estado == Firmas.ESTADO_GENERADO || estado == Firmas.ESTADO_CORREGIDO) {
+                throw new ReglaException("SIN_ENVIAR", "El último certificado de ese documento todavía está pendiente de firma " +
+                    "y no se ha enviado, así que no puede estar devuelto.");
+            }
 
             conn.setAutoCommit(false);
             try {
@@ -86,7 +90,7 @@ public final class Devoluciones {
             "   AND h.t_accion = 'Devolución' ORDER BY h.id_historial DESC LIMIT 1) AS fecha_devolucion, " +
             "(SELECT h.t_observacion FROM historial_certificados h WHERE h.id_certificado = ce.id_certificado " +
             "   AND h.t_accion = 'Devolución' ORDER BY h.id_historial DESC LIMIT 1) AS motivo, " +
-            "nu.id_certificado AS id_nuevo, nu.t_ruta_pdf AS ruta_nueva, nu.d_fecha_correccion AS fecha_nueva " +
+            "nu.id_certificado AS id_nuevo, nu.t_ruta_pdf AS ruta_nueva, nu.d_fecha_correccion AS fecha_nueva, nu.id_estado AS estado_nuevo " +
             "FROM certificados ce " +
             "JOIN contratos co ON co.id_contrato = ce.id_contrato " +
             "JOIN contratistas ct ON ct.id_contratista = co.id_contratista " +
@@ -112,10 +116,12 @@ public final class Devoluciones {
                     d.put("motivo", rs.getString("motivo"));
                     if (rs.getObject("id_nuevo") != null) {
                         Timestamp fn = rs.getTimestamp("fecha_nueva");
+                        int estadoNuevo = rs.getInt("estado_nuevo");
                         d.put("regenerado", Map.of(
                             "idCertificado", rs.getInt("id_nuevo"),
                             "archivo", nombreArchivo(rs.getString("ruta_nueva")),
-                            "fecha", fn == null ? "" : fn.toLocalDateTime().toString()));
+                            "fecha", fn == null ? "" : fn.toLocalDateTime().toString(),
+                            "firmado", estadoNuevo == Firmas.ESTADO_FIRMADO || estadoNuevo == Firmas.ESTADO_ENVIADO));
                     }
                     lista.add(d);
                 }

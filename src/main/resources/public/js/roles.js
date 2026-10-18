@@ -2,23 +2,10 @@
    Capa compartida de las vistas por rol (Administrador / Jefe de Nómina / Gestión Humana)
    - La sesión, el usuario y su rol vienen del servidor (/api/sesion); el servidor además
      impide entrar a pantallas o acciones de otro rol (Seguridad.Roles)
-   - Las pantallas del Jefe todavía usan datos de demostración (pendientes por firmar,
-     historial) hasta conectar la firma de certificados
    - Layout (topbar + sidebar) según el rol
    ===================================================================== */
 (function (w) {
   'use strict';
-
-  /* ---------- Almacenamiento local (solo datos de demostración del Jefe) ---------- */
-  var mem = {};
-  function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return mem[k] || null; } }
-  function lsSet(k,v){ try { localStorage.setItem(k,v); } catch(e){ mem[k] = v; } }
-  function read(key, seed){
-    var raw = lsGet(key);
-    if (raw) { try { return JSON.parse(raw); } catch(e){} }
-    var v = seed(); lsSet(key, JSON.stringify(v)); return v;
-  }
-  function write(key, v){ lsSet(key, JSON.stringify(v)); }
 
   /* ---------- Catálogos ---------- */
   var ROLES = {
@@ -67,67 +54,15 @@
 
   /* ---------- Utilidades ---------- */
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
-  function hoursAgo(h){ return new Date(Date.now() - h * 3600000).toISOString(); }
   function fmt(iso){
     return new Date(iso).toLocaleString('es-CO', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
   }
-  function nextId(arr){ return arr.reduce(function(m,x){ return Math.max(m, x.id||0); }, 0) + 1; }
   // Avisos del aplicativo (js/avisos.js); tipo por defecto: éxito
   function toast(msg, tipo, titulo){ Avisos.mostrar(msg, tipo || 'exito', titulo); }
 
-  /* ---------- Datos de demostración del Jefe (se reemplazan al conectar la firma) ---------- */
-  function seedActividad(){
-    var J='Juan Pérez', L='Laura Torres';
-    var rows = [
-      [2,   J,'Enviar certificado',  'CT-548213 → 128 destinatarios',                     'Completado'],
-      [3,   J,'Generar certificado', 'Certificado Tributario 2025 · Folio CT-548213',     'Completado'],
-      [3.5, J,'Cargar Excel',        'retenciones_docentes_2025.xlsx · 128 registros',    'Completado'],
-      [5,   J,'Subir documentos',    'soporte_retenciones.pdf (2 archivos)',              'Completado'],
-      [26,  L,'Cargar Excel',        'retenciones_administrativos.xlsx · Fila 14: NIT inválido', 'Con error'],
-      [27,  L,'Subir documentos',    'listado_administrativos.pdf',                       'Completado'],
-      [30,  J,'Firma digital',       'Actualizó la firma digital registrada',             'Completado'],
-      [52,  J,'Enviar certificado',  'CT-547990 → 3 destinatarios · correo rebotado',     'Con error'],
-      [53,  J,'Generar certificado', 'Certificado Tributario · Folio CT-547990',          'Completado'],
-      [76,  L,'Generar certificado', 'Certificado Retención · Folio CT-547812',           'Completado'],
-      [100, J,'Cargar Excel',        'retenciones_proveedores.xlsx · 54 registros',       'Completado'],
-      [124, J,'Generar certificado', 'Certificado · Folio CT-546712',                     'Completado'],
-      [150, L,'Enviar certificado',  'CT-546500 → 41 destinatarios',                      'Completado'],
-      [170, J,'Subir documentos',    'soportes_agosto.pdf (4 archivos)',                  'Completado']
-    ];
-    return rows.map(function(r,i){
-      return { id:i+1, fecha:hoursAgo(r[0]), usuario:r[1], rol:'nomina', accion:r[2], detalle:r[3], estado:r[4] };
-    });
-  }
-  function seedPendientes(){
-    var rows = [
-      ['CT-548214','Certificado Tributario 2025 · Docentes',        'Juan Pérez',  1.5, 'pendiente'],
-      ['CT-548215','Certificado Tributario 2025 · Administrativos', 'Laura Torres',4,   'pendiente'],
-      ['CT-548216','Certificado Tributario 2025 · Proveedores',     'Juan Pérez',  20,  'pendiente'],
-      ['CT-548217','Certificado de Retención · Honorarios',         'Laura Torres',28,  'pendiente'],
-      ['CT-548213','Certificado Tributario 2025 · Docentes (lote 1)','Juan Pérez', 3,   'firmado']
-    ];
-    return rows.map(function(r){
-      var o = { folio:r[0], nombre:r[1], generadoPor:r[2], fecha:hoursAgo(r[3]), estado:r[4] };
-      if (r[4]==='firmado'){ o.firmadoPor='Juan Pérez'; o.fechaFirma=hoursAgo(2.5); o.enReemplazo=false; }
-      return o;
-    });
-  }
-
-  var K = { a:'ct2_actividad', p:'ct2_pendientes', n:'ct2_nomina_estado' };
   var CT = {
     ROLES: ROLES,
     esc: esc, fmt: fmt, toast: toast,
-
-    actividad:  function(){ return read(K.a,  seedActividad); },
-    pendientes: function(){ return read(K.p,  seedPendientes); },
-    savePendientes: function(v){ write(K.p, v); },
-    nominaEstado: function(){ return read(K.n, function(){ return { disponible:true }; }); },
-    saveNominaEstado: function(v){ write(K.n, v); },
-    logActividad: function(accion, detalle, estado){
-      var u = CT.currentUser(), list = CT.actividad();
-      list.push({ id: nextId(list), fecha: new Date().toISOString(), usuario:u.nombre, rol:u.rol, accion:accion, detalle:detalle, estado: estado || 'Completado' });
-      write(K.a, list);
-    },
 
     /** Usuario con sesión: { id, nombre, usuario, correo, telefono, rol, rolNombre, funciones, inicio } */
     currentUser: function(){ return cargarSesion(); },

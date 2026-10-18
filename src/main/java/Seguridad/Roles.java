@@ -85,6 +85,10 @@ public final class Roles {
             if (ruta.startsWith("/api/usuarios") || ruta.startsWith("/api/auditorias")) {
                 return clave.equals(ADMIN);
             }
+            // Firma de certificados e historial de Nómina: Jefe de Nómina y Gestión Humana
+            if (ruta.startsWith("/api/firma/") || ruta.equals("/api/historial-nomina")) {
+                return esFirmante(clave);
+            }
             // Ver un PDF: Nómina y quienes firman
             if (ruta.startsWith("/api/certificados/pdf/")) {
                 return clave.equals(NOMINA) || esFirmante(clave);

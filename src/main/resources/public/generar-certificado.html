@@ -362,6 +362,9 @@
     <a class="nav-item" href="historial.html">
       <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span> Historial
     </a>
+    <a class="nav-item" href="dashboard.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span> Dashboard
+    </a>
     <a class="nav-item" href="perfil.html">
       <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Configuración
     </a>
@@ -414,16 +417,16 @@
   resultados.style.cssText = 'margin-top:16px; line-height:1.9;';
   document.querySelector('.generate-btn-wrap').appendChild(resultados);
 
-  // Botón para pasar a enviar por correo los certificados recién generados
+  // Los certificados nuevos van a la firma del Jefe de Nómina; este botón lleva a los ya firmados
   const btnCorreo = document.createElement('button');
   btnCorreo.className = 'btn-generate';
-  btnCorreo.textContent = 'Enviar por correo';
+  btnCorreo.textContent = 'Ver certificados firmados para enviar';
   btnCorreo.style.cssText = 'display:none; margin-top:12px;';
   document.querySelector('.generate-btn-wrap').appendChild(btnCorreo);
   let generados = [];
   btnCorreo.addEventListener('click', function(){
-    // El formulario de correo lee esta lista (id del certificado, contratista, correo y PDF)
-    sessionStorage.setItem('certificadosParaEnviar', JSON.stringify(generados));
+    // El formulario de correo muestra los certificados ya firmados (WebServer -> /api/certificados/listos)
+    sessionStorage.removeItem('certificadosParaEnviar');
     window.location.href = 'enviar-correo-formulario.html';
   });
 
@@ -531,6 +534,10 @@
 
     btnGenerate.textContent = 'Generar Certificado Tributario';
     btnCorreo.style.display = generados.length > 0 ? 'inline-block' : 'none';
+    if (generados.length > 0) {
+      Avisos.mostrar(generados.length + ' certificado(s) generado(s) y enviado(s) a la firma del Jefe de Nómina. ' +
+        'Podrás enviarlos por correo cuando estén firmados.', 'exito', 'Pendientes de firma');
+    }
     updateState();
   });
 

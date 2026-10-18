@@ -33,7 +33,7 @@ public final class GestionUsuarios {
 
     // Cuántos registros de otras tablas apuntan al usuario (las 5 tablas con llave a usuarios)
     private static final String REGISTROS =
-        "(SELECT COUNT(*) FROM certificados x WHERE x.id_usuario = u.id_usuario) + " +
+        "(SELECT COUNT(*) FROM certificados x WHERE x.id_usuario = u.id_usuario OR x.id_usuario_firma = u.id_usuario) + " +
         "(SELECT COUNT(*) FROM envio_certificado x WHERE x.id_usuario = u.id_usuario) + " +
         "(SELECT COUNT(*) FROM auditorias x WHERE x.id_usuario = u.id_usuario) + " +
         "(SELECT COUNT(*) FROM historial_certificados x WHERE x.id_usuario = u.id_usuario) + " +
@@ -198,6 +198,10 @@ public final class GestionUsuarios {
                     "y se conserve el historial.");
             }
             exigirOtroAdministradorActivo(conn, u);
+            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM firmas_usuario WHERE id_usuario = ?")) {
+                ps.setInt(1, idUsuario);
+                ps.executeUpdate();
+            }
             try (PreparedStatement ps = conn.prepareStatement("DELETE FROM usuarios WHERE id_usuario = ?")) {
                 ps.setInt(1, idUsuario);
                 ps.executeUpdate();

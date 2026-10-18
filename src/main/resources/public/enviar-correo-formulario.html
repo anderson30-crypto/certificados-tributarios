@@ -182,6 +182,13 @@
     font-weight: 700;
   }
 
+  .listos{ border-bottom: 1px solid var(--gray-border); padding: 12px 18px; }
+  .listos-titulo{ font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+  .listos-titulo span{ color: var(--text-muted); font-weight: 400; }
+  .listos-lista{ max-height: 180px; overflow: auto; font-size: 12.5px; }
+  .listos-lista label{ display: flex; gap: 8px; align-items: center; padding: 3px 0; cursor: pointer; }
+  .listos-lista .doc{ color: var(--text-muted); }
+  .listos-vacio{ color: var(--text-muted); font-size: 12.5px; }
   .field-row{
     display: flex;
     align-items: center;
@@ -323,6 +330,9 @@
     <a class="nav-item" href="historial.html">
       <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span> Historial
     </a>
+    <a class="nav-item" href="dashboard.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span> Dashboard
+    </a>
     <a class="nav-item" href="perfil.html">
       <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Configuración
     </a>
@@ -336,6 +346,11 @@
 
     <div class="compose-card">
       <div class="compose-header">Enviar Por Correo</div>
+
+      <div class="listos" id="listos">
+        <div class="listos-titulo">Certificados firmados listos para enviar <span id="listosCuenta"></span></div>
+        <div id="listosLista" class="listos-lista">Cargando...</div>
+      </div>
 
       <div class="field-row">
         <label for="fieldPara">Para</label>
@@ -377,28 +392,53 @@ Universidad Pontificia Bolivariana</textarea>
   </main>
 
 <script>
-  // Certificados que vienen de "Generar Certificado": [{ idCertificado, contratista, correo, archivo }]
-  const certificados = JSON.parse(sessionStorage.getItem('certificadosParaEnviar') || '[]');
+  // Solo se envían certificados FIRMADOS por el Jefe de Nómina (WebServer -> /api/certificados/listos).
+  // Si se llega desde "Certificados devueltos", quedan marcados solo los que se eligieron allá.
+  const elegidos = (JSON.parse(sessionStorage.getItem('certificadosParaEnviar') || '[]')).map(function(c){ return c.idCertificado; });
   const fieldPara = document.getElementById('fieldPara');
+  const lista = document.getElementById('listosLista');
+  let listos = [];
 
-  if(certificados.length === 0){
-    Avisos.alSiguiente('Primero genera los certificados y luego usa "Enviar por correo".', 'aviso');
-    window.location.href = 'generar-certificado.html';
+  fieldPara.type = 'text';
+  fieldPara.readOnly = true;
+  fieldPara.title = 'Se usa el correo de cada contratista registrado en la base de datos';
+
+  function esc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+
+  function seleccion(){
+    const ids = Array.from(document.querySelectorAll('.chk-listo:checked')).map(function(c){ return parseInt(c.value, 10); });
+    return listos.filter(function(c){ return ids.indexOf(c.idCertificado) > -1; });
   }
 
   // Cada contratista recibe SU certificado en el correo registrado en la base de datos
-  fieldPara.type = 'text';
-  fieldPara.readOnly = true;
-  fieldPara.value = certificados.map(function(c){ return c.correo || '(sin correo: ' + c.contratista + ')'; }).join(', ');
-  fieldPara.title = 'Se usa el correo de cada contratista registrado en la base de datos';
+  function actualizar(){
+    const sel = seleccion();
+    fieldPara.value = sel.map(function(c){ return c.correo || '(sin correo: ' + c.contratista + ')'; }).join(', ');
+    document.getElementById('attachName').textContent = sel.length === 0 ? 'Ningún certificado seleccionado'
+      : sel.length === 1 ? sel[0].archivo + ' (protegido con la cédula)'
+      : sel.length + ' certificados protegidos con la cédula (cada contratista recibe el suyo)';
+    document.getElementById('listosCuenta').textContent = '· ' + sel.length + ' de ' + listos.length + ' seleccionado(s)';
+  }
 
-  document.getElementById('attachName').textContent = certificados.length === 1
-    ? certificados[0].archivo
-    : certificados.length + ' certificados (cada contratista recibe el suyo)';
+  fetch('/api/certificados/listos').then(function(r){ return r.json(); }).then(function(datos){
+    listos = datos;
+    if (!listos.length){
+      lista.innerHTML = '<div class="listos-vacio">No hay certificados firmados pendientes de envío. ' +
+        'Los certificados nuevos aparecen aquí cuando el Jefe de Nómina los firma.</div>';
+    } else {
+      lista.innerHTML = listos.map(function(c){
+        const marcado = !elegidos.length || elegidos.indexOf(c.idCertificado) > -1;
+        return '<label><input type="checkbox" class="chk-listo" value="' + c.idCertificado + '"' + (marcado ? ' checked' : '') + '> ' +
+          esc(c.contratista) + ' <span class="doc">· ' + esc(c.documento) + ' · firmado por ' + esc(c.firmadoPor || '') + '</span></label>';
+      }).join('');
+      document.querySelectorAll('.chk-listo').forEach(function(c){ c.addEventListener('change', actualizar); });
+    }
+    actualizar();
+  });
 
   function leerBorrador(){
     return {
-      certificados: certificados,
+      certificados: seleccion().map(function(c){ return { idCertificado: c.idCertificado, contratista: c.contratista, correo: c.correo, archivo: c.archivo }; }),
       cc: document.getElementById('fieldCc').value.trim(),
       subject: document.getElementById('fieldAsunto').value,
       body: document.getElementById('fieldMensaje').value
@@ -418,18 +458,16 @@ Universidad Pontificia Bolivariana</textarea>
     Avisos.mostrar('El borrador quedó guardado.', 'exito', 'Borrador guardado');
   });
   document.getElementById('btnRevisar').addEventListener('click', function(){
+    if(seleccion().length === 0){
+      Avisos.mostrar('Selecciona al menos un certificado firmado para enviar.', 'aviso', 'Sin certificados');
+      return;
+    }
     if(!document.getElementById('fieldAsunto').value.trim()){
       Avisos.mostrar('Escribe un asunto antes de continuar.', 'aviso', 'Falta el asunto');
       return;
     }
     sessionStorage.setItem('correoBorrador', JSON.stringify(leerBorrador()));
     window.location.href = 'borrador.html';
-  });
-  document.querySelectorAll('.nav-item[data-page]').forEach(function(item){
-    item.addEventListener('click', function(e){
-      e.preventDefault();
-      console.log('Sección aún no implementada:', item.dataset.page);
-    });
   });
 </script>
 

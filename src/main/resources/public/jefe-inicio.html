@@ -24,13 +24,13 @@
     <a class="action-card" href="jefe-historial.html">
       <span class="card-icon" id="icHist"></span>
       Historial de Nómina
-      <small>Revisa lo que ha hecho el Usuario Nómina</small>
+      <small>Revisa lo que han hecho los usuarios de Nómina</small>
     </a>
     <a class="action-card" href="jefe-firmar.html">
       <span class="count-badge" id="pendBadge" style="display:none">0</span>
       <span class="card-icon" id="icFirma"></span>
       Firmar certificados
-      <small>Disponible cuando el Usuario Nómina no se encuentre</small>
+      <small>Firma los certificados para que Nómina pueda enviarlos</small>
     </a>
   </div>
 
@@ -41,14 +41,15 @@
   document.getElementById('icHist').innerHTML  = CT.svg(CT.ICON.clock);
   document.getElementById('icFirma').innerHTML = CT.svg(CT.ICON.pen);
 
-  var pend = CT.pendientes().filter(function(p){ return p.estado === 'pendiente'; }).length;
-  var badge = document.getElementById('pendBadge');
-  if (pend > 0){ badge.textContent = pend; badge.style.display = 'flex'; }
-
-  var est = CT.nominaEstado();
-  document.getElementById('statusLine').innerHTML = est.disponible
-    ? 'Usuario Nómina: <span class="badge ok">Disponible</span>'
-    : 'Usuario Nómina: <span class="badge warn">No disponible</span> · ' + CT.esc(est.motivo || '');
+  // Pendientes de firma (WebServer -> /api/firma/pendientes)
+  fetch('/api/firma/pendientes').then(function(r){ return r.json(); }).then(function(d){
+    var badge = document.getElementById('pendBadge');
+    if (d.pendientes.length > 0){ badge.textContent = d.pendientes.length; badge.style.display = 'flex'; }
+    document.getElementById('statusLine').innerHTML =
+      'Pendientes de firma: <span class="badge ' + (d.pendientes.length ? 'warn' : 'ok') + '">' + d.pendientes.length + '</span>' +
+      ' · Tu firma: ' + (d.tieneFirma ? '<span class="badge ok">Registrada</span>'
+                                      : '<a href="firma-digital.html"><span class="badge err">Sin registrar</span></a>');
+  });
 </script>
 </body>
 </html>

@@ -352,6 +352,9 @@
     <a class="nav-item" href="historial.html">
       <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span> Historial
     </a>
+    <a class="nav-item" href="dashboard.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span> Dashboard
+    </a>
     <a class="nav-item active" href="perfil.html">
       <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Configuración
     </a>
@@ -365,7 +368,8 @@
 
     <h2 class="section-title">Firmas Digitales Registradas</h2>
 
-    <div class="notice"><b>Importante:</b> la firma digital debe ser una imagen en formato <b>PNG</b>.</div>
+    <div class="notice"><b>Importante:</b> la firma digital debe ser una imagen en formato <b>PNG</b>. Es la que aparece en los
+      certificados que firmes, sobre tu nombre.</div>
 
     <div class="signature-wrap" id="signatureDisplay">
       <!-- se rellena por JS -->
@@ -416,8 +420,25 @@
   const ctx = canvas.getContext('2d');
 
   const firmaNombre = CT.esc(CT.currentUser().nombre);
-  let signatureDataUrl = null; // null = sin firma registrada
+  let signatureDataUrl = null; // null = sin firma registrada (se lee del servidor)
   let isActive = true;
+
+  // La firma se guarda en el servidor (WebServer -> /api/firma/mi-firma -> Firmas)
+  async function guardarEnServidor(dataUrl){
+    const r = await fetch('/api/firma/mi-firma', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                                                   body: JSON.stringify({ imagen: dataUrl }) });
+    const j = await r.json().catch(function(){ return {}; });
+    if (!r.ok) { Avisos.mostrar(j.error || 'No se pudo guardar la firma.', 'error', 'Firma no guardada'); return false; }
+    await cargarFirma();
+    Avisos.mostrar('Tu firma quedó registrada. Se usará en los certificados que firmes.', 'exito', 'Firma guardada');
+    return true;
+  }
+  async function cargarFirma(){
+    const r = await fetch('/api/firma/mi-firma');
+    const j = await r.json();
+    signatureDataUrl = j.tiene ? j.imagen : null;
+    renderSignature();
+  }
   let drawing = false;
 
   function resizeCanvas(){
@@ -513,21 +534,14 @@
     }
     pngError.classList.remove('show');
     const reader = new FileReader();
-    reader.onload = function(){
-      signatureDataUrl = reader.result;
-      isActive = true;
-      renderSignature();
-      modalOverlay.classList.remove('show');
+    reader.onload = async function(){
+      if (await guardarEnServidor(reader.result)) modalOverlay.classList.remove('show');
     };
     reader.readAsDataURL(file);
   });
 
-  btnGuardarFirma.addEventListener('click', function(){
-    signatureDataUrl = canvas.toDataURL('image/png');
-    isActive = true;
-    renderSignature();
-    modalOverlay.classList.remove('show');
-    console.log('Firma digital guardada');
+  btnGuardarFirma.addEventListener('click', async function(){
+    if (await guardarEnServidor(canvas.toDataURL('image/png'))) modalOverlay.classList.remove('show');
   });
 
   btnEliminar.addEventListener('click', function(){
@@ -535,9 +549,11 @@
     Avisos.confirmar('¿Seguro que deseas eliminar tu firma digital registrada?',
                      { titulo:'Eliminar firma', aceptar:'Eliminar', peligro:true }).then(function(si){
       if(!si) return;
-      signatureDataUrl = null;
-      renderSignature();
-      Avisos.mostrar('Tu firma digital fue eliminada.', 'exito', 'Firma eliminada');
+      fetch('/api/firma/mi-firma', { method: 'DELETE' }).then(function(){
+        signatureDataUrl = null;
+        renderSignature();
+        Avisos.mostrar('Tu firma digital fue eliminada. Para firmar certificados debes registrar una nueva.', 'exito', 'Firma eliminada');
+      });
     });
   });
 
@@ -548,7 +564,7 @@
     });
   });
 
-  renderSignature();
+  cargarFirma();
 </script>
 
 </body>

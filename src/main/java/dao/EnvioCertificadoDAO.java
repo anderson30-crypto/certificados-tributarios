@@ -25,7 +25,7 @@ public class EnvioCertificadoDAO {
     public Map<String, Object> datosParaEnvio(int idCertificado) throws SQLException {
 
         String sql = "SELECT ct.t_correo_contratista, ct.t_nombres, ct.t_primer_apellido, " +
-            "ct.n_numero_documento, ce.t_ruta_pdf " +
+            "ct.n_numero_documento, ce.t_ruta_pdf, ce.id_estado " +
             "FROM certificados ce " +
             "JOIN contratos co ON ce.id_contrato = co.id_contrato " +
             "JOIN contratistas ct ON co.id_contratista = ct.id_contratista " +
@@ -45,6 +45,7 @@ public class EnvioCertificadoDAO {
                 datos.put("nombre", rs.getString("t_nombres") + " " + rs.getString("t_primer_apellido"));
                 datos.put("documento", rs.getString("n_numero_documento"));
                 datos.put("rutaPdf", rs.getString("t_ruta_pdf"));
+                datos.put("estado", rs.getInt("id_estado"));
                 return datos;
             }
         }

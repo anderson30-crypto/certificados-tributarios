@@ -1,18 +1,21 @@
 package servicio;
 
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import com.github.pjfanning.xlsx.StreamingReader;
 
 import conexion.ConexionBD;
 
-import java.io.FileInputStream;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Locale;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,27 +29,108 @@ public class CargueMasivo {
 
     // Para probar sin el WebServer: carga la sábana de ejemplo de resources
     public static void main(String[] args) {
-        String rutaArchivo = "src/main/resources/SABANA_CERTIFICADO_MINI.xlsx";
-
-        try (FileInputStream fis = new FileInputStream(rutaArchivo)) {
-            System.out.println(cargar(fis));
+        try {
+            System.out.println(cargar(Path.of("src/main/resources/SABANA_CERTIFICADO_MINI.xlsx")));
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     /**
-     * Lee la sábana (xlsx) y guarda contratistas y contratos en la base de datos.
-     * Si el contratista ya existe (mismo documento) se actualiza en vez de duplicarse,
-     * así la misma sábana se puede volver a subir sin errores.
+     * Carga una sábana (xlsx) en dos pasadas:
+     *  1. Validación: si el mismo documento aparece dos veces, o el mismo correo es de dos
+     *     contratistas distintos (en el archivo o contra lo que ya está en la base de datos),
+     *     la sábana se rechaza completa y no se guarda nada ("rechazada" = true + la lista de errores).
+     *  2. Cargue: guarda contratistas y contratos. Si el contratista ya existe (mismo documento)
+     *     se actualiza en vez de duplicarse, así la misma sábana se puede volver a subir.
      */
-    public static Map<String, Object> cargar(InputStream excel) throws Exception {
+    public static Map<String, Object> cargar(Path archivo) throws Exception {
+        List<String> duplicados;
+        try (InputStream excel = Files.newInputStream(archivo)) {
+            duplicados = buscarDuplicados(excel);
+        }
+        if (!duplicados.isEmpty()) {
+            Map<String, Object> resultado = new LinkedHashMap<>();
+            resultado.put("rechazada", true);
+            resultado.put("insertados", 0);
+            resultado.put("actualizados", 0);
+            resultado.put("errores", duplicados);
+            return resultado;
+        }
+        try (InputStream excel = Files.newInputStream(archivo)) {
+            Map<String, Object> resultado = guardar(excel);
+            resultado.put("rechazada", false);
+            return resultado;
+        }
+    }
+
+    /** Pasada 1: documentos y correos repetidos. Devuelve un error por cada repetición (vacía = sin duplicados). */
+    static List<String> buscarDuplicados(InputStream excel) throws Exception {
+        List<String> errores = new ArrayList<>();
+        Map<String, Integer> filaPorDocumento = new HashMap<>();
+        Map<String, String[]> duenoCorreo = new HashMap<>();   // correo -> {documento, fila}
+
+        // Correos que ya están en la base de datos, con el documento de su dueño
+        Map<String, String> correosBD = new HashMap<>();
+        try (Connection conn = ConexionBD.obtenerConexion();
+             PreparedStatement ps = conn.prepareStatement(
+                 "SELECT t_correo_contratista, n_numero_documento FROM contratistas WHERE t_correo_contratista IS NOT NULL");
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                correosBD.put(normalizarCorreo(rs.getString(1)), normalizarDocumento(rs.getString(2)));
+            }
+        }
+
+        try (Workbook workbook = StreamingReader.builder().rowCacheSize(100).bufferSize(4096).open(excel)) {
+            for (Row fila : workbook.getSheetAt(0)) {
+                if (fila.getRowNum() == 0) continue;
+                int numeroFila = fila.getRowNum() + 1;
+                String documento = normalizarDocumento(obtenerTexto(fila.getCell(4)));
+                String correo = normalizarCorreo(obtenerTexto(fila.getCell(5)));
+                if (documento.isEmpty()) continue;   // la pasada 2 lo informa como fila sin documento
+
+                Integer filaAnterior = filaPorDocumento.putIfAbsent(documento, numeroFila);
+                if (filaAnterior != null) {
+                    errores.add("Fila " + numeroFila + ": el documento " + documento + " está repetido (ya aparece en la fila " + filaAnterior + ")");
+                }
+
+                if (!correo.isEmpty()) {
+                    String[] dueno = duenoCorreo.get(correo);
+                    if (dueno == null) {
+                        duenoCorreo.put(correo, new String[] { documento, String.valueOf(numeroFila) });
+                    } else if (!dueno[0].equals(documento)) {
+                        errores.add("Fila " + numeroFila + ": el correo " + correo + " ya es del documento " + dueno[0] +
+                            " (fila " + dueno[1] + ")");
+                    }
+                    String duenoBD = correosBD.get(correo);
+                    if (duenoBD != null && !duenoBD.equals(documento)) {
+                        errores.add("Fila " + numeroFila + ": el correo " + correo + " ya está registrado para el documento " +
+                            duenoBD + " en el sistema");
+                    }
+                }
+            }
+        }
+        return errores;
+    }
+
+    private static String normalizarDocumento(String documento) {
+        return documento == null ? "" : documento.replace(".", "").replace(",", "").replace(" ", "").trim();
+    }
+
+    private static String normalizarCorreo(String correo) {
+        return correo == null ? "" : correo.trim().toLowerCase(Locale.ROOT);
+    }
+
+    /** Pasada 2: guarda cada fila en su propia transacción. */
+    private static Map<String, Object> guardar(InputStream excel) throws Exception {
 
         int filasInsertadas = 0;
         int filasActualizadas = 0;
         List<String> errores = new ArrayList<>();
 
-        try (Workbook workbook = new XSSFWorkbook(excel);
+        // Lectura por partes (streaming): solo unas 100 filas en memoria a la vez.
+        // Con XSSFWorkbook el archivo completo iba a memoria (una sábana de 50.000 filas usaba ~1,8 GB).
+        try (Workbook workbook = StreamingReader.builder().rowCacheSize(100).bufferSize(4096).open(excel);
              Connection conn = ConexionBD.obtenerConexion()) {
 
             Sheet hoja = workbook.getSheetAt(0);

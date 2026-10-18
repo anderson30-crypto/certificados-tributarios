@@ -34,6 +34,10 @@ public class WebServer {
     // Carpeta (en la raíz del proyecto) donde se guardan las sábanas subidas
     private static final Path CARPETA_SUBIDAS = Paths.get("subidas");
 
+    // Se agrega a cada correo: el PDF va cifrado y el contratista necesita saber cómo abrirlo
+    private static final String NOTA_CONTRASENA = "\n\nEl certificado adjunto está protegido. Para abrirlo, use como " +
+        "contraseña su número de documento, sin puntos ni espacios.";
+
     public static void main(String[] args) {
 
         // 1) Probar la conexión antes de levantar el servidor, para ver de una vez si MySQL responde
@@ -307,11 +311,20 @@ public class WebServer {
                 return;
             }
 
-            try (InputStream excel = Files.newInputStream(ruta)) {
-                Map<String, Object> resultado = CargueMasivo.cargar(excel);
+            try {
+                Map<String, Object> resultado = CargueMasivo.cargar(ruta);
+                List<?> errores = (List<?>) resultado.get("errores");
+                if (Boolean.TRUE.equals(resultado.get("rechazada"))) {
+                    // Datos duplicados: no se guardó nada; la página muestra cada repetición
+                    RegistroAuditoria.registrar(usuarioActual(ctx).idUsuario(), "Certificados", "Sábana rechazada",
+                        ruta.getFileName() + " · " + errores.size() + " dato(s) duplicado(s)");
+                    ctx.status(422).json(Map.of("error", "La sábana tiene datos duplicados y no se cargó. Corrija el archivo y súbalo de nuevo.",
+                        "errores", errores));
+                    return;
+                }
                 RegistroAuditoria.registrar(usuarioActual(ctx).idUsuario(), "Certificados", "Carga de sábana",
                     ruta.getFileName() + " · " + resultado.get("insertados") + " nuevos, " + resultado.get("actualizados") +
-                    " actualizados, " + ((List<?>) resultado.get("errores")).size() + " con error");
+                    " actualizados, " + errores.size() + " con error");
                 ctx.json(resultado);
 
             } catch (Exception e) {
@@ -409,6 +422,91 @@ public class WebServer {
             }
         });
 
+        // --- Firma (Jefe de Nómina y Gestión Humana; lo valida Roles.puede) ---
+
+        // Firma PNG del usuario con sesión: { tiene, imagen (data URI) }
+        app.get("/api/firma/mi-firma", ctx -> {
+            byte[] png = Firmas.obtenerFirma(usuarioActual(ctx).idUsuario());
+            Map<String, Object> r = new HashMap<>();
+            r.put("tiene", png != null);
+            r.put("imagen", png == null ? null : "data:image/png;base64," + java.util.Base64.getEncoder().encodeToString(png));
+            ctx.json(r);
+        });
+
+        // Cuerpo JSON: { imagen: "data:image/png;base64,..." }
+        app.put("/api/firma/mi-firma", ctx -> {
+            String imagen = texto(ctx.bodyAsClass(Map.class).get("imagen"));
+            int idUsuario = usuarioActual(ctx).idUsuario();
+            try {
+                if (!imagen.startsWith("data:image/png;base64,")) throw new Firmas.ReglaException("La firma debe ser una imagen PNG.");
+                Firmas.guardarFirma(idUsuario, java.util.Base64.getDecoder().decode(imagen.substring(imagen.indexOf(',') + 1)));
+                RegistroAuditoria.registrar(idUsuario, "Firma digital", "Registro de firma", "Firma PNG actualizada");
+                ctx.json(Map.of("ok", true));
+            } catch (Firmas.ReglaException | IllegalArgumentException e) {
+                ctx.status(400).json(Map.of("error", e.getMessage()));
+            }
+        });
+
+        app.delete("/api/firma/mi-firma", ctx -> {
+            int idUsuario = usuarioActual(ctx).idUsuario();
+            Firmas.eliminarFirma(idUsuario);
+            RegistroAuditoria.registrar(idUsuario, "Firma digital", "Eliminación de firma", "Firma PNG eliminada");
+            ctx.json(Map.of("ok", true));
+        });
+
+        // Pendientes de firma y últimos firmados
+        app.get("/api/firma/pendientes", ctx -> {
+            Map<String, Object> r = new HashMap<>();
+            r.put("pendientes", Firmas.pendientes());
+            r.put("recientes", Firmas.firmadosRecientes(30));
+            r.put("tieneFirma", Firmas.obtenerFirma(usuarioActual(ctx).idUsuario()) != null);
+            ctx.json(r);
+        });
+
+        // Cuerpo JSON: { ids: [1, 2, 3] }
+        app.post("/api/firma/firmar", ctx -> {
+            List<?> lista = (List<?>) ctx.bodyAsClass(Map.class).get("ids");
+            int idUsuario = usuarioActual(ctx).idUsuario();
+            if (lista == null || lista.isEmpty()) {
+                ctx.status(400).json(Map.of("error", "No se seleccionó ningún certificado."));
+                return;
+            }
+            List<Integer> ids = new ArrayList<>();
+            for (Object o : lista) ids.add(((Number) o).intValue());
+            try {
+                List<Map<String, Object>> resultados = Firmas.firmar(ids, idUsuario);
+                long firmados = resultados.stream().filter(x -> Boolean.TRUE.equals(x.get("exito"))).count();
+                StringBuilder nombres = new StringBuilder();
+                for (Map<String, Object> x : resultados) {
+                    if (Boolean.TRUE.equals(x.get("exito"))) nombres.append(nombres.length() > 0 ? ", " : "").append(x.get("contratista"));
+                }
+                RegistroAuditoria.registrar(idUsuario, "Firma digital", "Firma de certificados",
+                    firmados + " firmado(s), " + (resultados.size() - firmados) + " con error" +
+                    (nombres.length() > 0 ? " · " + nombres : ""));
+                ctx.json(Map.of("resultados", resultados));
+            } catch (Firmas.ReglaException e) {
+                ctx.status(409).json(Map.of("error", e.getMessage()));
+            }
+        });
+
+        // Lo que hicieron los usuarios de Nómina (para el Jefe y Gestión Humana)
+        app.get("/api/historial-nomina", ctx -> {
+            List<Map<String, Object>> eventos = new ArrayList<>();
+            for (Map<String, Object> e : RegistroAuditoria.listar(5000)) {
+                if (Roles.NOMINA.equals(e.get("rol"))) eventos.add(e);
+            }
+            ctx.json(eventos);
+        });
+
+        // --- Nómina: listos para enviar y dashboard ---
+
+        app.get("/api/certificados/listos", ctx -> ctx.json(Firmas.listosParaEnviar()));
+
+        app.get("/api/dashboard", ctx -> {
+            String anio = ctx.queryParam("anio");
+            ctx.json(Dashboard.resumen(anio == null || anio.isBlank() ? null : Integer.valueOf(anio)));
+        });
+
         // Ver / descargar un PDF generado
         app.get("/api/certificados/pdf/{archivo}", ctx -> {
             Path ruta = Paths.get(GenerarCertificado.CARPETA_SALIDA)
@@ -465,10 +563,19 @@ public class WebServer {
 
                 String para = (String) datos.get("correo");
                 resultado.put("contratista", datos.get("nombre"));
+
+                // Solo se envían certificados firmados por el Jefe de Nómina o Gestión Humana
+                int estado = (Integer) datos.get("estado");
+                if (estado != Firmas.ESTADO_FIRMADO && estado != Firmas.ESTADO_ENVIADO) {
+                    resultado.put("exito", false);
+                    resultado.put("error", "todavía no está firmado por el Jefe de Nómina; no se envió");
+                    resultados.add(resultado);
+                    continue;
+                }
                 resultado.put("destino", correo.destinoEfectivo(para));
 
                 try {
-                    correo.enviar(para, cc, asunto, mensaje, Paths.get((String) datos.get("rutaPdf")));
+                    correo.enviar(para, cc, asunto, mensaje + NOTA_CONTRASENA, Paths.get((String) datos.get("rutaPdf")));
                     envios.registrar(idCertificado, correo.destinoEfectivo(para), true, null, usuarioActual(ctx).idUsuario());
                     resultado.put("exito", true);
 

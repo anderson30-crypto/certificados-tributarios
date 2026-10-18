@@ -16,6 +16,8 @@ public final class EsquemaBD {
 
     /** Tabla estados: 6 = Devuelto */
     public static final int ESTADO_DEVUELTO = 6;
+    /** Tabla estados: 7 = Firmado (por el Jefe de Nómina o Gestión Humana; ya se puede enviar) */
+    public static final int ESTADO_FIRMADO = 7;
 
     private EsquemaBD() { }
 
@@ -63,6 +65,15 @@ public final class EsquemaBD {
                 }
             }
 
+            // 6) Firma: estado Firmado, quién firmó y cuándo, y la imagen PNG de cada firmante
+            asegurarEstado(conn, ESTADO_FIRMADO, "Firmado", "Certificado firmado, listo para enviar");
+            if (!existeColumna(conn, "certificados", "id_usuario_firma")) {
+                ejecutar(conn, "ALTER TABLE certificados ADD COLUMN id_usuario_firma INT NULL, ADD COLUMN d_fecha_firma DATETIME NULL");
+                System.out.println("Base de datos: columnas de firma en certificados creadas");
+            }
+            ejecutar(conn, "CREATE TABLE IF NOT EXISTS firmas_usuario (" +
+                "id_usuario INT NOT NULL PRIMARY KEY, b_imagen MEDIUMBLOB NOT NULL, d_actualizacion DATETIME NOT NULL)");
+
             // 5) Huella de los datos con que se generó cada certificado (valida las regeneraciones)
             if (!existeColumna(conn, "certificados", "t_huella_datos")) {
                 ejecutar(conn, "ALTER TABLE certificados ADD COLUMN t_huella_datos CHAR(64) NULL");
@@ -73,6 +84,23 @@ public final class EsquemaBD {
             System.out.println("ATENCIÓN: no se pudieron revisar o ajustar las tablas (" + e.getMessage() + "). " +
                 "Si el usuario de MySQL no tiene permiso para ALTER/INSERT, aplique los cambios con un usuario administrador.");
         }
+    }
+
+    private static void asegurarEstado(Connection conn, int id, String nombre, String descripcion) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement("SELECT 1 FROM estados WHERE id_estado = ?")) {
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return;
+            }
+        }
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO estados (id_estado, t_nombre_estado, t_descripcion) VALUES (?, ?, ?)")) {
+            ps.setInt(1, id);
+            ps.setString(2, nombre);
+            ps.setString(3, descripcion);
+            ps.executeUpdate();
+        }
+        System.out.println("Base de datos: estado '" + nombre + "' creado");
     }
 
     private static boolean existeRol(Connection conn, String nombre) throws SQLException {
