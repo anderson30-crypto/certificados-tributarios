@@ -1,0 +1,9 @@
+Fuentes que usa el certificado PDF (GenerarCertificado las incrusta en cada PDF).
+
+- LiberationSans-Regular.ttf / LiberationSans-Bold.ttf: mismas medidas que Arial
+  (licencia SIL Open Font License 1.1, ver LICENCIA-LiberationSans-OFL.txt)
+- LiberationSansNarrow-Regular.ttf: mismas medidas que Arial Narrow, usada en el pie de página
+  (licencia GPL-2 con excepción de fuentes, ver LICENCIA-LiberationSansNarrow.txt)
+
+Van dentro del proyecto para que el certificado se vea igual en Windows y en Red Hat,
+sin depender de las fuentes instaladas en el servidor.

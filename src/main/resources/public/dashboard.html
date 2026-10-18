@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
+<script src="js/avisos.js"></script>
+<title>Sistema de Certificados Tributarios - Dashboard</title>
+<style>
+  :root{
+    --red: #E30613;
+    --red-dark: #C40510;
+    --gray-bg: #F4F5F7;
+    --gray-border: #E1E3E8;
+    --text-dark: #23262B;
+    --text-muted: #6B7078;
+    --sidebar-w: 190px;
+    --header-h: 58px;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin: 0;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--text-dark);
+    background: #ffffff;
+  }
+
+  /* ---------- Header ---------- */
+  .topbar{
+    height: var(--header-h);
+    background: var(--red);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 20;
+  }
+
+  .topbar .brand{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 var(--sidebar-w);
+  }
+
+  .brand .logo-mark{
+    display: flex;
+    align-items: center;
+  }
+
+  .brand .logo-mark img{
+    height: 30px;
+    width: auto;
+    display: block;
+  }
+
+  .brand .logo-text{
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 15px;
+  }
+
+  .search-box{
+    flex: 1;
+    max-width: 420px;
+    margin: 0 24px;
+  }
+
+  .search-box input{
+    width: 100%;
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: none;
+    font-size: 13px;
+    outline: none;
+    background: #ffffff;
+  }
+
+  .topbar-actions{
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    color: #ffffff;
+  }
+
+  .icon-btn{
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #ffffff;
+    font-size: 18px;
+    position: relative;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+  }
+
+  .icon-btn .dot{
+    position: absolute;
+    top: 2px; right: 2px;
+    width: 7px; height: 7px;
+    background: #FFD400;
+    border-radius: 50%;
+    border: 1px solid var(--red);
+  }
+
+  .user-chip{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #ffffff;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    position: fixed;
+    top: var(--header-h);
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-w);
+    background: #ffffff;
+    border-right: 1px solid var(--gray-border);
+    padding-top: 14px;
+    z-index: 10;
+  }
+
+  .nav-item{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 20px;
+    font-size: 13px;
+    color: var(--text-dark);
+    text-decoration: none;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+  }
+
+  .nav-item .nav-icon{
+    width: 18px;
+    text-align: center;
+    font-size: 15px;
+  }
+
+  .nav-item:hover{
+    background: var(--gray-bg);
+  }
+
+  .nav-item.active{
+    color: var(--red);
+    font-weight: 600;
+    border-left-color: var(--red);
+    background: #FDECEC;
+  }
+
+  .nav-item.logout{
+    margin-top: 30px;
+    color: var(--text-muted);
+  }
+
+  /* ---------- Main content ---------- */
+  .main{
+    margin-left: var(--sidebar-w);
+    margin-top: var(--header-h);
+    padding: 48px 40px;
+    min-height: calc(100vh - var(--header-h));
+    background: #ffffff;
+  }
+
+  .welcome{
+    text-align: center;
+    margin-bottom: 34px;
+  }
+
+  .welcome h1{
+    font-size: 19px;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin: 0 0 6px;
+  }
+
+  .welcome p{
+    font-size: 15px;
+    color: var(--text-dark);
+    margin: 0;
+    font-weight: 500;
+  }
+
+  .action-grid{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+    max-width: 980px;
+    margin: 0 auto;
+  }
+
+  .action-card{
+    flex: 1 1 220px;
+    max-width: 300px;
+    background: var(--gray-bg);
+    border: 1px solid var(--gray-border);
+    border-radius: 6px;
+    padding: 16px 22px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dark);
+    cursor: pointer;
+    transition: box-shadow .15s ease, transform .1s ease, border-color .15s ease;
+  }
+
+  .action-card:hover{
+    border-color: var(--red);
+    box-shadow: 0 4px 14px rgba(227, 6, 19, 0.12);
+    transform: translateY(-1px);
+  }
+
+  a.action-card{
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  @media (max-width: 720px){
+    .action-card{ flex: 1 1 100%; max-width: 100%; }
+    .sidebar{ display: none; }
+    .main{ margin-left: 0; }
+  }
+
+  /* ---------- Dashboard ---------- */
+  .breadcrumb{ font-size: 12px; color: #6B7078; margin-bottom: 20px; }
+  .dash-head label{ font-size: 12.5px; color: #3A3F47; }
+  .dash{ max-width: 980px; margin: 0 auto; }
+  .dash-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
+  .dash-head h2{ font-size:16px; font-weight:700; margin:0; }
+  .dash-head p{ margin:2px 0 0; font-size:12px; color:#6B7078; }
+  .dash-head select{ padding:8px 12px; border:1px solid #E1E3E8; border-radius:20px; background:#F4F5F7; font-size:12.5px; font-family:inherit; }
+  .grupo{ font-size:11.5px; font-weight:700; color:#6B7078; text-transform:uppercase; letter-spacing:.4px; margin:18px 0 8px; }
+  .tiles{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px; }
+  .tile{ border:1px solid #E1E3E8; border-radius:8px; padding:12px 16px; background:#fff; text-decoration:none; color:inherit; display:block; }
+  a.tile:hover{ border-color:#E30613; }
+  .tile .n{ font-size:22px; font-weight:700; }
+  .tile .l{ font-size:11.5px; color:#6B7078; margin-top:2px; }
+  .tile.alerta .n{ color:#C40510; }
+  .panel{ border:1px solid #E1E3E8; border-radius:8px; padding:16px 18px; margin-top:18px; background:#fff; }
+  .panel h3{ font-size:13px; margin:0 0 2px; }
+  .panel .sub{ font-size:11.5px; color:#6B7078; margin:0 0 10px; }
+  .leyenda{ display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:#3A3F47; margin-bottom:6px; }
+  .leyenda i{ display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; vertical-align:-1px; }
+  .grafica{ position:relative; }
+  .grafica svg{ display:block; width:100%; height:auto; }
+  .tip{ position:absolute; pointer-events:none; background:#fff; border:1px solid #E1E3E8; border-radius:6px; box-shadow:0 4px 14px rgba(20,20,30,.12);
+        padding:8px 10px; font-size:12px; color:#23262B; display:none; white-space:nowrap; }
+  .tip b{ display:block; margin-bottom:4px; }
+  .tip i{ display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:6px; }
+  .tabla{ width:100%; border-collapse:collapse; font-size:12px; }
+  .tabla th{ text-align:left; font-weight:600; color:#6B7078; padding:6px 8px; border-bottom:1px solid #E1E3E8; }
+  .tabla td{ padding:6px 8px; border-bottom:1px solid #F0F1F3; }
+  .tabla td.num, .tabla th.num{ text-align:right; font-variant-numeric:tabular-nums; }
+  .ver-tabla{ font-size:12px; color:#1F4FA8; cursor:pointer; background:none; border:none; padding:0; margin-top:8px; text-decoration:underline; }
+  .estado{ font-size:11px; font-weight:600; padding:2px 8px; border-radius:10px; background:#F0F1F3; color:#3A3F47; }
+  .estado.Enviado{ background:#E6F4EA; color:#1E7B3A; } .estado.Firmado{ background:#EAF1FD; color:#1F4FA8; }
+  .estado.Devuelto{ background:#FDECEC; color:#C40510; } .estado.Generado, .estado.Corregido{ background:#FBF3DC; color:#7A5C00; }
+</style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo-mark"><img src="images/upb-logo.png" alt="UPB"></div>
+    </div>
+    <div class="search-box">
+      <input type="text" placeholder="Buscar certificado">
+    </div>
+    <div class="topbar-actions">
+      <a class="icon-btn" title="Notificaciones" id="notifBtn" href="notificaciones-error.html"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="dot"></span></a>
+      <a class="user-chip" href="perfil.html"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Usuario</a>
+    </div>
+  </header>
+
+  <nav class="sidebar">
+    <a class="nav-item" href="inicio.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></span> Inicio
+    </a>
+    <a class="nav-item" href="subir-documentos.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span> Certificados
+    </a>
+    <a class="nav-item" href="historial.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span> Historial
+    </a>
+    <a class="nav-item active" href="dashboard.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span> Dashboard
+    </a>
+    <a class="nav-item" href="perfil.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Configuración
+    </a>
+    <a class="nav-item logout" href="login.html">
+      <span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span> Cerrar Sesión
+    </a>
+  </nav>
+
+  <main class="main">
+    <div class="breadcrumb">Inicio &nbsp;›&nbsp; Dashboard</div>
+    <div class="dash">
+      <div class="dash-head">
+        <div><h2>Dashboard de certificados</h2>
+          <p>Histórico por año de certificados generados, firmados, enviados, devueltos y corregidos</p></div>
+        <label>Año <select id="anio"></select></label>
+      </div>
+
+      <div class="grupo">Por hacer hoy</div>
+      <div class="tiles" id="tilesAhora"></div>
+
+      <div class="grupo" id="tituloAnio">En el año</div>
+      <div class="tiles" id="tilesAnio"></div>
+
+      <div class="panel">
+        <h3 id="tituloGrafica">Certificados por mes</h3>
+        <p class="sub">Pase el cursor sobre un mes para ver los valores</p>
+        <div class="leyenda" id="leyenda"></div>
+        <div class="grafica" id="grafica"><div class="tip" id="tip"></div></div>
+        <button class="ver-tabla" id="btnTabla">Ver los datos en tabla</button>
+        <div id="tablaMeses" style="display:none;margin-top:10px"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Últimos certificados del año</h3>
+        <p class="sub">Los 15 más recientes y su estado actual</p>
+        <div id="recientes"></div>
+      </div>
+    </div>
+  </main>
+
+<script>
+  // Datos: WebServer -> /api/dashboard?anio=YYYY -> servicio/Dashboard.java
+  const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  // Paleta categórica validada (orden fijo): azul, naranja, aguamarina
+  const SERIES = [
+    { clave: 'generados', nombre: 'Generados',  color: '#2a78d6', valor: function(m){ return m.generados + m.corregidos; } },
+    { clave: 'enviados',  nombre: 'Enviados',   color: '#eb6834', valor: function(m){ return m.enviados; } },
+    { clave: 'devueltos', nombre: 'Devueltos',  color: '#1baf7a', valor: function(m){ return m.devueltos; } }
+  ];
+  const selAnio = document.getElementById('anio');
+  function esc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+  function tile(n, l, href, alerta){
+    const tag = href ? 'a' : 'div';
+    return '<' + tag + ' class="tile' + (alerta && n > 0 ? ' alerta' : '') + '"' + (href ? ' href="' + href + '"' : '') + '>' +
+      '<div class="n">' + n.toLocaleString('es-CO') + '</div><div class="l">' + l + '</div></' + tag + '>';
+  }
+
+  async function cargar(anio){
+    const r = await fetch('/api/dashboard' + (anio ? '?anio=' + anio : ''));
+    const d = await r.json();
+    if (!selAnio.options.length){
+      d.anios.forEach(function(a){ const o = document.createElement('option'); o.value = a; o.textContent = a; selAnio.appendChild(o); });
+    }
+    selAnio.value = d.anio;
+
+    document.getElementById('tilesAhora').innerHTML =
+      tile(d.ahora.pendientesFirma, 'Pendientes de firma del Jefe', null, true) +
+      tile(d.ahora.listosParaEnviar, 'Firmados, listos para enviar', 'enviar-correo-formulario.html', true) +
+      tile(d.ahora.devueltosPendientes, 'Devueltos por regenerar', 'certificados-devueltos.html', true);
+
+    document.getElementById('tituloAnio').textContent = 'En el año ' + d.anio;
+    const t = d.totales;
+    document.getElementById('tilesAnio').innerHTML =
+      tile(t.generados, 'Generados') + tile(t.firmados, 'Firmados') + tile(t.enviados, 'Enviados por correo') +
+      tile(t.erroresEnvio, 'Envíos con error', null, true) + tile(t.devueltos, 'Devueltos') + tile(t.corregidos, 'Corregidos (regenerados)');
+
+    document.getElementById('tituloGrafica').textContent = 'Certificados por mes · ' + d.anio;
+    dibujar(d.porMes);
+    tabla(d.porMes);
+    recientes(d.recientes);
+  }
+
+  // Barras agrupadas por mes (una escala, barras delgadas con 2 px de separación)
+  function dibujar(meses){
+    const W = 920, H = 260, izq = 40, der = 12, arriba = 12, abajo = 28;
+    const ancho = W - izq - der, alto = H - arriba - abajo;
+    const max = Math.max(1, ...meses.map(function(m){ return Math.max(...SERIES.map(function(s){ return s.valor(m); })); }));
+    const paso = Math.pow(10, Math.floor(Math.log10(max)));
+    const tope = Math.ceil(max / paso) * paso;
+    const ticks = []; const n = tope / paso <= 5 ? tope / paso : Math.ceil(tope / paso / 2);
+    for (let i = 0; i <= n; i++) ticks.push(Math.round(tope * i / n));
+    const y = function(v){ return arriba + alto - v / tope * alto; };
+    const grupo = ancho / 12, barra = Math.min(16, (grupo - 16) / 3), gap = 2;
+
+    let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Certificados generados, enviados y devueltos por mes">';
+    ticks.forEach(function(v){
+      svg += '<line x1="' + izq + '" x2="' + (W - der) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="' + (v === 0 ? '#C9CCD2' : '#EEF0F2') + '"/>' +
+             '<text x="' + (izq - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end" font-size="11" fill="#6B7078">' + v.toLocaleString('es-CO') + '</text>';
+    });
+    meses.forEach(function(m, i){
+      const x0 = izq + i * grupo + (grupo - (barra * 3 + gap * 2)) / 2;
+      SERIES.forEach(function(s, k){
+        const v = s.valor(m); if (!v) return;
+        const x = x0 + k * (barra + gap), yt = y(v), h = y(0) - yt, rr = Math.min(4, h, barra / 2);
+        svg += '<path d="M' + x + ' ' + y(0) + 'V' + (yt + rr) + 'Q' + x + ' ' + yt + ' ' + (x + rr) + ' ' + yt + 'H' + (x + barra - rr) +
+               'Q' + (x + barra) + ' ' + yt + ' ' + (x + barra) + ' ' + (yt + rr) + 'V' + y(0) + 'Z" fill="' + s.color + '"/>';
+      });
+      svg += '<text x="' + (izq + i * grupo + grupo / 2) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="#6B7078">' + MESES[i] + '</text>' +
+             '<rect class="zona" data-mes="' + i + '" x="' + (izq + i * grupo) + '" y="' + arriba + '" width="' + grupo + '" height="' + alto + '" fill="transparent"/>';
+    });
+    svg += '</svg>';
+    const cont = document.getElementById('grafica'), tip = document.getElementById('tip');
+    cont.querySelectorAll('svg').forEach(function(e){ e.remove(); });
+    cont.insertAdjacentHTML('afterbegin', svg);
+    document.getElementById('leyenda').innerHTML = SERIES.map(function(s){ return '<span><i style="background:' + s.color + '"></i>' + s.nombre + '</span>'; }).join('');
+
+    cont.querySelectorAll('.zona').forEach(function(z){
+      z.addEventListener('mousemove', function(e){
+        const m = meses[parseInt(z.dataset.mes, 10)];
+        tip.innerHTML = '<b>' + MESES[m.mes - 1] + ' ' + selAnio.value + '</b>' + SERIES.map(function(s){
+          return '<div><i style="background:' + s.color + '"></i>' + s.nombre + ': ' + s.valor(m).toLocaleString('es-CO') + '</div>'; }).join('') +
+          (m.corregidos ? '<div style="color:#6B7078">(incluye ' + m.corregidos + ' corregido(s))</div>' : '');
+        const caja = cont.getBoundingClientRect();
+        tip.style.display = 'block';
+        let left = e.clientX - caja.left + 14; if (left + tip.offsetWidth > caja.width) left = e.clientX - caja.left - tip.offsetWidth - 14;
+        tip.style.left = left + 'px'; tip.style.top = (e.clientY - caja.top - 10) + 'px';
+        z.setAttribute('fill', 'rgba(35,38,43,0.04)');
+      });
+      z.addEventListener('mouseleave', function(){ tip.style.display = 'none'; z.setAttribute('fill', 'transparent'); });
+    });
+  }
+
+  function tabla(meses){
+    document.getElementById('tablaMeses').innerHTML = '<table class="tabla"><thead><tr><th>Mes</th><th class="num">Generados</th><th class="num">Corregidos</th>' +
+      '<th class="num">Firmados</th><th class="num">Enviados</th><th class="num">Envíos con error</th><th class="num">Devueltos</th></tr></thead><tbody>' +
+      meses.map(function(m){ return '<tr><td>' + MESES[m.mes - 1] + '</td><td class="num">' + m.generados + '</td><td class="num">' + m.corregidos +
+        '</td><td class="num">' + m.firmados + '</td><td class="num">' + m.enviados + '</td><td class="num">' + m.erroresEnvio + '</td><td class="num">' + m.devueltos + '</td></tr>'; }).join('') +
+      '</tbody></table>';
+  }
+
+  function recientes(lista){
+    document.getElementById('recientes').innerHTML = lista.length ? '<table class="tabla"><thead><tr><th>Contratista</th><th>Documento</th>' +
+      '<th>Año gravable</th><th>Generado</th><th>Estado</th></tr></thead><tbody>' + lista.map(function(c){
+        return '<tr><td>' + esc(c.contratista) + (c.corregido ? ' <span class="estado Corregido">Corregido</span>' : '') + '</td><td>' + esc(c.documento) +
+          '</td><td>' + c.anioGravable + '</td><td>' + esc(c.fecha) + '</td><td><span class="estado ' + esc(c.estado) + '">' + esc(c.estado) + '</span></td></tr>';
+      }).join('') + '</tbody></table>' : '<p class="sub">No hay certificados generados en este año.</p>';
+  }
+
+  document.getElementById('btnTabla').addEventListener('click', function(){
+    const t = document.getElementById('tablaMeses'), ver = t.style.display === 'none';
+    t.style.display = ver ? 'block' : 'none';
+    this.textContent = ver ? 'Ocultar la tabla' : 'Ver los datos en tabla';
+  });
+  selAnio.addEventListener('change', function(){ cargar(selAnio.value); });
+  cargar();
+</script>
+
+<script src="js/sesion.js"></script>
+</body>
+</html>

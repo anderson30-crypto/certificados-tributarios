@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
+<script src="js/avisos.js"></script>
+<title>Sistema de Certificados Tributarios - Firmar certificados</title>
+<link rel="stylesheet" href="css/roles.css">
+<script src="js/roles.js"></script>
+</head>
+<body>
+<script>
+  if (CT.guard('jefe')) CT.shell({ active:'firmar', title:'Firmar certificados' });
+</script>
+
+<main class="main">
+  <div class="breadcrumb">Inicio &nbsp;›&nbsp; Firmar certificados</div>
+  <h2 class="section-title">Certificados pendientes de firma</h2>
+  <p class="section-subtitle">Nómina solo puede enviar por correo los certificados que firmes aquí. Al firmar, tu firma se
+    estampa en el PDF y el archivo queda protegido con la cédula del contratista como contraseña.</p>
+
+  <div class="content-wrap">
+    <div class="status-card" id="statusCard"></div>
+
+    <div class="sub-title">Pendientes de firma</div>
+    <div class="toolbar">
+      <input type="text" id="q" placeholder="Buscar por nombre o documento">
+      <span class="result-count" id="selCount" style="margin:0"></span>
+      <button class="btn btn-sm" id="btnFirmarSel" disabled>Firmar seleccionados</button>
+    </div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr>
+          <th style="width:34px"><input type="checkbox" id="chkAll" aria-label="Seleccionar todos"></th>
+          <th>Contratista</th><th>Documento</th><th>Generado por</th><th>Fecha</th><th></th>
+        </tr></thead>
+        <tbody id="pendRows"><tr><td colspan="6" class="empty">Cargando...</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="sub-title">Firmados recientemente</div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>Contratista</th><th>Documento</th><th>Firmado por</th><th>Fecha de firma</th><th>Estado</th></tr></thead>
+        <tbody id="doneRows"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+  var $ = function(id){ return document.getElementById(id); };
+  var datos = { pendientes: [], recientes: [], tieneFirma: false };
+  var ESTADOS = { 3: ['Enviado', 'ok'], 7: ['Listo para enviar', 'info'], 6: ['Devuelto', 'err'] };
+
+  function pdf(c){ return c.archivo ? '<a href="/api/certificados/pdf/' + encodeURIComponent(c.archivo) + '" target="_blank">Ver PDF</a>' : ''; }
+
+  async function cargar(){
+    var r = await fetch('/api/firma/pendientes');
+    if (!r.ok){ $('pendRows').innerHTML = '<tr><td colspan="6" class="empty">No se pudieron cargar los certificados.</td></tr>'; return; }
+    datos = await r.json();
+    render();
+  }
+
+  function render(){
+    var c = $('statusCard');
+    if (datos.tieneFirma){
+      c.className = 'status-card disponible';
+      c.innerHTML = '<span class="dot-lg"></span><div class="info"><b>Tu firma está registrada</b>' +
+        '<div>' + datos.pendientes.length + ' certificado(s) esperan tu firma.</div></div>' +
+        '<a class="btn btn-secondary btn-sm" href="firma-digital.html">Ver o cambiar mi firma</a>';
+    } else {
+      c.className = 'status-card ausente';
+      c.innerHTML = '<span class="dot-lg"></span><div class="info"><b>Aún no tienes una firma registrada</b>' +
+        '<div>Registra tu firma en PNG para poder firmar certificados.</div></div>' +
+        '<a class="btn btn-sm" href="firma-digital.html">Registrar mi firma</a>';
+    }
+
+    var q = $('q').value.toLowerCase();
+    var pend = datos.pendientes.filter(function(p){ return !q || (p.contratista + ' ' + p.documento).toLowerCase().indexOf(q) > -1; });
+    $('pendRows').innerHTML = pend.length ? pend.map(function(p){
+      return '<tr><td><input type="checkbox" class="chk" value="' + p.idCertificado + '"' + (datos.tieneFirma ? '' : ' disabled') + '></td>' +
+        '<td><b>' + CT.esc(p.contratista) + '</b>' + (p.corregido ? ' <span class="badge warn">Corregido</span>' : '') + '</td>' +
+        '<td class="nowrap">' + CT.esc(p.documento) + '</td>' +
+        '<td class="nowrap">' + CT.esc(p.generadoPor || '') + '</td><td class="nowrap">' + CT.esc(p.fechaGeneracion) + '</td>' +
+        '<td class="nowrap">' + pdf(p) + ' <button class="btn btn-sm btn-firmar" data-id="' + p.idCertificado + '"' +
+          (datos.tieneFirma ? '' : ' disabled') + '>Firmar</button></td></tr>';
+    }).join('') : '<tr><td colspan="6" class="empty">No hay certificados pendientes de firma.</td></tr>';
+
+    $('doneRows').innerHTML = datos.recientes.length ? datos.recientes.map(function(p){
+      var e = ESTADOS[p.estado] || ['—', 'off'];
+      return '<tr><td>' + CT.esc(p.contratista) + '</td><td class="nowrap">' + CT.esc(p.documento) + '</td>' +
+        '<td class="nowrap">' + CT.esc(p.firmadoPor || '') + '</td><td class="nowrap">' + CT.esc(CT.fmt(p.fechaFirma)) + '</td>' +
+        '<td><span class="badge ' + e[1] + '">' + e[0] + '</span></td></tr>';
+    }).join('') : '<tr><td colspan="5" class="empty">Aún no hay firmas registradas.</td></tr>';
+
+    $('chkAll').disabled = !datos.tieneFirma || !pend.length; $('chkAll').checked = false;
+    document.querySelectorAll('.btn-firmar').forEach(function(b){
+      b.addEventListener('click', function(){ firmar([parseInt(b.dataset.id, 10)]); });
+    });
+    document.querySelectorAll('.chk').forEach(function(c){ c.addEventListener('change', actualizarSel); });
+    actualizarSel();
+  }
+
+  function seleccionados(){ return Array.prototype.map.call(document.querySelectorAll('.chk:checked'), function(c){ return parseInt(c.value, 10); }); }
+  function actualizarSel(){
+    var n = seleccionados().length;
+    $('selCount').textContent = n ? n + ' seleccionado(s)' : '';
+    $('btnFirmarSel').disabled = n === 0;
+  }
+  $('chkAll').addEventListener('change', function(){
+    document.querySelectorAll('.chk:not(:disabled)').forEach(function(c){ c.checked = $('chkAll').checked; });
+    actualizarSel();
+  });
+  $('btnFirmarSel').addEventListener('click', function(){ firmar(seleccionados()); });
+  $('q').addEventListener('input', render);
+
+  async function firmar(ids){
+    var nombres = datos.pendientes.filter(function(p){ return ids.indexOf(p.idCertificado) > -1; }).map(function(p){ return p.contratista; });
+    var si = await Avisos.confirmar((ids.length === 1 ? 'Vas a firmar el certificado de ' + nombres[0] : 'Vas a firmar ' + ids.length + ' certificados') +
+      '. Tu firma quedará en el PDF y el archivo se protegerá con la cédula de cada contratista.', { titulo: 'Confirmar firma', aceptar: 'Firmar' });
+    if (!si) return;
+    $('btnFirmarSel').disabled = true;
+    try {
+      var r = await fetch('/api/firma/firmar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: ids }) });
+      var j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'No se pudo firmar.');
+      var ok = j.resultados.filter(function(x){ return x.exito; });
+      var mal = j.resultados.filter(function(x){ return !x.exito; });
+      if (ok.length) Avisos.mostrar(ok.length + ' certificado(s) firmado(s). Nómina ya puede enviarlos por correo.', 'exito', 'Certificados firmados');
+      if (mal.length) Avisos.mostrar(mal.map(function(x){ return '- ' + (x.contratista || ('Certificado ' + x.idCertificado)) + ': ' + x.error; }).join('\n'),
+                                     'error', mal.length + ' certificado(s) sin firmar');
+    } catch (e) {
+      Avisos.mostrar(e.message, 'error', 'No se pudo firmar');
+    }
+    cargar();
+  }
+
+  cargar();
+</script>
+</body>
+</html>

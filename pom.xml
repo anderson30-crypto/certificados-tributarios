@@ -14,8 +14,9 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
+    <maven.compiler.release>17</maven.compiler.release>
+      <!-- Clase que ejecuta "mvnw exec:java". Para otra: -Dexec.mainClass=Seguridad.CrearAdministrador -->
+    <exec.mainClass>servicio.WebServer</exec.mainClass>
   </properties>
 
   <dependencies>
@@ -37,6 +38,21 @@
      <version>5.2.5</version>
     </dependency>
     
+    <!-- Contraseñas de los usuarios guardadas como hash BCrypt -->
+    <dependency>
+     <groupId>org.mindrot</groupId>
+     <artifactId>jbcrypt</artifactId>
+     <version>0.4</version>
+    </dependency>
+
+    <!-- Lee el Excel por partes: las sábanas grandes no se cargan completas en memoria.
+         La versión 4.3.0 usa la misma Apache POI 5.2.5 del proyecto -->
+    <dependency>
+     <groupId>com.github.pjfanning</groupId>
+     <artifactId>excel-streaming-reader</artifactId>
+     <version>4.3.0</version>
+    </dependency>
+
     <dependency>
      <groupId>org.apache.pdfbox</groupId>
      <artifactId>pdfbox</artifactId>
@@ -61,20 +77,62 @@
      <version>2.0.13</version>
     </dependency>
 
+    <!-- Apache POI escribe sus mensajes con Log4j: este puente los manda a slf4j-simple
+         (el mismo log del servidor) y evita el aviso "Log4j2 could not find a logging implementation" -->
+    <dependency>
+     <groupId>org.apache.logging.log4j</groupId>
+     <artifactId>log4j-to-slf4j</artifactId>
+     <version>2.21.1</version>
+    </dependency>
+
     <dependency>
      <groupId>com.fasterxml.jackson.core</groupId>
      <artifactId>jackson-databind</artifactId>
      <version>2.17.2</version>
     </dependency>
 
+    <!-- Antes eran JARs sueltos en .classpath / Lib -->
     <dependency>
-     <groupId>com.openhtmltopdf</groupId>
-     <artifactId>openhtmltopdf-pdfbox</artifactId>
-     <version>1.0.10</version>
+     <groupId>com.itextpdf</groupId>
+     <artifactId>itextpdf</artifactId>
+     <version>5.5.13.3</version>
+    </dependency>
+
+    <dependency>
+     <groupId>org.bouncycastle</groupId>
+     <artifactId>bcprov-jdk15to18</artifactId>
+     <version>1.70</version>
+    </dependency>
+
+    <dependency>
+     <groupId>org.bouncycastle</groupId>
+     <artifactId>bcpkix-jdk15to18</artifactId>
+     <version>1.70</version>
+    </dependency>
+
+    <dependency>
+     <groupId>org.bouncycastle</groupId>
+     <artifactId>bcutil-jdk15to18</artifactId>
+     <version>1.70</version>
+    </dependency>
+
+    <!-- Envío de correos por SMTP (Jakarta Mail) -->
+    <dependency>
+     <groupId>org.eclipse.angus</groupId>
+     <artifactId>angus-mail</artifactId>
+     <version>2.0.3</version>
     </dependency>
   </dependencies>
 
   <build>
+    <plugins>
+      <!-- mvn compile exec:java  -> levanta el WebServer en http://localhost:7000 -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.5.0</version>
+      </plugin>
+    </plugins>
     <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
       <plugins>
         <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->
@@ -89,7 +147,7 @@
         </plugin>
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.8.0</version>
+          <version>3.13.0</version>
         </plugin>
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>

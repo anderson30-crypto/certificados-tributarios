@@ -1,0 +1,149 @@
+package Seguridad;
+
+import conexion.ConexionBD;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+/**
+ * Ajustes que la base de datos necesita para esta versión. Se aplican solos al arrancar el WebServer
+ * y solo cuando faltan, así funciona igual en cada PC y en el servidor sin correr scripts a mano.
+ */
+public final class EsquemaBD {
+
+    /** Tabla estados: 6 = Devuelto */
+    public static final int ESTADO_DEVUELTO = 6;
+    /** Tabla estados: 7 = Firmado (por el Jefe de Nómina o Gestión Humana; ya se puede enviar) */
+    public static final int ESTADO_FIRMADO = 7;
+    /** Tabla estados: 8 = Reemplazado (se generó uno más nuevo del mismo contrato antes de enviarlo) */
+    public static final int ESTADO_REEMPLAZADO = 8;
+
+    private EsquemaBD() { }
+
+    public static void asegurar() {
+        try (Connection conn = ConexionBD.obtenerConexion()) {
+
+            // 1) Los cuatro roles. El antiguo rol "Usuario" pasa a llamarse "Nómina"
+            if (!existeRol(conn, Roles.NOMBRES.get(Roles.NOMINA)) && existeRol(conn, "Usuario")) {
+                ejecutar(conn, "UPDATE roles SET t_rol = '" + Roles.NOMBRES.get(Roles.NOMINA) + "' WHERE t_rol = 'Usuario'");
+                System.out.println("Base de datos: el rol 'Usuario' ahora se llama 'Nómina'");
+            }
+            for (String nombre : new String[] {
+                    Roles.NOMBRES.get(Roles.ADMIN), Roles.NOMBRES.get(Roles.NOMINA),
+                    Roles.NOMBRES.get(Roles.JEFE), Roles.NOMBRES.get(Roles.GH) }) {
+                if (!existeRol(conn, nombre)) {
+                    try (PreparedStatement ps = conn.prepareStatement("INSERT INTO roles (t_rol, b_estado_rol) VALUES (?, 1)")) {
+                        ps.setString(1, nombre);
+                        ps.executeUpdate();
+                    }
+                    System.out.println("Base de datos: rol '" + nombre + "' creado");
+                }
+            }
+
+            // 2) Teléfono de contacto de los usuarios (lo usan las pantallas de perfil)
+            if (!existeColumna(conn, "usuarios", "t_telefono")) {
+                ejecutar(conn, "ALTER TABLE usuarios ADD COLUMN t_telefono VARCHAR(30) NULL");
+                System.out.println("Base de datos: columna usuarios.t_telefono creada");
+            }
+
+            // 3) Tipo de documento de hasta 60 caracteres ("permiso por protección temporal" tiene 31)
+            if (largoColumna(conn, "contratistas", "t_tipo_documento") < 60) {
+                ejecutar(conn, "ALTER TABLE contratistas MODIFY t_tipo_documento VARCHAR(60) NOT NULL");
+                System.out.println("Base de datos: contratistas.t_tipo_documento ampliado a 60 caracteres");
+            }
+
+            // 4) Estado "Devuelto": certificado que el contratista devolvió y se debe volver a generar
+            try (PreparedStatement ps = conn.prepareStatement("SELECT 1 FROM estados WHERE id_estado = ?")) {
+                ps.setInt(1, ESTADO_DEVUELTO);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) {
+                        ejecutar(conn, "INSERT INTO estados (id_estado, t_nombre_estado, t_descripcion) VALUES (" +
+                            ESTADO_DEVUELTO + ", 'Devuelto', 'Certificado devuelto, pendiente de volver a generar')");
+                        System.out.println("Base de datos: estado 'Devuelto' creado");
+                    }
+                }
+            }
+
+            // 6) Firma: estado Firmado, quién firmó y cuándo, y la imagen PNG de cada firmante
+            asegurarEstado(conn, ESTADO_FIRMADO, "Firmado", "Certificado firmado, listo para enviar");
+            asegurarEstado(conn, ESTADO_REEMPLAZADO, "Reemplazado", "Se generó uno más nuevo del mismo contrato antes de enviarlo");
+            // Si un contrato quedó con varios certificados sin enviar, solo el más reciente sigue vigente
+            int viejos;
+            try (Statement st = conn.createStatement()) {
+                viejos = st.executeUpdate(
+                    "UPDATE certificados c JOIN (SELECT id_contrato, MAX(id_certificado) AS ultimo FROM certificados " +
+                    "WHERE id_estado IN (2, 4, 7) GROUP BY id_contrato) x ON x.id_contrato = c.id_contrato " +
+                    "SET c.id_estado = " + ESTADO_REEMPLAZADO + " WHERE c.id_estado IN (2, 4, 7) AND c.id_certificado < x.ultimo");
+            }
+            if (viejos > 0) System.out.println("Base de datos: " + viejos + " certificado(s) repetido(s) sin enviar quedaron como Reemplazado");
+            if (!existeColumna(conn, "certificados", "id_usuario_firma")) {
+                ejecutar(conn, "ALTER TABLE certificados ADD COLUMN id_usuario_firma INT NULL, ADD COLUMN d_fecha_firma DATETIME NULL");
+                System.out.println("Base de datos: columnas de firma en certificados creadas");
+            }
+            ejecutar(conn, "CREATE TABLE IF NOT EXISTS firmas_usuario (" +
+                "id_usuario INT NOT NULL PRIMARY KEY, b_imagen MEDIUMBLOB NOT NULL, d_actualizacion DATETIME NOT NULL)");
+
+            // 5) Huella de los datos con que se generó cada certificado (valida las regeneraciones)
+            if (!existeColumna(conn, "certificados", "t_huella_datos")) {
+                ejecutar(conn, "ALTER TABLE certificados ADD COLUMN t_huella_datos CHAR(64) NULL");
+                System.out.println("Base de datos: columna certificados.t_huella_datos creada");
+            }
+
+        } catch (SQLException e) {
+            System.out.println("ATENCIÓN: no se pudieron revisar o ajustar las tablas (" + e.getMessage() + "). " +
+                "Si el usuario de MySQL no tiene permiso para ALTER/INSERT, aplique los cambios con un usuario administrador.");
+        }
+    }
+
+    private static void asegurarEstado(Connection conn, int id, String nombre, String descripcion) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement("SELECT 1 FROM estados WHERE id_estado = ?")) {
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return;
+            }
+        }
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO estados (id_estado, t_nombre_estado, t_descripcion) VALUES (?, ?, ?)")) {
+            ps.setInt(1, id);
+            ps.setString(2, nombre);
+            ps.setString(3, descripcion);
+            ps.executeUpdate();
+        }
+        System.out.println("Base de datos: estado '" + nombre + "' creado");
+    }
+
+    private static boolean existeRol(Connection conn, String nombre) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement("SELECT 1 FROM roles WHERE t_rol = ?")) {
+            ps.setString(1, nombre);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    private static boolean existeColumna(Connection conn, String tabla, String columna) throws SQLException {
+        return largoColumna(conn, tabla, columna) >= 0;
+    }
+
+    // Largo máximo de una columna de texto; -1 si la columna no existe
+    private static long largoColumna(Connection conn, String tabla, String columna) throws SQLException {
+        String sql = "SELECT COALESCE(CHARACTER_MAXIMUM_LENGTH, 0) FROM information_schema.COLUMNS " +
+            "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, tabla);
+            ps.setString(2, columna);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getLong(1) : -1;
+            }
+        }
+    }
+
+    private static void ejecutar(Connection conn, String sql) throws SQLException {
+        try (Statement st = conn.createStatement()) {
+            st.executeUpdate(sql);
+        }
+    }
+}

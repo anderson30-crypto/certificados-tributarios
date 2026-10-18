@@ -1,1 +1,13 @@
 /bin/
+/target/
+/src/main/resources/config.properties
+
+# Metadatos de Eclipse/VS Code (se generan desde el pom.xml)
+.classpath
+.project
+.settings/
+.vscode/
+
+# Archivos que genera la aplicación al ejecutarse
+/subidas/
+/certificados_generados/

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<!--
+  Certificado de ingresos y retención de ICA: réplica del formato oficial de la UPB
+  (CERTIFICADOS ICA 2025). Todas las medidas están en puntos (pt) y salen del PDF entregado
+  por el cliente: hoja A4, texto en Arial 10,67 pt y pie de página en Arial Narrow 7,76 pt (tamaños reales del PDF).
+  Las fuentes las registra GenerarCertificado (Liberation Sans / Liberation Sans Narrow,
+  que tienen exactamente las mismas medidas que Arial y Arial Narrow).
+-->
+<style>
+    @page { size: 595.22pt 842pt; margin: 0; }
+    html, body { margin: 0; padding: 0; }
+    body { font-family: 'ArialCert'; font-size: 10.674pt; color: #000; }
+
+    .hoja { position: relative; width: 595.22pt; height: 842pt; }
+
+    /* Encabezado: logo, "EL SUSCRITO..." y "HACE CONSTAR" en posición fija */
+    .logo { position: absolute; left: 20.6pt; top: 70pt; width: 135.6pt; height: 55.6pt; }
+    .linea { position: absolute; left: 0; width: 602.0pt; text-align: center; line-height: 12.3pt; white-space: nowrap; }
+    .l1 { top: 132.52pt; padding-left: 34.4pt; width: 567.6pt; }
+    .l2 { top: 144.82pt; }
+    .l3 { top: 157.12pt; }
+    .constar { top: 181.85pt; font-weight: bold; }
+
+    /* Cuerpo: desde aquí el contenido fluye (un nombre largo puede ocupar más renglones) */
+    .cuerpo { position: absolute; left: 89.7pt; top: 206.27pt; width: 423.1pt; }
+    .parrafo { text-align: justify; line-height: 12.3pt; margin: 0; }
+    /* Primer párrafo (lo arma GenerarCertificado): en el formato oficial los renglones 1 y 2 terminan
+       en un salto de línea de Word y se estiran a todo el ancho agrandando solo los espacios; el
+       espacio exacto entre palabras se calcula con las medidas de la fuente. Si el nombre es tan largo
+       que no cabe en el renglón, el párrafo se justifica de corrido */
+    .renglon { white-space: nowrap; text-align: left; width: 470pt; }
+    .parrafo i { font-style: normal; }
+    /* Word reparte más espacio en los tres primeros espacios del 3.er renglón */
+    .e3 { padding-right: 2.46pt; }
+
+    table.conceptos { width: 393.2pt; border-collapse: collapse; margin: 0; }
+    table.conceptos td { padding: 0 0 0 5.2pt; vertical-align: top; line-height: 18.428pt; }
+    table.conceptos td.concepto { width: 324.8pt; padding-right: 5.2pt; }
+    table.conceptos td.valor { width: 52.9pt; text-align: right; padding-right: 5.3pt; white-space: nowrap; }
+    table.conceptos tr.titulos td { line-height: 12.3pt; padding-bottom: 3.17pt; font-weight: bold; }
+    table.conceptos tr.titulos td.valor { text-align: left; padding-left: 11.83pt; }
+    table.conceptos tr.total td { font-weight: bold; }
+    .cero { padding-right: 5.56pt; }
+
+    /* Primer renglón de la nota: Word lo comprime levemente para que "en el" quepa; como el texto
+       es fijo, se arma igual: letras un poco más juntas y un espacio fijo entre palabras */
+    .nota1 { margin-top: 15.35pt; }
+    .renglon-fijo { letter-spacing: -0.035pt; white-space: nowrap; }
+    .renglon-fijo i { font-style: normal; padding-right: 0.22pt; }
+    .nota2 { margin-top: 12.36pt; }
+
+    .firma { position: relative; margin-top: 12.31pt; line-height: 12.3pt; }
+    .firma-espacio { height: 36.89pt; }
+    .firma-img { position: absolute; left: 27.5pt; top: 5.9pt; width: 80.7pt; height: 47.1pt; }
+    .firma-img img { max-width: 80.7pt; max-height: 47.1pt; }
+
+    /* Vigilada Mineducación (texto vertical en el borde derecho) */
+    .vigilada { position: absolute; left: 562.1pt; top: 614.6pt; width: 12.8pt; height: 77.9pt; }
+
+    /* Pie de página */
+    .codigo { position: absolute; left: 519.78pt; top: 721.0pt; font-family: 'ArialNarrowCert'; font-size: 5.833pt; line-height: 6pt; white-space: pre; }
+    .pie { position: absolute; left: 0; top: 727.5pt; width: 571.6pt; text-align: center;
+           font-family: 'ArialNarrowCert'; font-size: 7.758pt; line-height: 8.93pt; }
+    .pie a { color: #0563C1; text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="hoja">
+
+    <img class="logo" src="{{LOGO_UPB}}" alt="Universidad Pontificia Bolivariana" />
+
+    <div class="linea l1">EL SUSCRITO COORDINADOR DE NÓMINA DE LA</div>
+    <div class="linea l2">UNIVERSIDAD PONTIFICIA BOLIVARIANA</div>
+    <div class="linea l3">SECCIONAL BUCARAMANGA</div>
+    <div class="linea constar">HACE CONSTAR</div>
+
+    <div class="cuerpo">
+        <!-- El formato oficial corta el renglón después del nombre y después de "prestación de"
+             (saltos de línea de Word) y estira esos renglones a todo el ancho -->
+        {{PARRAFO_INICIAL}}
+
+        <table class="conceptos">
+            <tr class="titulos"><td class="concepto">Ingresos</td><td class="valor">Valores</td></tr>
+            <tr><td class="concepto">Pagos por Salarios</td><td class="valor">{{SALARIO}}</td></tr>
+            <tr><td class="concepto">Pagos por Honorarios</td><td class="valor">{{HONORARIOS}}</td></tr>
+            <tr><td class="concepto">Pagos por Servicios</td><td class="valor">{{SERVICIOS}}</td></tr>
+            <tr><td class="concepto">Pagos por Comisiones</td><td class="valor">{{COMISIONES}}</td></tr>
+            <tr><td class="concepto">Pagos por Prestaciones Sociales</td><td class="valor">{{PRESTACIONES}}</td></tr>
+            <tr><td class="concepto">Pagos por Viáticos</td><td class="valor">{{VIATICOS}}</td></tr>
+            <tr><td class="concepto">Pagos Gastos de Representación</td><td class="valor">{{GASTOS_REP}}</td></tr>
+            <tr><td class="concepto">Otros Pagos</td><td class="valor">{{OTROS_INGRESOS}}</td></tr>
+            <tr><td class="concepto">Cesantías e intereses de cesantías efectivamente pagadas al empleado</td><td class="valor">{{CESANTIAS_EMPLEADO}}</td></tr>
+            <tr><td class="concepto">Cesantías consignadas al fondo de cesantías</td><td class="valor">{{CESANTIAS_FONDO}}</td></tr>
+            <tr><td class="concepto">Pensiones por Jubilación</td><td class="valor">{{PENSIONES}}</td></tr>
+            <tr class="total"><td class="concepto">Total Ingresos Brutos</td><td class="valor">{{TOTAL_INGRESOS}}</td></tr>
+            <tr class="total"><td class="concepto">Valor Retención ICA municipio Floridablanca (Stder)</td><td class="valor">{{RET_ICA}}</td></tr>
+        </table>
+
+        <div class="parrafo nota1"><div class="renglon-fijo">Se<i></i> certifica<i></i> que<i></i> los<i></i> montos<i></i> de<i></i> retención<i></i> de<i></i> ICA<i></i> fueron<i></i> consignados<i></i> oportunamente<i></i> en<i></i> el</div>municipio de Floridablanca.</div>
+
+        <p class="parrafo nota2">La presente certificación se expide a solicitud del interesado, a los {{DIA}} días del mes de {{MES}} del año {{ANIO_EXPEDICION}}.</p>
+
+        <div class="firma">
+            <div>Atentamente,</div>
+            <div class="firma-espacio"></div>
+            <div>{{FIRMANTE_NOMBRE}}</div>
+            <div>{{FIRMANTE_CARGO}}</div>
+            <div class="firma-img">{{FIRMA}}</div>
+        </div>
+    </div>
+
+    <img class="vigilada" src="{{VIGILADA}}" alt="Vigilada Mineducación" />
+
+    <div class="codigo">PL  - 505 - 005</div>
+    <div class="pie">
+        SEDE MEDELLÍN Campus de Laureles Circular 1ª Nº 70-01 / Teléfono: (057) (4) 4159015 / Fax (057) (4) 2502080 / Apartado Aéreo 56006 / E-mail: <a href="mailto:comrelp@upb.edu.co">comrelp@upb.edu.co</a><br />
+        SECCIONAL BUCARAMANGA Autopista Piedecuesta Km 7 / Teléfono (057) (7) 6796220 / Fax: (057) (7) 6796221 / E-mail: <a href="mailto:info@upb.edu.co">info@upb.edu.co</a><br />
+        SECCIONAL MONTERÍA Km. 8 Cereté / Teléfono: (057) (4) 7860146 / Fax: (057) (4) 7860912 / E-mail: <a href="mailto:crelinter@upbmonteria.edu.co">crelinter@upbmonteria.edu.co</a><br />
+        SECCIONAL PALMIRA Seminario Cristo Sacerdote, Km. 1 – Vía Tienda Nueva / Teléfono: (057) (2) 2702545 / Fax: (057) (2) 2723121 / E-mail: <a href="mailto:upbpalmira@upb.edu.co">upbpalmira@upb.edu.co</a><br />
+        <a href="http://www.upb.edu.co">www.upb.edu.co</a> / Colombia / Suramérica
+    </div>
+
+</div>
+</body>
+</html>

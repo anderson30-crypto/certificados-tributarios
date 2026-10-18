@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
+<script src="js/avisos.js"></script>
+<title>Sistema de Certificados Tributarios - Inicio (Jefe de Nómina)</title>
+<link rel="stylesheet" href="css/roles.css">
+<script src="js/roles.js"></script>
+</head>
+<body>
+<script>
+  if (CT.guard('jefe')) CT.shell({ active:'inicio', title:'Jefe de Nómina' });
+</script>
+
+<main class="main">
+  <div class="welcome">
+    <h1>Bienvenido al Sistema de Certificados Tributarios</h1>
+    <p>¿Qué deseas hacer hoy?</p>
+  </div>
+
+  <div class="action-grid">
+    <a class="action-card" href="jefe-historial.html">
+      <span class="card-icon" id="icHist"></span>
+      Historial de Nómina
+      <small>Revisa lo que han hecho los usuarios de Nómina</small>
+    </a>
+    <a class="action-card" href="jefe-firmar.html">
+      <span class="count-badge" id="pendBadge" style="display:none">0</span>
+      <span class="card-icon" id="icFirma"></span>
+      Firmar certificados
+      <small>Firma los certificados para que Nómina pueda enviarlos</small>
+    </a>
+  </div>
+
+  <div class="status-line" id="statusLine"></div>
+</main>
+
+<script>
+  document.getElementById('icHist').innerHTML  = CT.svg(CT.ICON.clock);
+  document.getElementById('icFirma').innerHTML = CT.svg(CT.ICON.pen);
+
+  // Pendientes de firma (WebServer -> /api/firma/pendientes)
+  fetch('/api/firma/pendientes').then(function(r){ return r.json(); }).then(function(d){
+    var badge = document.getElementById('pendBadge');
+    if (d.pendientes.length > 0){ badge.textContent = d.pendientes.length; badge.style.display = 'flex'; }
+    document.getElementById('statusLine').innerHTML =
+      'Pendientes de firma: <span class="badge ' + (d.pendientes.length ? 'warn' : 'ok') + '">' + d.pendientes.length + '</span>' +
+      ' · Tu firma: ' + (d.tieneFirma ? '<span class="badge ok">Registrada</span>'
+                                      : '<a href="firma-digital.html"><span class="badge err">Sin registrar</span></a>');
+  });
+</script>
+</body>
+</html>

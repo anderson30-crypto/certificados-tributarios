@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="images/upb-escudo-hd.png">
+<script src="js/avisos.js"></script>
+<title>Sistema de Certificados Tributarios - Perfil</title>
+<link rel="stylesheet" href="css/roles.css">
+<script src="js/roles.js"></script>
+</head>
+<body>
+<script>
+  if (CT.guard(['jefe','admin'])) CT.shell({ active:'perfil', title:'Perfil' });
+</script>
+
+<main class="main">
+  <div class="breadcrumb">Inicio &nbsp;›&nbsp; Perfil</div>
+  <div class="profile-wrap">
+    <div class="avatar-block">
+      <div class="avatar-circle" id="avatar"></div>
+      <div class="avatar-name" id="uName"></div>
+      <div class="avatar-role" id="uRole"></div>
+    </div>
+
+    <form id="form">
+      <div class="field"><label for="nombre">Nombre</label><input type="text" id="nombre" required></div>
+      <div class="field"><label for="correo">Correo Electrónico</label><input type="email" id="correo" required></div>
+      <div class="field"><label for="telefono">Teléfono</label><input type="tel" id="telefono"></div>
+
+      <div class="field"><label>Funciones de su rol</label><div class="chips" id="perms"></div>
+        <div class="hint">El rol lo asigna el administrador del sistema.</div></div>
+
+      <a class="nav-row" href="cambiar-contrasena.html">Cambiar Contraseña <span>›</span></a>
+      <a class="nav-row" href="firma-digital.html" id="lnkFirma" style="display:none">Firma Digital <span>›</span></a>
+
+      <div class="actions-row">
+        <button type="submit" class="btn">Guardar Cambios</button>
+        <button type="button" class="btn btn-secondary" id="btnCancel">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<script>
+  var $ = function(id){ return document.getElementById(id); };
+  var u = CT.currentUser();
+  $('avatar').innerHTML = CT.svg(CT.ICON.user);
+
+  if (CT.esFirmante(u.rol)) $('lnkFirma').style.display = '';
+
+  function fillForm(){
+    $('uName').textContent = u.nombre; $('uRole').textContent = u.rolNombre;
+    $('nombre').value = u.nombre; $('correo').value = u.correo; $('telefono').value = u.telefono || '';
+    $('perms').innerHTML = u.funciones.map(function(f){ return '<span class="chip">' + CT.esc(f) + '</span>'; }).join('');
+  }
+  fillForm();
+
+  $('form').addEventListener('submit', function(e){
+    e.preventDefault();
+    var cuerpo = { nombre: $('nombre').value.trim(), correo: $('correo').value.trim(), telefono: $('telefono').value.trim() };
+    fetch('/api/perfil', { method:'PUT', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(cuerpo) })
+      .then(function(r){ return r.json().then(function(j){ if (!r.ok) throw new Error(j.error || 'No se pudo guardar'); }); })
+      .then(function(){
+        u.nombre = cuerpo.nombre; u.correo = cuerpo.correo; u.telefono = cuerpo.telefono;
+        fillForm();
+        document.querySelector('.user-chip').lastChild.textContent = ' ' + u.nombre;
+        CT.toast('Cambios guardados correctamente');
+      })
+      .catch(function(err){ CT.toast(err.message, 'error', 'No se guardaron los cambios'); });
+  });
+  $('btnCancel').addEventListener('click', fillForm);
+</script>
+</body>
+</html>
