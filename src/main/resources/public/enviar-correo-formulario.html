@@ -186,7 +186,8 @@
   .listos-titulo{ font-size: 12px; font-weight: 700; margin-bottom: 8px; }
   .listos-titulo span{ color: var(--text-muted); font-weight: 400; }
   .listos-lista{ max-height: 180px; overflow: auto; font-size: 12.5px; }
-  .listos-lista label{ display: flex; gap: 8px; align-items: center; padding: 3px 0; cursor: pointer; }
+  .listos-lista label{ display: block; padding: 3px 0 3px 24px; text-indent: -24px; cursor: pointer; line-height: 1.5; }
+  .listos-lista input{ width: 14px; margin: 0 10px 0 0; vertical-align: -2px; }
   .listos-lista .doc{ color: var(--text-muted); }
   .listos-vacio{ color: var(--text-muted); font-size: 12.5px; }
   .field-row{
@@ -429,7 +430,8 @@ Universidad Pontificia Bolivariana</textarea>
       lista.innerHTML = listos.map(function(c){
         const marcado = !elegidos.length || elegidos.indexOf(c.idCertificado) > -1;
         return '<label><input type="checkbox" class="chk-listo" value="' + c.idCertificado + '"' + (marcado ? ' checked' : '') + '> ' +
-          esc(c.contratista) + ' <span class="doc">· ' + esc(c.documento) + ' · firmado por ' + esc(c.firmadoPor || '') + '</span></label>';
+          esc(c.contratista) + ' <span class="doc">· ' + esc(c.documento) + ' · ' +
+          (c.correo ? esc(c.correo) : '<b style="color:#C40510">sin correo en la sábana</b>') + ' · firmado por ' + esc(c.firmadoPor || '') + '</span></label>';
       }).join('');
       document.querySelectorAll('.chk-listo').forEach(function(c){ c.addEventListener('change', actualizar); });
     }

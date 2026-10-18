@@ -48,8 +48,8 @@ public final class Roles {
 
     // Pantallas de Nómina (las demás .html sin prefijo de rol también se consideran de Nómina)
     private static final Set<String> PAGINAS_NOMINA = Set.of(
-        "/inicio.html", "/subir-documentos.html", "/generar-certificado.html", "/certificado-generado.html",
-        "/ver-certificado.html", "/enviar-correo.html", "/enviar-correo-formulario.html", "/borrador.html",
+        "/inicio.html", "/subir-documentos.html", "/generar-certificado.html",
+        "/enviar-correo.html", "/enviar-correo-formulario.html", "/borrador.html",
         "/historial.html", "/solicitudes.html", "/certificados-devueltos.html", "/notificaciones-error.html",
         "/perfil.html", "/dashboard.html"
     );

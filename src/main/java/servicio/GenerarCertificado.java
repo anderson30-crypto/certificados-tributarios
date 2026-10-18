@@ -265,6 +265,18 @@ public class GenerarCertificado {
     // Deja constancia del PDF en la tabla certificados (la necesita envio_certificado para el historial)
     private static int registrarCertificado(Connection conn, Datos datos, String rutaPdf, int idUsuario,
                                             Integer idAnterior) throws Exception {
+        // Un contrato tiene un solo certificado vigente sin enviar: si ya había uno generado, corregido o
+        // firmado (sin enviar), queda como Reemplazado y el nuevo toma su lugar (hay que firmarlo de nuevo)
+        try (PreparedStatement ps = conn.prepareStatement(
+                "UPDATE certificados SET id_estado = ? WHERE id_contrato = ? AND id_estado IN (?, ?, ?)")) {
+            ps.setInt(1, Seguridad.EsquemaBD.ESTADO_REEMPLAZADO);
+            ps.setInt(2, datos.idContrato());
+            ps.setInt(3, ESTADO_GENERADO);
+            ps.setInt(4, ESTADO_CORREGIDO);
+            ps.setInt(5, Seguridad.EsquemaBD.ESTADO_FIRMADO);
+            ps.executeUpdate();
+        }
+
         String sql = "INSERT INTO certificados " +
             "(id_contrato, id_usuario, id_estado, d_fecha_generacion, t_ruta_pdf, t_formato_certificado, t_huella_datos, " +
             " b_certificado_corregido, id_certificado_anterior, d_fecha_correccion) " +

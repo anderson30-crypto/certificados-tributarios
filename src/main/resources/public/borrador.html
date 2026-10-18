@@ -427,12 +427,14 @@
       if(!resp.ok){
         throw new Error(json.error);
       }
-      let resumen = json.modoPrueba ? '(MODO PRUEBA: todo se envió al correo de redirigir_a)\n\n' : '';
-      json.resultados.forEach(function(r){
-        resumen += (r.exito ? 'OK    ' : 'ERROR ') + (r.contratista || ('certificado ' + r.idCertificado)) +
-                   (r.exito ? ' -> ' + r.destino : ': ' + r.error) + '\n';
-      });
-      const fallidos = json.resultados.filter(function(r){ return !r.exito; }).length;
+      const exitosos = json.resultados.filter(function(r){ return r.exito; });
+      const conError = json.resultados.filter(function(r){ return !r.exito; });
+      let resumen = exitosos.length + ' de ' + json.resultados.length + ' certificado(s) enviado(s) por correo.';
+      if (conError.length) {
+        resumen += '\n\nNo se pudieron enviar:\n' + conError.map(function(r){
+          return '- ' + (r.contratista || ('Certificado ' + r.idCertificado)) + ': ' + r.error;
+        }).join('\n') + '\n\nQuedan en la lista de firmados para volver a enviarlos.';
+      }
       Avisos.alSiguiente(resumen.trim(), fallidos ? (fallidos === json.resultados.length ? 'error' : 'aviso') : 'exito',
         fallidos ? 'Envío con ' + fallidos + ' error(es)' : 'Correos enviados');
       sessionStorage.removeItem('correoBorrador');

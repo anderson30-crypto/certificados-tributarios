@@ -324,7 +324,7 @@
     <div class="breadcrumb">Inicio &nbsp;›&nbsp; Historial</div>
 
     <h2 class="section-title">Historial de Certificados</h2>
-    <p class="section-subtitle">Certificados generados anteriormente</p>
+    <p class="section-subtitle">Certificados generados y su estado actual · haga clic en uno para abrir el PDF</p>
 
     <div class="content-wrap">
       <div class="search-row">
@@ -337,53 +337,43 @@
   </main>
 
 <script>
-  const historialBase = [
-    { nombre: 'Certificado 1.1 ', folio: 'CT-548213', fecha: '05 sep. 2026' },
-    { nombre: 'Certificado Tributario', folio: 'CT-547990', fecha: '02 sep. 2026' },
-    { nombre: 'Certificado ', folio: 'CT-546712', fecha: '28 ago. 2026' },
-    
-  ];
-
-  // Se agregan al historial los certificados generados en esta sesión
-  const nombresGenerados = JSON.parse(sessionStorage.getItem('certDocNames') || 'null');
-  if(nombresGenerados && nombresGenerados.length){
-    const fecha = sessionStorage.getItem('certFecha') || new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
-    nombresGenerados.forEach(function(nombre, i){
-      historialBase.unshift({
-        nombre: nombre,
-        folio: sessionStorage.getItem('certFolio') || ('CT-' + (100000 + i)),
-        fecha: fecha
-      });
-    });
-  }
-
+  // Certificados generados (WebServer -> /api/certificados/historial); al hacer clic se abre el PDF
   const historialList = document.getElementById('historialList');
   const searchInput = document.getElementById('searchInput');
+  const COLOR = { Enviado: ['#E6F4EA', '#1E7B3A'], Firmado: ['#EAF1FD', '#1F4FA8'], Devuelto: ['#FDECEC', '#C40510'],
+                  Generado: ['#FBF3DC', '#7A5C00'], Corregido: ['#FBF3DC', '#7A5C00'] };
+  const ETIQUETA = { Generado: 'Pendiente de firma', Corregido: 'Corregido · pendiente de firma', Firmado: 'Firmado, sin enviar' };
+  let historial = [];
+
+  function esc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
 
   function renderHistorial(filter){
     const q = (filter || '').toLowerCase();
-    const filtrados = historialBase.filter(function(h){
-      return h.nombre.toLowerCase().includes(q) || h.folio.toLowerCase().includes(q);
+    const filtrados = historial.filter(function(h){
+      return (h.contratista + ' ' + h.documento + ' ' + h.estado).toLowerCase().includes(q);
     });
 
     if(filtrados.length === 0){
-      historialList.innerHTML = '<div class="empty-hist">No se encontraron certificados en el historial.</div>';
+      historialList.innerHTML = '<div class="empty-hist">' + (historial.length ? 'No se encontraron certificados con esa búsqueda.'
+        : 'Todavía no se han generado certificados.') + '</div>';
       return;
     }
 
     historialList.innerHTML = '';
     filtrados.forEach(function(h){
       const item = document.createElement('div');
+      const c = COLOR[h.estado] || ['#F0F1F3', '#3A3F47'];
       item.className = 'historial-item';
       item.innerHTML =
         '<span class="icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span>' +
         '<div class="info">' +
-          '<div class="nombre">' + h.nombre + '</div>' +
-          '<div class="detalle">Folio ' + h.folio + ' &middot; Generado el ' + h.fecha + '</div>' +
+          '<div class="nombre">' + esc(h.contratista) + '</div>' +
+          '<div class="detalle">Documento ' + esc(h.documento) + ' &middot; Año gravable ' + h.anioGravable + ' &middot; Generado el ' + esc(h.fecha) + '</div>' +
         '</div>' +
-        '<span class="estado">Generado</span>';
+        '<span class="estado" style="background:' + c[0] + ';color:' + c[1] + '">' + esc(ETIQUETA[h.estado] || h.estado) + '</span>';
+      item.title = 'Abrir el PDF' + (h.estado === 'Firmado' || h.estado === 'Enviado' ? ' (protegido con la cédula del contratista)' : '');
       item.addEventListener('click', function(){
-        window.location.href = 'ver-certificado.html';
+        if (h.archivo) window.open('/api/certificados/pdf/' + encodeURIComponent(h.archivo), '_blank');
       });
       historialList.appendChild(item);
     });
@@ -393,7 +383,11 @@
     renderHistorial(searchInput.value);
   });
 
-  renderHistorial('');
+  historialList.innerHTML = '<div class="empty-hist">Cargando...</div>';
+  fetch('/api/certificados/historial').then(function(r){ return r.json(); }).then(function(lista){
+    historial = lista;
+    renderHistorial('');
+  });
 </script>
 
 <script src="js/sesion.js"></script>

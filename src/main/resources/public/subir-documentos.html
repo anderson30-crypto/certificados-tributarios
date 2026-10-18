@@ -526,8 +526,9 @@
           (json.errores || []).forEach(function(e){ resumen += '   - ' + e + '\n'; });
           continue;
         }
-        resumen += file.nombre + ': ' + json.insertados + ' nuevos, ' + json.actualizados + ' actualizados, ' +
-                   json.errores.length + ' con error\n';
+        resumen += file.nombre + ': ' + json.insertados + ' nuevo(s) y ' + json.actualizados +
+                   ' actualizado(s) (ya existían en el sistema)' + (json.errores.length ? ', ' + json.errores.length + ' fila(s) con error' : '') + '\n';
+        (json.advertencias || []).forEach(function(a){ resumen += '   Aviso: ' + a + '\n'; });
         filasConError += json.errores.length;
         json.errores.forEach(function(e){ resumen += '   - ' + e + '\n'; });
       }

@@ -108,6 +108,78 @@ public final class Dashboard {
         }
     }
 
+    /** Historial de Nómina: certificados generados (los más recientes primero), sin los reemplazados. */
+    public static List<Map<String, Object>> historial(int limite) throws SQLException {
+        String sql = "SELECT ce.id_certificado, ce.d_fecha_generacion, ce.t_ruta_pdf, ce.b_certificado_corregido, es.t_nombre_estado, " +
+            "ct.t_nombres, ct.t_primer_apellido, ct.t_segundo_apellido, ct.n_numero_documento, co.n_anio " +
+            "FROM certificados ce JOIN estados es ON es.id_estado = ce.id_estado " +
+            "JOIN contratos co ON co.id_contrato = ce.id_contrato JOIN contratistas ct ON ct.id_contratista = co.id_contratista " +
+            "WHERE ce.id_estado <> 8 ORDER BY ce.id_certificado DESC LIMIT ?";
+        List<Map<String, Object>> lista = new ArrayList<>();
+        try (Connection conn = ConexionBD.obtenerConexion(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, limite);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> c = new LinkedHashMap<>();
+                    String segundo = rs.getString("t_segundo_apellido");
+                    String ruta = rs.getString("t_ruta_pdf");
+                    c.put("idCertificado", rs.getInt("id_certificado"));
+                    c.put("contratista", rs.getString("t_nombres") + " " + rs.getString("t_primer_apellido") + (segundo == null ? "" : " " + segundo));
+                    c.put("documento", GenerarCertificado.formatearDocumento(rs.getString("n_numero_documento")));
+                    c.put("anioGravable", rs.getInt("n_anio"));
+                    c.put("fecha", String.valueOf(rs.getDate("d_fecha_generacion")));
+                    c.put("estado", rs.getString("t_nombre_estado"));
+                    c.put("corregido", rs.getBoolean("b_certificado_corregido"));
+                    c.put("archivo", ruta == null ? null : java.nio.file.Paths.get(ruta).getFileName().toString());
+                    lista.add(c);
+                }
+            }
+        }
+        return lista;
+    }
+
+    /**
+     * Notificaciones de error: envíos de correo que fallaron (con el motivo y si después se envió bien)
+     * y sábanas rechazadas por documentos repetidos.
+     */
+    public static List<Map<String, Object>> notificaciones() throws SQLException {
+        List<Map<String, Object>> lista = new ArrayList<>();
+        try (Connection conn = ConexionBD.obtenerConexion()) {
+            String sqlEnvios = "SELECT e.id_envio, e.d_fecha_envio, e.t_correo_destino, e.t_mensaje_error, ce.id_estado, " +
+                "ct.t_nombres, ct.t_primer_apellido, ct.n_numero_documento FROM envio_certificado e " +
+                "JOIN certificados ce ON ce.id_certificado = e.id_certificado JOIN contratos co ON co.id_contrato = ce.id_contrato " +
+                "JOIN contratistas ct ON ct.id_contratista = co.id_contratista " +
+                "WHERE e.b_envio_correo = 0 ORDER BY e.id_envio DESC LIMIT 200";
+            try (PreparedStatement ps = conn.prepareStatement(sqlEnvios); ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> n = new LinkedHashMap<>();
+                    n.put("tipo", "envio");
+                    n.put("fecha", String.valueOf(rs.getDate("d_fecha_envio")));
+                    n.put("titulo", "No se pudo enviar el certificado de " + rs.getString("t_nombres") + " " + rs.getString("t_primer_apellido"));
+                    n.put("detalle", "Documento " + GenerarCertificado.formatearDocumento(rs.getString("n_numero_documento")) +
+                        " · " + rs.getString("t_correo_destino") + " · " + rs.getString("t_mensaje_error"));
+                    n.put("resuelto", rs.getInt("id_estado") == Firmas.ESTADO_ENVIADO);
+                    lista.add(n);
+                }
+            }
+            String sqlSabanas = "SELECT d_fecha_registro, t_datos_nuevos FROM auditorias WHERE t_accion = 'Sábana rechazada' " +
+                "ORDER BY id_log DESC LIMIT 50";
+            try (PreparedStatement ps = conn.prepareStatement(sqlSabanas); ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> n = new LinkedHashMap<>();
+                    n.put("tipo", "sabana");
+                    n.put("fecha", String.valueOf(rs.getTimestamp("d_fecha_registro").toLocalDateTime().toLocalDate()));
+                    n.put("titulo", "Sábana rechazada por documentos repetidos");
+                    n.put("detalle", rs.getString("t_datos_nuevos"));
+                    n.put("resuelto", false);
+                    lista.add(n);
+                }
+            }
+        }
+        lista.sort((x, y) -> String.valueOf(y.get("fecha")).compareTo(String.valueOf(x.get("fecha"))));
+        return lista;
+    }
+
     private static void sumarPorMes(Connection conn, int[][] meses, int columna, String sql, int anio) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, anio);

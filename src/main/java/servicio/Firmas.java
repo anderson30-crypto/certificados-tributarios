@@ -138,6 +138,7 @@ public final class Firmas {
     private static final String SELECT_CERTIFICADO =
         "SELECT ce.id_certificado, ce.id_estado, ce.t_ruta_pdf, ce.d_fecha_generacion, ce.b_certificado_corregido, " +
         "ce.d_fecha_firma, ct.t_nombres, ct.t_primer_apellido, ct.t_segundo_apellido, ct.n_numero_documento, " +
+        "ct.t_correo_contratista, " +
         "ug.t_nombre_usuario AS generado_por, uf.t_nombre_usuario AS firmado_por " +
         "FROM certificados ce JOIN contratos co ON co.id_contrato = ce.id_contrato " +
         "JOIN contratistas ct ON ct.id_contratista = co.id_contratista " +
@@ -174,6 +175,7 @@ public final class Firmas {
                     c.put("contratista", rs.getString("t_nombres") + " " + rs.getString("t_primer_apellido") +
                         (segundo == null ? "" : " " + segundo));
                     c.put("documento", GenerarCertificado.formatearDocumento(rs.getString("n_numero_documento")));
+                    c.put("correo", rs.getString("t_correo_contratista"));
                     c.put("archivo", rs.getString("t_ruta_pdf") == null ? null : Paths.get(rs.getString("t_ruta_pdf")).getFileName().toString());
                     c.put("fechaGeneracion", String.valueOf(rs.getDate("d_fecha_generacion")));
                     c.put("corregido", rs.getBoolean("b_certificado_corregido"));

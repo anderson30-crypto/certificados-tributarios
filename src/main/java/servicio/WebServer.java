@@ -317,8 +317,8 @@ public class WebServer {
                 if (Boolean.TRUE.equals(resultado.get("rechazada"))) {
                     // Datos duplicados: no se guardó nada; la página muestra cada repetición
                     RegistroAuditoria.registrar(usuarioActual(ctx).idUsuario(), "Certificados", "Sábana rechazada",
-                        ruta.getFileName() + " · " + errores.size() + " dato(s) duplicado(s)");
-                    ctx.status(422).json(Map.of("error", "La sábana tiene datos duplicados y no se cargó. Corrija el archivo y súbalo de nuevo.",
+                        ruta.getFileName() + " · " + errores.size() + " documento(s) repetido(s)");
+                    ctx.status(422).json(Map.of("error", "La sábana tiene documentos repetidos y no se cargó. Corrija el archivo y súbalo de nuevo.",
                         "errores", errores));
                     return;
                 }
@@ -502,6 +502,9 @@ public class WebServer {
 
         app.get("/api/certificados/listos", ctx -> ctx.json(Firmas.listosParaEnviar()));
 
+        app.get("/api/certificados/historial", ctx -> ctx.json(Dashboard.historial(500)));
+        app.get("/api/notificaciones", ctx -> ctx.json(Dashboard.notificaciones()));
+
         app.get("/api/dashboard", ctx -> {
             String anio = ctx.queryParam("anio");
             ctx.json(Dashboard.resumen(anio == null || anio.isBlank() ? null : Integer.valueOf(anio)));
@@ -594,8 +597,7 @@ public class WebServer {
 
             long enviados = resultados.stream().filter(r -> Boolean.TRUE.equals(r.get("exito"))).count();
             RegistroAuditoria.registrar(usuarioActual(ctx).idUsuario(), "Certificados", "Envío de certificados",
-                enviados + " enviado(s), " + (resultados.size() - enviados) + " con error" +
-                (correo.modoPrueba() ? " (modo prueba)" : ""));
+                enviados + " enviado(s), " + (resultados.size() - enviados) + " con error");
             ctx.json(Map.of("modoPrueba", correo.modoPrueba(), "resultados", resultados));
         });
 

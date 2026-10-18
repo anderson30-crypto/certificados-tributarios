@@ -38,48 +38,39 @@ public class CargueMasivo {
 
     /**
      * Carga una sábana (xlsx) en dos pasadas:
-     *  1. Validación: si el mismo documento aparece dos veces, o el mismo correo es de dos
-     *     contratistas distintos (en el archivo o contra lo que ya está en la base de datos),
-     *     la sábana se rechaza completa y no se guarda nada ("rechazada" = true + la lista de errores).
-     *  2. Cargue: guarda contratistas y contratos. Si el contratista ya existe (mismo documento)
-     *     se actualiza en vez de duplicarse, así la misma sábana se puede volver a subir.
+     *  1. Validación: si el MISMO documento aparece dos veces dentro del archivo, la sábana se
+     *     rechaza completa y no se guarda nada ("rechazada" = true + la lista de filas repetidas).
+     *     Un documento que ya existe en el sistema NO es un error: se actualiza.
+     *     Un correo repetido entre contratistas distintos se informa como advertencia, sin bloquear.
+     *  2. Cargue: guarda contratistas y contratos (inserta los nuevos, actualiza los que ya existían).
      */
     public static Map<String, Object> cargar(Path archivo) throws Exception {
-        List<String> duplicados;
+        List<String> repetidos = new ArrayList<>();
+        List<String> advertencias = new ArrayList<>();
         try (InputStream excel = Files.newInputStream(archivo)) {
-            duplicados = buscarDuplicados(excel);
+            revisarRepetidos(excel, repetidos, advertencias);
         }
-        if (!duplicados.isEmpty()) {
+        if (!repetidos.isEmpty()) {
             Map<String, Object> resultado = new LinkedHashMap<>();
             resultado.put("rechazada", true);
             resultado.put("insertados", 0);
             resultado.put("actualizados", 0);
-            resultado.put("errores", duplicados);
+            resultado.put("errores", repetidos);
+            resultado.put("advertencias", advertencias);
             return resultado;
         }
         try (InputStream excel = Files.newInputStream(archivo)) {
             Map<String, Object> resultado = guardar(excel);
             resultado.put("rechazada", false);
+            resultado.put("advertencias", advertencias);
             return resultado;
         }
     }
 
-    /** Pasada 1: documentos y correos repetidos. Devuelve un error por cada repetición (vacía = sin duplicados). */
-    static List<String> buscarDuplicados(InputStream excel) throws Exception {
-        List<String> errores = new ArrayList<>();
+    /** Pasada 1: documentos repetidos dentro del archivo (error) y correos compartidos (advertencia). */
+    static void revisarRepetidos(InputStream excel, List<String> repetidos, List<String> advertencias) throws Exception {
         Map<String, Integer> filaPorDocumento = new HashMap<>();
         Map<String, String[]> duenoCorreo = new HashMap<>();   // correo -> {documento, fila}
-
-        // Correos que ya están en la base de datos, con el documento de su dueño
-        Map<String, String> correosBD = new HashMap<>();
-        try (Connection conn = ConexionBD.obtenerConexion();
-             PreparedStatement ps = conn.prepareStatement(
-                 "SELECT t_correo_contratista, n_numero_documento FROM contratistas WHERE t_correo_contratista IS NOT NULL");
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                correosBD.put(normalizarCorreo(rs.getString(1)), normalizarDocumento(rs.getString(2)));
-            }
-        }
 
         try (Workbook workbook = StreamingReader.builder().rowCacheSize(100).bufferSize(4096).open(excel)) {
             for (Row fila : workbook.getSheetAt(0)) {
@@ -91,26 +82,18 @@ public class CargueMasivo {
 
                 Integer filaAnterior = filaPorDocumento.putIfAbsent(documento, numeroFila);
                 if (filaAnterior != null) {
-                    errores.add("Fila " + numeroFila + ": el documento " + documento + " está repetido (ya aparece en la fila " + filaAnterior + ")");
+                    repetidos.add("Fila " + numeroFila + ": el documento " + documento + " está repetido (ya aparece en la fila " + filaAnterior + ")");
                 }
 
                 if (!correo.isEmpty()) {
-                    String[] dueno = duenoCorreo.get(correo);
-                    if (dueno == null) {
-                        duenoCorreo.put(correo, new String[] { documento, String.valueOf(numeroFila) });
-                    } else if (!dueno[0].equals(documento)) {
-                        errores.add("Fila " + numeroFila + ": el correo " + correo + " ya es del documento " + dueno[0] +
+                    String[] dueno = duenoCorreo.putIfAbsent(correo, new String[] { documento, String.valueOf(numeroFila) });
+                    if (dueno != null && !dueno[0].equals(documento)) {
+                        advertencias.add("Fila " + numeroFila + ": el correo " + correo + " también es del documento " + dueno[0] +
                             " (fila " + dueno[1] + ")");
-                    }
-                    String duenoBD = correosBD.get(correo);
-                    if (duenoBD != null && !duenoBD.equals(documento)) {
-                        errores.add("Fila " + numeroFila + ": el correo " + correo + " ya está registrado para el documento " +
-                            duenoBD + " en el sistema");
                     }
                 }
             }
         }
-        return errores;
     }
 
     private static String normalizarDocumento(String documento) {

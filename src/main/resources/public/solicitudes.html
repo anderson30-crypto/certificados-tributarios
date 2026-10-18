@@ -422,11 +422,8 @@
   </main>
 
 <script>
-  // Solicitudes de ejemplo (completadas / en proceso)
-  const solicitudesBase = [
-    { cliente: 'Carlos Ramírez', tipo: 'Certificado de Retención en la Fuente', fecha: '05 sep. 2026', estado: 'completadas' },
-    { cliente: 'Ana Torres', tipo: 'Certificado de IVA', fecha: '06 sep. 2026', estado: 'proceso' }
-  ];
+  // Solicitudes registradas en el sistema
+  const solicitudesBase = [];
 
   // Todo certificado devuelto por un cliente aparece aquí como "Pendiente" hasta que se vuelve
   // a generar; entonces pasa a "Completada" (datos reales: WebServer -> /api/devoluciones)

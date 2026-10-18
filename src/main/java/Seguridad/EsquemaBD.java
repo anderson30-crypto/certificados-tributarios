@@ -18,6 +18,8 @@ public final class EsquemaBD {
     public static final int ESTADO_DEVUELTO = 6;
     /** Tabla estados: 7 = Firmado (por el Jefe de Nómina o Gestión Humana; ya se puede enviar) */
     public static final int ESTADO_FIRMADO = 7;
+    /** Tabla estados: 8 = Reemplazado (se generó uno más nuevo del mismo contrato antes de enviarlo) */
+    public static final int ESTADO_REEMPLAZADO = 8;
 
     private EsquemaBD() { }
 
@@ -67,6 +69,16 @@ public final class EsquemaBD {
 
             // 6) Firma: estado Firmado, quién firmó y cuándo, y la imagen PNG de cada firmante
             asegurarEstado(conn, ESTADO_FIRMADO, "Firmado", "Certificado firmado, listo para enviar");
+            asegurarEstado(conn, ESTADO_REEMPLAZADO, "Reemplazado", "Se generó uno más nuevo del mismo contrato antes de enviarlo");
+            // Si un contrato quedó con varios certificados sin enviar, solo el más reciente sigue vigente
+            int viejos;
+            try (Statement st = conn.createStatement()) {
+                viejos = st.executeUpdate(
+                    "UPDATE certificados c JOIN (SELECT id_contrato, MAX(id_certificado) AS ultimo FROM certificados " +
+                    "WHERE id_estado IN (2, 4, 7) GROUP BY id_contrato) x ON x.id_contrato = c.id_contrato " +
+                    "SET c.id_estado = " + ESTADO_REEMPLAZADO + " WHERE c.id_estado IN (2, 4, 7) AND c.id_certificado < x.ultimo");
+            }
+            if (viejos > 0) System.out.println("Base de datos: " + viejos + " certificado(s) repetido(s) sin enviar quedaron como Reemplazado");
             if (!existeColumna(conn, "certificados", "id_usuario_firma")) {
                 ejecutar(conn, "ALTER TABLE certificados ADD COLUMN id_usuario_firma INT NULL, ADD COLUMN d_fecha_firma DATETIME NULL");
                 System.out.println("Base de datos: columnas de firma en certificados creadas");

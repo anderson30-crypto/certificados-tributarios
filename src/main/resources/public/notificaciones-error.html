@@ -237,6 +237,14 @@
     .notif-rail{ flex-direction: row; overflow-x: auto; flex: none; }
     .topbar .brand, .topbar-actions{ flex: 0 0 auto; }
   }
+  .notif-lista{ display:flex; flex-direction:column; gap:10px; width:100%; }
+  .notif{ border:1px solid #E1E3E8; border-left:4px solid #C40510; border-radius:8px; padding:12px 14px; background:#fff; }
+  .notif.resuelta{ border-left-color:#1E7B3A; }
+  .notif .t{ font-size:13px; font-weight:700; color:#23262B; display:flex; justify-content:space-between; gap:10px; }
+  .notif .f{ font-size:11.5px; color:#6B7078; font-weight:400; white-space:nowrap; }
+  .notif .d{ font-size:12px; color:#3A3F47; margin-top:4px; word-break:break-word; }
+  .notif .e{ display:inline-block; margin-top:6px; font-size:11px; font-weight:600; padding:2px 8px; border-radius:10px; background:#FDECEC; color:#C40510; }
+  .notif.resuelta .e{ background:#E6F4EA; color:#1E7B3A; }
 </style>
 </head>
 <body>
@@ -278,14 +286,11 @@
 
     <div class="notif-layout">
       <div class="notif-rail">
-        <a class="notif-rail-item active"><span><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span> Todas</a>
-        <a class="notif-rail-item" data-page="vistas"><span><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span> Vistas</a>
-        <a class="notif-rail-item" data-page="enviadas"><span><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg></span> Enviadas</a>
-        <a class="notif-rail-item" data-page="pendientes"><span><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12"/><path d="M6 22h12"/><path d="M6 2c0 5 5 5 5 10s-5 5-5 10"/><path d="M18 2c0 5-5 5-5 10s5 5 5 10"/></svg></span> Pendientes</a>
-        <a class="notif-rail-item" data-page="papelera"><span><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></span> Papelera</a>
+        <a class="notif-rail-item active" data-filtro="todas"><span><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span> Todas</a>
+        <a class="notif-rail-item" data-filtro="pendientes"><span><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span> Sin resolver</a>
+        <a class="notif-rail-item" data-filtro="resueltas"><span><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span> Resueltas</a>
       </div>
-
-      <div class="notif-main">
+      <div class="notif-main" id="notifMain">
         <div class="empty-state">
           <div class="icon"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M18.63 13A17.89 17.89 0 0 1 18 8"/><path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"/><path d="M18 8a6 6 0 0 0-9.33-5"/><line x1="1" y1="1" x2="23" y2="23"/></svg></div>
           <h3>No hay notificaciones</h3>
@@ -296,21 +301,36 @@
   </main>
 
 <script>
-  document.querySelectorAll('.notif-rail-item[data-page]').forEach(function(item){
-    item.addEventListener('click', function(e){
+  // Errores reales (WebServer -> /api/notificaciones): envíos fallidos y sábanas rechazadas
+  const main = document.getElementById('notifMain');
+  const vacio = main.innerHTML;
+  let notificaciones = [], filtro = 'todas';
+  function esc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+
+  function render(){
+    const lista = notificaciones.filter(function(n){
+      return filtro === 'todas' || (filtro === 'resueltas' ? n.resuelto : !n.resuelto);
+    });
+    if (!lista.length){ main.innerHTML = vacio; return; }
+    main.innerHTML = '<div class="notif-lista">' + lista.map(function(n){
+      const estado = n.tipo === 'envio'
+        ? (n.resuelto ? 'Resuelto: se envió después' : 'Sin resolver: está en la lista de firmados para reenviar')
+        : 'Corrija el archivo y vuelva a subirlo';
+      return '<div class="notif' + (n.resuelto ? ' resuelta' : '') + '"><div class="t">' + esc(n.titulo) +
+        '<span class="f">' + esc(n.fecha) + '</span></div><div class="d">' + esc(n.detalle) + '</div><span class="e">' + estado + '</span></div>';
+    }).join('') + '</div>';
+  }
+
+  document.querySelectorAll('.notif-rail-item').forEach(function(a){
+    a.addEventListener('click', function(e){
       e.preventDefault();
-      console.log('Sección aún no implementada:', item.dataset.page);
+      document.querySelectorAll('.notif-rail-item').forEach(function(x){ x.classList.remove('active'); });
+      a.classList.add('active'); filtro = a.dataset.filtro; render();
     });
   });
 
-  document.querySelectorAll('.nav-item[data-page]').forEach(function(item){
-    item.addEventListener('click', function(e){
-      e.preventDefault();
-      console.log('Sección aún no implementada:', item.dataset.page);
-    });
-  });
+  fetch('/api/notificaciones').then(function(r){ return r.json(); }).then(function(lista){ notificaciones = lista; render(); });
 </script>
-
 <script src="js/sesion.js"></script>
 </body>
 </html>

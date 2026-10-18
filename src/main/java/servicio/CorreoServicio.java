@@ -75,8 +75,10 @@ public class CorreoServicio {
     }
 
     /**
-     * Envía un correo. Si el modo prueba está activo, el correo llega a correo.redirigir_a
-     * y en el cuerpo se indica a quién iba dirigido realmente.
+     * Envía un correo. Si correo.redirigir_a tiene un correo, el envío llega ahí (sin cambiar el
+     * texto del correo); el destinatario real queda en la consola del WebServer.
+     * Si Office 365 rechaza temporalmente el envío (códigos 4xx, como "421 4.3.2 Service not active"),
+     * se reintenta hasta 3 veces con espera creciente.
      */
     public void enviar(String para, String cc, String asunto, String mensaje, Path adjunto) throws MessagingException {
 
@@ -91,8 +93,7 @@ public class CorreoServicio {
         if (modoPrueba()) {
             destino = redirigirA;
             copia = null;
-            cuerpo = "[MODO PRUEBA] Este correo iba dirigido a: " + para +
-                (cc == null || cc.isBlank() ? "" : " (CC: " + cc + ")") + "\n\n" + mensaje;
+            System.out.println("Correo para " + para + " redirigido a " + redirigirA);
         }
 
         MimeMessage correo = new MimeMessage(sesion);
@@ -121,7 +122,47 @@ public class CorreoServicio {
         }
 
         correo.setContent(partes);
-        Transport.send(correo);
+
+        long[] esperas = { 5000, 15000 };
+        for (int intento = 0; ; intento++) {
+            try {
+                Transport.send(correo);
+                return;
+            } catch (MessagingException e) {
+                if (!esTemporal(e) || intento >= esperas.length) {
+                    throw new MessagingException(mensajeClaro(e), e);
+                }
+                System.out.println("Office 365 rechazó temporalmente el envío a " + destino + " (" + e.getMessage().trim() +
+                    "); nuevo intento en " + esperas[intento] / 1000 + " s");
+                try {
+                    Thread.sleep(esperas[intento]);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw e;
+                }
+            }
+        }
+    }
+
+    // Respuestas SMTP 4xx = el servidor no pudo en ese momento (se puede reintentar)
+    private static boolean esTemporal(MessagingException e) {
+        String m = e.getMessage() == null ? "" : e.getMessage().trim();
+        return m.matches("(?s)^4\\d\\d\\b.*") || m.contains(" 4.3.") || m.contains(" 4.4.") || m.contains(" 4.7.");
+    }
+
+    // Mensaje entendible para la pantalla (el detalle técnico queda en la consola)
+    private static String mensajeClaro(MessagingException e) {
+        String m = e.getMessage() == null ? "" : e.getMessage().trim();
+        if (esTemporal(e)) {
+            return "el servidor de correo (Office 365) no aceptó el envío en ese momento; intente de nuevo en unos minutos";
+        }
+        if (m.startsWith("535") || m.toLowerCase().contains("authentication")) {
+            return "la cuenta de correo del aplicativo no pudo iniciar sesión en Office 365 (revise usuario y contraseña de aplicación)";
+        }
+        if (m.startsWith("550") || m.startsWith("553")) {
+            return "el servidor de correo rechazó la dirección del destinatario";
+        }
+        return m;
     }
 
     /** Espera entre correos para no superar los límites de envío de Exchange Online. */
