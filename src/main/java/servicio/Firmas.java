@@ -52,8 +52,10 @@ public final class Firmas {
     private static final int TAMANO_MAXIMO_PNG = 2 * 1024 * 1024;   // 2 MB
     private static final byte[] FIRMA_PNG = { (byte) 0x89, 'P', 'N', 'G' };
 
-    // Espacio de la firma en el certificado (pt): a la derecha de "Atentamente," y encima del nombre
-    private static final float FIRMA_X = 117.2f, FIRMA_ANCHO = 150f, FIRMA_ALTO = 55f;
+    // Espacio de la firma (pt): entre la línea de "Atentamente," y el nombre del firmante, sin tocarlos.
+    // MARGEN_ARRIBA deja libres las letras que bajan (la "," de Atentamente); MARGEN_ABAJO, las mayúsculas
+    // del nombre (Arial de 10,67 pt mide unos 7,7 pt de alto) más un respiro.
+    private static final float FIRMA_ANCHO = 150f, MARGEN_ARRIBA = 3f, MARGEN_ABAJO = 10f;
 
     public static class ReglaException extends Exception {
         public ReglaException(String mensaje) { super(mensaje); }
@@ -296,17 +298,18 @@ public final class Firmas {
         try (PDDocument pdf = PDDocument.load(origen)) {
             PDPage pagina = pdf.getPage(0);
             float altoPagina = pagina.getMediaBox().getHeight();
-            float baseAtentamente = buscarAtentamente(pdf);
+            float[] espacio = buscarEspacioFirma(pdf);   // x del texto, base de "Atentamente,", base del nombre
+            float arriba = espacio[1] + MARGEN_ARRIBA, abajo = espacio[2] - MARGEN_ABAJO;
 
+            // La firma cabe completa en ese hueco (sin deformarse), alineada a la izquierda con el texto
+            // y apoyada sobre el nombre, como una firma a mano encima de la línea
             PDImageXObject imagen = LosslessFactory.createFromImage(pdf, ImageIO.read(new ByteArrayInputStream(firmaPng)));
-            float escala = Math.min(FIRMA_ANCHO / imagen.getWidth(), FIRMA_ALTO / imagen.getHeight());
+            float escala = Math.min(FIRMA_ANCHO / imagen.getWidth(), (abajo - arriba) / imagen.getHeight());
             float ancho = imagen.getWidth() * escala, alto = imagen.getHeight() * escala;
-            // Centro vertical del espacio de la firma: 20 pt bajo la línea de "Atentamente," (como el formato oficial)
-            float centroDesdeArriba = baseAtentamente + 20f;
-            float y = altoPagina - centroDesdeArriba - alto / 2;
+            float y = altoPagina - abajo;
 
             try (PDPageContentStream cs = new PDPageContentStream(pdf, pagina, PDPageContentStream.AppendMode.APPEND, true, true)) {
-                cs.drawImage(imagen, FIRMA_X, y, ancho, alto);
+                cs.drawImage(imagen, espacio[0], y, ancho, alto);
             }
 
             AccessPermission permisos = new AccessPermission();
@@ -323,21 +326,29 @@ public final class Firmas {
         }
     }
 
-    // Posición (desde arriba, en pt) de la línea base de "Atentamente,"
-    private static float buscarAtentamente(PDDocument pdf) throws IOException {
-        final float[] y = { -1 };
+    /**
+     * Dónde va la firma, en pt desde arriba: { x donde empieza "Atentamente,", línea base de
+     * "Atentamente,", línea base del renglón siguiente (el nombre del firmante) }.
+     */
+    private static float[] buscarEspacioFirma(PDDocument pdf) throws IOException {
+        final float[] r = { -1, -1, -1 };
         PDFTextStripper lector = new PDFTextStripper() {
             @Override
             protected void writeString(String texto, List<TextPosition> posiciones) {
-                if (y[0] < 0 && texto.trim().startsWith("Atentamente")) {
-                    y[0] = posiciones.get(0).getYDirAdj();
+                float base = posiciones.get(0).getYDirAdj();
+                if (r[1] < 0 && texto.trim().startsWith("Atentamente")) {
+                    r[0] = posiciones.get(0).getXDirAdj();
+                    r[1] = base;
+                } else if (r[1] >= 0 && r[2] < 0 && base > r[1] + 1 && !texto.isBlank()) {
+                    r[2] = base;
                 }
             }
         };
         lector.setSortByPosition(true);
         lector.getText(pdf);
-        if (y[0] < 0) throw new IOException("no se encontró \"Atentamente,\" en el certificado");
-        return y[0];
+        if (r[1] < 0) throw new IOException("no se encontró \"Atentamente,\" en el certificado");
+        if (r[2] < 0) throw new IOException("no se encontró el nombre del firmante debajo de \"Atentamente,\"");
+        return r;
     }
 
     // Contraseña de propietario (permite cambiar permisos); la de apertura es la cédula

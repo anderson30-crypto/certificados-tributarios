@@ -2,6 +2,7 @@ package servicio;
 
 import com.openhtmltopdf.outputdevice.helper.BaseRendererBuilder;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+import Seguridad.Roles;
 import conexion.ConexionBD;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.font.PDType0Font;
@@ -193,7 +194,7 @@ public class GenerarCertificado {
                    .replace("{{DIA}}", String.valueOf(expedicion.getDayOfMonth()))
                    .replace("{{MES}}", expedicion.getMonth().getDisplayName(TextStyle.FULL, ES_CO))
                    .replace("{{ANIO_EXPEDICION}}", String.valueOf(expedicion.getYear()))
-                   .replace("{{FIRMANTE_NOMBRE}}", esc(ConexionBD.obtener("certificado.firmante.nombre", "Jhon Jairo Andrés Aparicio Rueda")))
+                   .replace("{{FIRMANTE_NOMBRE}}", esc(nombreJefeNomina()))
                    .replace("{{FIRMANTE_CARGO}}", esc(ConexionBD.obtener("certificado.firmante.cargo", "Coordinador de Nómina")))
                    .replace("{{FIRMA}}", firmaDataUri == null ? "" : "<img src=\"" + firmaDataUri + "\" alt=\"Firma\" />")
                    .replace("{{LOGO_UPB}}", imagen("/certificado/upb-logo-certificado.png"))
@@ -203,6 +204,22 @@ public class GenerarCertificado {
             html = html.replace("{{" + v.getKey() + "}}", formatearValor(v.getValue()));
         }
         return html;
+    }
+
+    /**
+     * Quien firma como "suscrito Coordinador de Nómina": el usuario activo con rol Jefe de Nómina
+     * (si hubiera varios, el creado más recientemente). Si no hay ninguno, el de config.properties.
+     */
+    private static String nombreJefeNomina() throws Exception {
+        String sql = "SELECT u.t_nombre_usuario FROM usuarios u JOIN roles r ON r.id_rol = u.id_rol " +
+            "WHERE r.t_rol = ? AND u.b_estado = 1 ORDER BY u.id_usuario DESC LIMIT 1";
+        try (Connection conn = ConexionBD.obtenerConexion(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, Roles.NOMBRES.get(Roles.JEFE));
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next() && rs.getString(1) != null && !rs.getString(1).isBlank()) return rs.getString(1).trim();
+            }
+        }
+        return ConexionBD.obtener("certificado.firmante.nombre", "Jhon Jairo Andrés Aparicio Rueda");
     }
 
     /** Convierte el HTML a PDF con las fuentes del certificado incrustadas. */

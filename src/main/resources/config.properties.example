@@ -44,7 +44,8 @@ firma.p12.password=CLAVE_DEL_CERTIFICADO_P12
 cifrado.clave=FRASE_LARGA_Y_SECRETA
 
 # --- Certificado PDF ---
-# Nombre y cargo de quien firma (aparecen debajo de "Atentamente,")
+# Debajo de "Atentamente," va el usuario activo con rol Jefe de Nómina y este cargo (el del encabezado
+# "EL SUSCRITO COORDINADOR DE NÓMINA"). El nombre de aquí solo se usa si no hay ningún Jefe de Nómina activo.
 # CT_CERTIFICADO_FIRMANTE_NOMBRE
 certificado.firmante.nombre=Jhon Jairo Andrés Aparicio Rueda
 # CT_CERTIFICADO_FIRMANTE_CARGO
