@@ -34,10 +34,6 @@ public class WebServer {
     // Carpeta (en la raíz del proyecto) donde se guardan las sábanas subidas
     private static final Path CARPETA_SUBIDAS = Paths.get("subidas");
 
-    // Se agrega a cada correo: el PDF va cifrado y el contratista necesita saber cómo abrirlo
-    private static final String NOTA_CONTRASENA = "\n\nEl certificado adjunto está protegido. Para abrirlo, use como " +
-        "contraseña su número de documento, sin puntos ni espacios.";
-
     public static void main(String[] args) {
 
         // 1) Probar la conexión antes de levantar el servidor, para ver de una vez si MySQL responde
@@ -502,6 +498,17 @@ public class WebServer {
 
         app.get("/api/certificados/listos", ctx -> ctx.json(Firmas.listosParaEnviar()));
 
+        // Vista previa del correo oficial de Nómina (el que reciben los contratistas)
+        app.get("/api/correos/plantilla", ctx -> {
+            String anio = ctx.queryParam("anio");
+            int a = anio == null || anio.isBlank() ? java.time.LocalDate.now().getYear() - 1 : Integer.parseInt(anio);
+            // En la vista previa la imagen se ajusta al ancho del recuadro (en el correo va a su tamaño original)
+            ctx.contentType("text/html; charset=UTF-8").result("<!doctype html><meta charset=\"utf-8\">" +
+                "<style>body{margin:12px} img{max-width:100% !important; height:auto !important}</style>" +
+                PlantillaCorreo.html(a, "/api/correos/plantilla/calendario.png"));
+        });
+        app.get("/api/correos/plantilla/calendario.png", ctx -> ctx.contentType("image/png").result(PlantillaCorreo.calendario()));
+
         app.get("/api/certificados/historial", ctx -> ctx.json(Dashboard.historial(500)));
         app.get("/api/notificaciones", ctx -> ctx.json(Dashboard.notificaciones()));
 
@@ -525,13 +532,12 @@ public class WebServer {
         });
 
         // Enviar por correo uno o varios certificados ya generados.
-        // Cuerpo JSON: { "certificados": [1, 2], "cc": "", "asunto": "...", "mensaje": "..." }
+        // Cuerpo JSON: { "certificados": [1, 2], "cc": "", "asunto": "..." } (el cuerpo es siempre el correo oficial de Nómina)
         app.post("/api/correos/enviar", ctx -> {
             Map<?, ?> cuerpo = ctx.bodyAsClass(Map.class);
             List<?> ids = (List<?>) cuerpo.get("certificados");
             String cc = texto(cuerpo.get("cc"));
             String asunto = texto(cuerpo.get("asunto"));
-            String mensaje = texto(cuerpo.get("mensaje"));
 
             if (ids == null || ids.isEmpty()) {
                 ctx.status(400).json(Map.of("error", "No se indicó ningún certificado para enviar"));
@@ -578,7 +584,10 @@ public class WebServer {
                 resultado.put("destino", correo.destinoEfectivo(para));
 
                 try {
-                    correo.enviar(para, cc, asunto, mensaje + NOTA_CONTRASENA, Paths.get((String) datos.get("rutaPdf")));
+                    // Cuerpo: el correo oficial de Nómina con el año gravable de este certificado
+                    int anio = (Integer) datos.get("anio");
+                    correo.enviar(para, cc, asunto, PlantillaCorreo.texto(anio), PlantillaCorreo.html(anio),
+                        PlantillaCorreo.imagenes(), Paths.get((String) datos.get("rutaPdf")));
                     envios.registrar(idCertificado, correo.destinoEfectivo(para), true, null, usuarioActual(ctx).idUsuario());
                     resultado.put("exito", true);
 

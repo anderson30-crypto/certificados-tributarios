@@ -225,42 +225,22 @@
     margin: 12px 18px 0;
   }
 
-  .toolbar{
-    display: flex;
-    gap: 4px;
-    padding: 10px 18px;
-    border-bottom: 1px solid var(--gray-border);
-  }
-
-  .toolbar button{
-    width: 26px;
-    height: 26px;
-    border: 1px solid var(--gray-border);
-    background: #ffffff;
-    border-radius: 4px;
-    font-size: 12px;
-    cursor: pointer;
-    color: var(--text-dark);
-  }
-
-  .toolbar button:hover{
-    border-color: var(--red);
-    color: var(--red);
-  }
-
   .compose-body{
     padding: 16px 18px 20px;
   }
 
-  .compose-body textarea{
+  .plantilla-nota{
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  .plantilla-vista{
     width: 100%;
-    min-height: 200px;
-    border: none;
-    outline: none;
-    font-size: 13px;
-    font-family: inherit;
-    resize: vertical;
-    line-height: 1.6;
+    height: 520px;
+    border: 1px solid var(--gray-border);
+    border-radius: 8px;
+    background: #fff;
   }
 
   .compose-actions{
@@ -368,21 +348,9 @@
 
       <div class="attach-chip"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3 3 0 0 1 4.24 4.24l-9.2 9.19a1 1 0 0 1-1.41-1.41l8.49-8.48"/></svg> <span id="attachName">Certificado_Tributario.pdf</span></div>
 
-      <div class="toolbar">
-        <button title="Negrita"><b>B</b></button>
-        <button title="Cursiva"><i>I</i></button>
-        <button title="Subrayado"><u>U</u></button>
-        <button title="Lista"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
-        <button title="Alinear"><svg class="icon" viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.125em;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="6" x2="3" y2="6"/><line x1="18" y1="10" x2="6" y2="10"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="18" y1="18" x2="6" y2="18"/></svg></button>
-      </div>
-
       <div class="compose-body">
-        <textarea id="fieldMensaje">Estimado(a),
-
-Adjunto encontrará el certificado tributario solicitado. Cualquier inquietud, quedamos atentos.
-
-Cordialmente,
-Universidad Pontificia Bolivariana</textarea>
+        <div class="plantilla-nota">Mensaje: correo oficial de Nómina (Certificado ICA Floridablanca). Cada contratista lo recibe con el año de su certificado.</div>
+        <iframe id="vistaCorreo" class="plantilla-vista" title="Vista previa del correo"></iframe>
       </div>
 
       <div class="compose-actions">
@@ -419,6 +387,20 @@ Universidad Pontificia Bolivariana</textarea>
       : sel.length === 1 ? sel[0].archivo + ' (protegido con la cédula)'
       : sel.length + ' certificados protegidos con la cédula (cada contratista recibe el suyo)';
     document.getElementById('listosCuenta').textContent = '· ' + sel.length + ' de ' + listos.length + ' seleccionado(s)';
+    mostrarVista();
+  }
+
+  // Vista previa del correo oficial con el año gravable del primer certificado seleccionado
+  function anioVista(){
+    const sel = seleccion();
+    return sel.length ? sel[0].anioGravable : (listos.length ? listos[0].anioGravable : '');
+  }
+  let anioMostrado = null;
+  function mostrarVista(){
+    const anio = anioVista();
+    if (anio === anioMostrado) return;
+    anioMostrado = anio;
+    document.getElementById('vistaCorreo').src = '/api/correos/plantilla' + (anio ? '?anio=' + anio : '');
   }
 
   fetch('/api/certificados/listos').then(function(r){ return r.json(); }).then(function(datos){
@@ -443,16 +425,15 @@ Universidad Pontificia Bolivariana</textarea>
       certificados: seleccion().map(function(c){ return { idCertificado: c.idCertificado, contratista: c.contratista, correo: c.correo, archivo: c.archivo }; }),
       cc: document.getElementById('fieldCc').value.trim(),
       subject: document.getElementById('fieldAsunto').value,
-      body: document.getElementById('fieldMensaje').value
+      anio: anioVista()
     };
   }
 
-  // Si ya había un borrador guardado, se recuperan asunto, CC y mensaje
+  // Si ya había un borrador guardado, se recuperan asunto y CC
   const previo = JSON.parse(sessionStorage.getItem('correoBorrador') || 'null');
   if(previo){
     document.getElementById('fieldCc').value = previo.cc || '';
     document.getElementById('fieldAsunto').value = previo.subject || '';
-    document.getElementById('fieldMensaje').value = previo.body || '';
   }
 
   document.getElementById('btnGuardarBorrador').addEventListener('click', function(){

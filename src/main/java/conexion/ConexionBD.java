@@ -25,7 +25,7 @@ public class ConexionBD {
     private static final String[] CLAVES = {
         "url", "usuario", "password",
         "correo.host", "correo.puerto", "correo.usuario", "correo.password",
-        "correo.starttls", "correo.pausa_ms", "correo.redirigir_a",
+        "correo.starttls", "correo.pausa_ms", "correo.redirigir_a", "correo.resolucion",
         "firma.p12.password", "cifrado.clave",
         "certificado.firmante.nombre", "certificado.firmante.cargo"
     };

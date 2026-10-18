@@ -15,11 +15,13 @@ import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.util.ByteArrayDataSource;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -81,6 +83,16 @@ public class CorreoServicio {
      * se reintenta hasta 3 veces con espera creciente.
      */
     public void enviar(String para, String cc, String asunto, String mensaje, Path adjunto) throws MessagingException {
+        enviar(para, cc, asunto, mensaje, null, Map.of(), adjunto);
+    }
+
+    /**
+     * Igual que el anterior pero con cuerpo HTML. "texto" es la versión en texto plano para los
+     * lectores de correo que no muestran HTML; "imagenes" son las imágenes que el HTML usa con
+     * src="cid:nombre" (nombre -> bytes PNG), que van dentro del correo y no como adjunto.
+     */
+    public void enviar(String para, String cc, String asunto, String texto, String html,
+                       Map<String, byte[]> imagenes, Path adjunto) throws MessagingException {
 
         if (para == null || para.isBlank()) {
             throw new MessagingException("El destinatario no tiene correo registrado");
@@ -88,7 +100,7 @@ public class CorreoServicio {
 
         String destino = para;
         String copia = cc;
-        String cuerpo = mensaje;
+        String cuerpo = texto;
 
         if (modoPrueba()) {
             destino = redirigirA;
@@ -105,18 +117,28 @@ public class CorreoServicio {
         }
         correo.setSubject(asunto, StandardCharsets.UTF_8.name());
 
-        MimeBodyPart texto = new MimeBodyPart();
-        texto.setText(cuerpo, StandardCharsets.UTF_8.name());
-
         Multipart partes = new MimeMultipart();
-        partes.addBodyPart(texto);
+
+        if (html == null) {
+            MimeBodyPart plano = new MimeBodyPart();
+            plano.setText(cuerpo, StandardCharsets.UTF_8.name());
+            partes.addBodyPart(plano);
+        } else {
+            partes.addBodyPart(cuerpoHtml(cuerpo, html, imagenes));
+        }
 
         if (adjunto != null) {
             if (!Files.exists(adjunto)) {
                 throw new MessagingException("No existe el PDF a adjuntar: " + adjunto);
             }
             MimeBodyPart pdf = new MimeBodyPart();
-            pdf.setDataHandler(new DataHandler(new FileDataSource(adjunto.toFile())));
+            FileDataSource archivo = new FileDataSource(adjunto.toFile());
+            if (adjunto.getFileName().toString().toLowerCase().endsWith(".pdf")) {
+                archivo.setFileTypeMap(new jakarta.activation.MimetypesFileTypeMap() {
+                    @Override public String getContentType(String nombre) { return "application/pdf"; }
+                });
+            }
+            pdf.setDataHandler(new DataHandler(archivo));
             pdf.setFileName(adjunto.getFileName().toString());
             partes.addBodyPart(pdf);
         }
@@ -142,6 +164,34 @@ public class CorreoServicio {
                 }
             }
         }
+    }
+
+    // multipart/alternative (texto | multipart/related (html + imágenes en línea))
+    private static MimeBodyPart cuerpoHtml(String texto, String html, Map<String, byte[]> imagenes) throws MessagingException {
+        MimeBodyPart plano = new MimeBodyPart();
+        plano.setText(texto, StandardCharsets.UTF_8.name());
+
+        MimeMultipart relacionado = new MimeMultipart("related");
+        MimeBodyPart parteHtml = new MimeBodyPart();
+        parteHtml.setText(html, StandardCharsets.UTF_8.name(), "html");
+        relacionado.addBodyPart(parteHtml);
+        for (Map.Entry<String, byte[]> imagen : imagenes.entrySet()) {
+            MimeBodyPart parteImagen = new MimeBodyPart();
+            parteImagen.setDataHandler(new DataHandler(new ByteArrayDataSource(imagen.getValue(), "image/png")));
+            parteImagen.setContentID("<" + imagen.getKey() + ">");
+            parteImagen.setDisposition(MimeBodyPart.INLINE);
+            parteImagen.setFileName(imagen.getKey() + ".png");
+            relacionado.addBodyPart(parteImagen);
+        }
+        MimeBodyPart conImagenes = new MimeBodyPart();
+        conImagenes.setContent(relacionado);
+
+        MimeMultipart alternativas = new MimeMultipart("alternative");
+        alternativas.addBodyPart(plano);
+        alternativas.addBodyPart(conImagenes);
+        MimeBodyPart cuerpo = new MimeBodyPart();
+        cuerpo.setContent(alternativas);
+        return cuerpo;
     }
 
     // Respuestas SMTP 4xx = el servidor no pudo en ese momento (se puede reintentar)

@@ -49,3 +49,7 @@ cifrado.clave=FRASE_LARGA_Y_SECRETA
 certificado.firmante.nombre=Jhon Jairo Andrés Aparicio Rueda
 # CT_CERTIFICADO_FIRMANTE_CARGO
 certificado.firmante.cargo=Coordinador de Nómina
+
+# --- Correo a los contratistas (plantilla en src/main/resources/correo/) ---
+# CT_CORREO_RESOLUCION  número y fecha de la resolución de Floridablanca que se transcribe (cambia cada año)
+correo.resolucion=6059 del 31/10/2025
