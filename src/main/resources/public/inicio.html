@@ -197,37 +197,40 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 16px;
-    max-width: 980px;
+    gap: 18px;
+    max-width: 1000px;
     margin: 0 auto;
   }
-
   .action-card{
-    flex: 1 1 220px;
-    max-width: 300px;
+    flex: 1 1 280px;
+    max-width: 310px;
     background: var(--gray-bg);
     border: 1px solid var(--gray-border);
-    border-radius: 6px;
-    padding: 16px 22px;
+    border-radius: 8px;
+    padding: 24px 22px;
     text-align: center;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
     color: var(--text-dark);
     cursor: pointer;
+    position: relative;
     transition: box-shadow .15s ease, transform .1s ease, border-color .15s ease;
   }
-
   .action-card:hover{
     border-color: var(--red);
     box-shadow: 0 4px 14px rgba(227, 6, 19, 0.12);
     transform: translateY(-1px);
   }
-
+  .action-card .card-icon{ font-size: 26px; color: var(--red); line-height: 1; }
+  .action-card small{ font-weight: 400; font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+  .count-badge{ position: absolute; top: 10px; right: 12px; background: var(--red); color: #fff; font-size: 11px; font-weight: 700;
+                min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
   a.action-card{
     text-decoration: none;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    gap: 8px;
   }
 
   @media (max-width: 720px){
@@ -280,13 +283,13 @@
     </div>
 
     <div class="action-grid">
-      <a class="action-card" href="subir-documentos.html">Subir Documentos</a>
-      <a class="action-card" href="generar-certificado.html">Generar Certificado</a>
-      <a class="action-card" href="enviar-correo-formulario.html">Enviar Certificados Firmados</a>
-      <a class="action-card" href="dashboard.html">Dashboard</a>
-      <a class="action-card" href="solicitudes.html">Ver Solicitudes</a>
-      <a class="action-card" href="certificados-devueltos.html">Certificados Devueltos</a>
-      <a class="action-card" href="notificaciones-error.html">Notificaciones de Error</a>
+      <a class="action-card" href="subir-documentos.html"><span class="card-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>Subir Sábana<small>Carga el Excel con los datos de los contratistas</small></a>
+      <a class="action-card" href="generar-certificado.html"><span class="card-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg></span>Generar Certificado<small>Crea los certificados y los envía a firma</small></a>
+      <a class="action-card" href="enviar-correo-formulario.html"><span class="count-badge" id="b-listos" style="display:none"></span><span class="card-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg></span>Enviar Certificados Firmados<small>Envía por correo los que ya firmó el Jefe</small></a>
+      <a class="action-card" href="dashboard.html"><span class="count-badge" id="b-pendientes" style="display:none"></span><span class="card-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span>Dashboard<small>Histórico por año y lo pendiente de hoy</small></a>
+      <a class="action-card" href="certificados-devueltos.html"><span class="count-badge" id="b-devueltos" style="display:none"></span><span class="card-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></span>Certificados Devueltos<small>Registra devoluciones y vuelve a generar</small></a>
+      <a class="action-card" href="solicitudes.html"><span class="card-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>Ver Solicitudes<small>Seguimiento de solicitudes y devoluciones</small></a>
+      <a class="action-card" href="notificaciones-error.html"><span class="card-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>Notificaciones de Error<small>Envíos fallidos y sábanas rechazadas</small></a>
     </div>
   </main>
 
@@ -300,6 +303,17 @@
 
 </script>
 
+<script>
+  // Contadores de lo pendiente (WebServer -> /api/dashboard)
+  fetch('/api/dashboard').then(function(r){ return r.json(); }).then(function(d){
+    [['listos', d.ahora.listosParaEnviar, 'firmado(s) listo(s) para enviar'],
+     ['pendientes', d.ahora.pendientesFirma, 'pendiente(s) de firma'],
+     ['devueltos', d.ahora.devueltosPendientes, 'devuelto(s) por regenerar']].forEach(function(x){
+      const b = document.getElementById('b-' + x[0]);
+      if (b && x[1] > 0){ b.textContent = x[1]; b.title = x[1] + ' ' + x[2]; b.style.display = 'flex'; }
+    });
+  });
+</script>
 <script src="js/sesion.js"></script>
 </body>
 </html>
