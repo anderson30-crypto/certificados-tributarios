@@ -93,9 +93,9 @@ public final class PlantillaCorreo {
             .replace("{{ARTICULO_TITULO}}", aHtml(textos.get(ARTICULO_TITULO), anio))
             .replace("{{ARTICULO_TEXTO}}", aHtml(textos.get(ARTICULO_TEXTO), anio))
             .replace("{{RECORDATORIO}}", recordatorio)
-            .replace("{{CALENDARIO_ANCHO}}", String.valueOf(ancho))
-            .replace("{{CALENDARIO_ALTO}}", String.valueOf(alto))
-            .replace("{{CALENDARIO}}", srcCalendario);
+            .replace("{{CALENDARIO}}", "<img src=\"" + escapar(srcCalendario) + "\" width=\"" + ancho + "\" height=\"" + alto +
+                "\" alt=\"Calendario tributario: fechas de vencimiento según los dos últimos dígitos\" " +
+                "style=\"display:block; width:" + ancho + "px; height:" + alto + "px; border:0;\">");
     }
 
     /** Versión en texto plano del mismo correo (para lectores que no muestran HTML). */

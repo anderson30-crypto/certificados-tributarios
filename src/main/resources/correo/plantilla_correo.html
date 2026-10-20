@@ -6,7 +6,7 @@
   (se guarda en la tabla plantilla_correo):
    - {{INTRODUCCION}}: "Se transcribe artículo 1 de la Resolución ... de la Secretaría de Hacienda del municipio."
    - {{ARTICULO_TITULO}} y {{ARTICULO_TEXTO}}: el artículo que se transcribe
-   - {{CALENDARIO}}: la imagen con la tabla de vencimientos
+   - {{CALENDARIO}}: la imagen con la tabla de vencimientos (la etiqueta <img> completa, con su tamaño, la arma PlantillaCorreo)
    - {{RECORDATORIO}}: el párrafo "Señor contratista, recuerde..." (si se deja vacío, no sale)
   {{ANIO}} es el año certificado; sale solo del año gravable de cada certificado.
   Todo el texto va en Arial 12 pt, como en el documento de Nómina.
@@ -22,7 +22,7 @@
 <p style="margin:0; text-align:justify;">&nbsp;</p>
 <p style="margin:0; text-align:justify;"><b>{{ARTICULO_TITULO}}</b> {{ARTICULO_TEXTO}}</p>
 <p style="margin:0; text-align:justify;">&nbsp;</p>
-<p style="margin:0;"><img src="{{CALENDARIO}}" width="{{CALENDARIO_ANCHO}}" height="{{CALENDARIO_ALTO}}" alt="Calendario tributario: fechas de vencimiento según los dos últimos dígitos" style="display:block; width:{{CALENDARIO_ANCHO}}px; height:{{CALENDARIO_ALTO}}px; border:0;"></p>
+<p style="margin:0;">{{CALENDARIO}}</p>
 <p style="margin:0; text-align:center;">&nbsp;</p>
 {{RECORDATORIO}}<p style="margin:0; text-align:justify;">El certificado adjunto está protegido: para abrirlo, use como contraseña su número de documento, sin puntos ni espacios.</p>
 <p style="margin:0;">&nbsp;</p>
