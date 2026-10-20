@@ -9,7 +9,7 @@ import java.util.Set;
  * Los cuatro roles del sistema, qué puede hacer cada uno y a qué pantallas entra.
  *
  *  - admin  (Administrador)   : solo administra usuarios y contraseñas, y consulta auditorías
- *  - nomina (Nómina)          : carga la sábana, genera y envía certificados, ve el dashboard
+ *  - nomina (Nómina)          : carga el reporte, genera y envía certificados, ve el dashboard
  *  - jefe   (Jefe de Nómina)  : firma los certificados y revisa el historial de Nómina
  *  - gh     (Gestión Humana)  : lo mismo que el jefe; firma cuando el jefe no está
  */
@@ -31,7 +31,7 @@ public final class Roles {
     /** Funciones de cada rol (se muestran en el perfil y en la administración de usuarios). */
     public static final Map<String, List<String>> FUNCIONES = Map.of(
         ADMIN, List.of("Gestionar usuarios", "Cambiar contraseñas", "Ver auditorías"),
-        NOMINA, List.of("Cargar sábana", "Generar certificados", "Enviar certificados", "Ver dashboard"),
+        NOMINA, List.of("Cargar reporte", "Generar certificados", "Enviar certificados", "Ver dashboard"),
         JEFE, List.of("Firmar certificados", "Gestionar firma", "Ver historial de Nómina"),
         GH, List.of("Firmar certificados", "Gestionar firma", "Ver historial de Nómina")
     );

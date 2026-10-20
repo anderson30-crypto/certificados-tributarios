@@ -140,7 +140,7 @@ public final class Dashboard {
 
     /**
      * Notificaciones de error: envíos de correo que fallaron (con el motivo y si después se envió bien)
-     * y sábanas rechazadas por documentos repetidos.
+     * y reportes rechazados por documentos repetidos.
      */
     public static List<Map<String, Object>> notificaciones() throws SQLException {
         List<Map<String, Object>> lista = new ArrayList<>();
@@ -162,14 +162,14 @@ public final class Dashboard {
                     lista.add(n);
                 }
             }
-            String sqlSabanas = "SELECT d_fecha_registro, t_datos_nuevos FROM auditorias WHERE t_accion = 'Sábana rechazada' " +
+            String sqlReportes = "SELECT d_fecha_registro, t_datos_nuevos FROM auditorias WHERE t_accion IN ('Reporte rechazado', 'Sábana rechazada') " +
                 "ORDER BY id_log DESC LIMIT 50";
-            try (PreparedStatement ps = conn.prepareStatement(sqlSabanas); ResultSet rs = ps.executeQuery()) {
+            try (PreparedStatement ps = conn.prepareStatement(sqlReportes); ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     Map<String, Object> n = new LinkedHashMap<>();
-                    n.put("tipo", "sabana");
+                    n.put("tipo", "reporte");
                     n.put("fecha", String.valueOf(rs.getTimestamp("d_fecha_registro").toLocalDateTime().toLocalDate()));
-                    n.put("titulo", "Sábana rechazada por documentos repetidos");
+                    n.put("titulo", "Reporte rechazado por documentos repetidos");
                     n.put("detalle", rs.getString("t_datos_nuevos"));
                     n.put("resuelto", false);
                     lista.add(n);

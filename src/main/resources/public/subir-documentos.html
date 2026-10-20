@@ -377,8 +377,8 @@
 
     <h2 class="section-title">Subir Documento</h2>
 
-    <div class="notice"><b>Importante:</b> la sábana debe ser un archivo de <b>Excel en formato .xlsx</b>
-      (los .xls antiguos se deben abrir en Excel y guardar como .xlsx). Si vuelve a subir una sábana,
+    <div class="notice"><b>Importante:</b> el reporte debe ser un archivo de <b>Excel en formato .xlsx</b>
+      (los .xls antiguos se deben abrir en Excel y guardar como .xlsx). Si vuelve a subir un reporte,
       los contratistas que ya existen se actualizan, no se duplican.</div>
 
     <div class="upload-layout">
@@ -446,7 +446,7 @@
   function prepararArchivos(files){
     pendingFiles = files.filter(function(f){ return f.name.toLowerCase().endsWith('.xlsx'); });
     if(pendingFiles.length < files.length){
-      Avisos.mostrar('Solo se aceptan sábanas en Excel (.xlsx). Se ignoraron los demás archivos.', 'aviso', 'Formato no válido');
+      Avisos.mostrar('Solo se aceptan reportes en Excel (.xlsx). Se ignoraron los demás archivos.', 'aviso', 'Formato no válido');
     }
     hint.textContent = pendingFiles.length > 0
       ? pendingFiles.length + ' archivo(s) listo(s) para subir'
@@ -475,10 +475,10 @@
     prepararArchivos(Array.from(e.dataTransfer.files));
   });
 
-  // "Subir": envía cada archivo al servidor (WebServer -> /api/sabana), que lo guarda en la carpeta "subidas"
+  // "Subir": envía cada reporte al servidor (WebServer -> /api/sabana), que lo guarda en la carpeta "subidas"
   btnUpload.addEventListener('click', async function(){
     if(pendingFiles.length === 0){
-      Avisos.mostrar('Selecciona o arrastra al menos una sábana (.xlsx) antes de subir.', 'aviso', 'No hay archivos');
+      Avisos.mostrar('Selecciona o arrastra al menos un reporte (.xlsx) antes de subir.', 'aviso', 'No hay archivos');
       return;
     }
     btnUpload.disabled = true;
@@ -505,10 +505,10 @@
     }
   });
 
-  // "Siguiente": ejecuta el CargueMasivo con cada sábana subida y luego pasa a generar certificados
+  // "Siguiente": ejecuta el CargueMasivo con cada reporte subido y luego pasa a generar certificados
   btnNext.addEventListener('click', async function(){
     if(uploadedFiles.length === 0){
-      Avisos.mostrar('Debes subir al menos una sábana para continuar.', 'aviso', 'No hay sábanas subidas');
+      Avisos.mostrar('Debes subir al menos un reporte para continuar.', 'aviso', 'No hay reportes subidos');
       return;
     }
     btnNext.disabled = true;

@@ -92,7 +92,7 @@
     document.getElementById('stats').innerHTML = [
       [cnt('Generación de certificado'), 'Certificados generados'],
       [cnt('Envío de certificados'),     'Envíos de correo'],
-      [cnt('Carga de sábana'),           'Cargas de sábana'],
+      [cnt('Carga de reporte') + cnt('Carga de sábana'), 'Cargas de reporte'],
       [errores,                          'Acciones con error']
     ].map(function(s){ return '<div class="stat"><div class="n">' + s[0] + '</div><div class="l">' + s[1] + '</div></div>'; }).join('');
   }

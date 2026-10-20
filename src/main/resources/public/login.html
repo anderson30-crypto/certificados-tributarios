@@ -111,21 +111,9 @@
     background: #ffffff;
   }
 
-  .forgot-link{
-    display: block;
-    text-align: center;
-    font-size: 12px;
-    color: var(--link-blue);
-    text-decoration: none;
-    margin: 4px 0 20px;
-  }
-
-  .forgot-link:hover{
-    text-decoration: underline;
-  }
-
   .btn-submit{
     width: 100%;
+    margin-top: 12px;
     padding: 11px;
     background: var(--red);
     color: #ffffff;
@@ -191,8 +179,6 @@
           <input type="password" id="password" name="password" placeholder="Ingrese su contraseña" autocomplete="current-password" required>
         </div>
 
-        <a href="#" class="forgot-link" id="forgotLink">¿Olvidó su contraseña?</a>
-
         <button type="submit" class="btn-submit">Iniciar sesión</button>
       </form>
     </div>
@@ -201,7 +187,6 @@
 <script>
   const form = document.getElementById('loginForm');
   const errorMsg = document.getElementById('errorMsg');
-  const forgotLink = document.getElementById('forgotLink');
   const boton = form.querySelector('.btn-submit');
 
   function mostrarError(texto){
@@ -249,11 +234,6 @@
       boton.disabled = false;
       boton.textContent = 'Iniciar sesión';
     }
-  });
-
-  forgotLink.addEventListener('click', function(e){
-    e.preventDefault();
-    Avisos.mostrar('Solicite al administrador del sistema que le asigne una contraseña nueva.', 'info', 'Recuperar el acceso');
   });
 </script>
 

@@ -27,7 +27,7 @@ public class CargueMasivo {
     // Año gravable que se certifica: el año anterior al actual
     private static final int ANIO_CERTIFICADO = LocalDate.now().getYear() - 1;
 
-    // Para probar sin el WebServer: carga la sábana de ejemplo de resources
+    // Para probar sin el WebServer: carga el reporte de ejemplo de resources
     public static void main(String[] args) {
         try {
             System.out.println(cargar(Path.of("src/main/resources/SABANA_CERTIFICADO_MINI.xlsx")));
@@ -37,9 +37,9 @@ public class CargueMasivo {
     }
 
     /**
-     * Carga una sábana (xlsx) en dos pasadas:
-     *  1. Validación: si el MISMO documento aparece dos veces dentro del archivo, la sábana se
-     *     rechaza completa y no se guarda nada ("rechazada" = true + la lista de filas repetidas).
+     * Carga un reporte (xlsx) en dos pasadas:
+     *  1. Validación: si el MISMO documento aparece dos veces dentro del archivo, el reporte se
+     *     rechaza completo y no se guarda nada ("rechazada" = true + la lista de documentos repetidos).
      *     Un documento que ya existe en el sistema NO es un error: se actualiza.
      *     Un correo repetido entre contratistas distintos se informa como advertencia, sin bloquear.
      *  2. Cargue: guarda contratistas y contratos (inserta los nuevos, actualiza los que ya existían).
@@ -67,9 +67,14 @@ public class CargueMasivo {
         }
     }
 
-    /** Pasada 1: documentos repetidos dentro del archivo (error) y correos compartidos (advertencia). */
+    /**
+     * Pasada 1: documentos repetidos dentro del archivo (error) y correos compartidos (advertencia).
+     * Cada documento repetido sale una sola vez, con el nombre del contratista y todas las filas donde
+     * aparece, por ejemplo: "Documento 1002634002 (HERNANDEZ CANO CESAR RICARDO): repetido en las filas 3, 7 y 12".
+     */
     static void revisarRepetidos(InputStream excel, List<String> repetidos, List<String> advertencias) throws Exception {
-        Map<String, Integer> filaPorDocumento = new HashMap<>();
+        Map<String, List<Integer>> filasPorDocumento = new LinkedHashMap<>();
+        Map<String, String> nombrePorDocumento = new HashMap<>();
         Map<String, String[]> duenoCorreo = new HashMap<>();   // correo -> {documento, fila}
 
         try (Workbook workbook = StreamingReader.builder().rowCacheSize(100).bufferSize(4096).open(excel)) {
@@ -80,10 +85,8 @@ public class CargueMasivo {
                 String correo = normalizarCorreo(obtenerTexto(fila.getCell(5)));
                 if (documento.isEmpty()) continue;   // la pasada 2 lo informa como fila sin documento
 
-                Integer filaAnterior = filaPorDocumento.putIfAbsent(documento, numeroFila);
-                if (filaAnterior != null) {
-                    repetidos.add("Fila " + numeroFila + ": el documento " + documento + " está repetido (ya aparece en la fila " + filaAnterior + ")");
-                }
+                filasPorDocumento.computeIfAbsent(documento, d -> new ArrayList<>()).add(numeroFila);
+                nombrePorDocumento.putIfAbsent(documento, nombreCompleto(fila));
 
                 if (!correo.isEmpty()) {
                     String[] dueno = duenoCorreo.putIfAbsent(correo, new String[] { documento, String.valueOf(numeroFila) });
@@ -94,6 +97,34 @@ public class CargueMasivo {
                 }
             }
         }
+
+        for (Map.Entry<String, List<Integer>> d : filasPorDocumento.entrySet()) {
+            List<Integer> filas = d.getValue();
+            if (filas.size() < 2) continue;
+            String nombre = nombrePorDocumento.get(d.getKey());
+            repetidos.add("Documento " + d.getKey() + (nombre.isEmpty() ? "" : " (" + nombre + ")") +
+                ": repetido en las filas " + listaFilas(filas));
+        }
+    }
+
+    // "PRIMER_APELLIDO SEGUNDO_APELLIDO NOMBRES" de la fila (columnas A, B y C), sin espacios de más
+    private static String nombreCompleto(Row fila) {
+        StringBuilder sb = new StringBuilder();
+        for (int c = 0; c <= 2; c++) {
+            String parte = obtenerTexto(fila.getCell(c));
+            if (parte != null && !parte.isBlank()) sb.append(sb.length() > 0 ? " " : "").append(parte.trim());
+        }
+        return sb.toString().replaceAll("\\s+", " ").toUpperCase(Locale.ROOT);
+    }
+
+    // [3, 7, 12] -> "3, 7 y 12"
+    private static String listaFilas(List<Integer> filas) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < filas.size(); i++) {
+            if (i > 0) sb.append(i == filas.size() - 1 ? " y " : ", ");
+            sb.append(filas.get(i));
+        }
+        return sb.toString();
     }
 
     private static String normalizarDocumento(String documento) {
@@ -112,7 +143,7 @@ public class CargueMasivo {
         List<String> errores = new ArrayList<>();
 
         // Lectura por partes (streaming): solo unas 100 filas en memoria a la vez.
-        // Con XSSFWorkbook el archivo completo iba a memoria (una sábana de 50.000 filas usaba ~1,8 GB).
+        // Con XSSFWorkbook el archivo completo iba a memoria (un reporte de 50.000 filas usaba ~1,8 GB).
         try (Workbook workbook = StreamingReader.builder().rowCacheSize(100).bufferSize(4096).open(excel);
              Connection conn = ConexionBD.obtenerConexion()) {
 

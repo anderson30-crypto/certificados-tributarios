@@ -242,7 +242,7 @@
   .notif.resuelta{ border-left-color:#1E7B3A; }
   .notif .t{ font-size:13px; font-weight:700; color:#23262B; display:flex; justify-content:space-between; gap:10px; }
   .notif .f{ font-size:11.5px; color:#6B7078; font-weight:400; white-space:nowrap; }
-  .notif .d{ font-size:12px; color:#3A3F47; margin-top:4px; word-break:break-word; }
+  .notif .d{ font-size:12px; color:#3A3F47; margin-top:4px; word-break:break-word; white-space:pre-line; }
   .notif .e{ display:inline-block; margin-top:6px; font-size:11px; font-weight:600; padding:2px 8px; border-radius:10px; background:#FDECEC; color:#C40510; }
   .notif.resuelta .e{ background:#E6F4EA; color:#1E7B3A; }
 </style>
@@ -301,7 +301,7 @@
   </main>
 
 <script>
-  // Errores reales (WebServer -> /api/notificaciones): envíos fallidos y sábanas rechazadas
+  // Errores reales (WebServer -> /api/notificaciones): envíos fallidos y reportes rechazados
   const main = document.getElementById('notifMain');
   const vacio = main.innerHTML;
   let notificaciones = [], filtro = 'todas';

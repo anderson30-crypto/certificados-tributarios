@@ -343,7 +343,7 @@
     <h2 class="section-title">Certificados Devueltos Por Los Clientes</h2>
 
     <div class="notice">Un certificado devuelto <b>no se modifica</b>: se <b>vuelve a generar</b> con los datos actuales.
-      Si el error estaba en los datos, primero corrija la sábana y <a href="subir-documentos.html" style="color:inherit">vuelva a cargarla</a>.
+      Si el error estaba en los datos, primero corrija el reporte y <a href="subir-documentos.html" style="color:inherit">vuelva a cargarlo</a>.
       El certificado devuelto queda guardado como constancia.</div>
 
     <div class="registro">
@@ -480,7 +480,7 @@
       boton.disabled = false; boton.textContent = 'Volver a generar';
       if(err.codigo === 'SIN_CAMBIOS'){
         const otraVez = await Avisos.confirmar(err.message + '\n\n¿Desea generarlo de todas formas (por ejemplo, si el error no estaba en los datos)?',
-          { titulo: 'Los datos no cambiaron', aceptar: 'Generar de todas formas', cancelar: 'No, primero corrijo la sábana' });
+          { titulo: 'Los datos no cambiaron', aceptar: 'Generar de todas formas', cancelar: 'No, primero corrijo el reporte' });
         if(otraVez) await regenerarCertificado(boton, d, true);
         return;
       }

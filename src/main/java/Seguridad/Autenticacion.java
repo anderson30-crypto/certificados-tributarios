@@ -30,7 +30,9 @@ public class Autenticacion {
     // Costo de BCrypt: 12 tarda ~0,25 s por intento, suficiente para frenar ataques de fuerza bruta
     private static final int COSTO_BCRYPT = 12;
 
-    // Bloqueo por intentos fallidos: 3 contraseñas malas seguidas bloquean el usuario 15 minutos
+    // Bloqueo por intentos fallidos: 3 contraseñas malas seguidas bloquean el usuario 15 minutos.
+    // El Administrador NO se bloquea (así nunca queda el sistema sin quien desbloquee a los demás);
+    // sus intentos fallidos igual quedan en la auditoría y BCrypt hace lento cada intento.
     // (se cambian con seguridad.login.intentos y seguridad.login.bloqueo_minutos en config.properties).
     // El contador y el bloqueo quedan en la tabla usuarios, así que reiniciar el WebServer no los borra;
     // el Administrador puede desbloquear antes de tiempo desde Usuarios.
@@ -57,7 +59,7 @@ public class Autenticacion {
     public static class CredencialesInvalidasException extends Exception {
         private final int restantes;
         public CredencialesInvalidasException(int restantes) {
-            super("Usuario o contraseña incorrectos." + (restantes == 1 ? " Le queda 1 intento antes de que se bloquee el usuario."
+            super("Usuario o contraseña incorrectos." + (restantes < 0 ? "" : restantes == 1 ? " Le queda 1 intento antes de que se bloquee el usuario."
                 : " Le quedan " + restantes + " intentos antes de que se bloquee el usuario."));
             this.restantes = restantes;
         }
@@ -96,7 +98,8 @@ public class Autenticacion {
                 Integer idUsuario = existe ? rs.getInt("id_usuario") : null;
 
                 // Bloqueado: no se revisa la contraseña (ni siquiera la correcta) hasta que pase el tiempo
-                long segundos = existe ? rs.getLong("segundos_bloqueo") : segundosBloqueoInexistente(clave);
+                boolean esAdministrador = existe && Roles.ADMIN.equals(Roles.clave(rs.getString("t_rol")));
+                long segundos = esAdministrador ? 0 : existe ? rs.getLong("segundos_bloqueo") : segundosBloqueoInexistente(clave);
                 if (segundos > 0) {
                     registrarMotivo(idUsuario, username, "usuario bloqueado por intentos fallidos");
                     throw new UsuarioBloqueadoException((segundos + 59) / 60);
@@ -115,6 +118,7 @@ public class Autenticacion {
                         : !esBcrypt ? "la contraseña guardada no está cifrada con BCrypt; asígnele una nueva con Seguridad.CrearAdministrador"
                         : !activo ? "el usuario está desactivado (b_estado = 0)"
                         : "la contraseña no coincide");
+                    if (esAdministrador) throw new CredencialesInvalidasException(-1);   // sin contador ni bloqueo
                     int restantes = existe ? registrarFallo(conn, idUsuario, username) : registrarFalloInexistente(clave, username);
                     if (restantes == 0) throw new UsuarioBloqueadoException(BLOQUEO_MINUTOS);
                     throw new CredencialesInvalidasException(restantes);

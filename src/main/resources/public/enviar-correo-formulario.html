@@ -281,6 +281,27 @@
     color: var(--red);
   }
 
+  /* Editar correo */
+  .compose-actions .izq{ margin-right: auto; }
+  .ed-overlay{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:60; align-items:flex-start; justify-content:center; overflow-y:auto; padding:30px 16px; }
+  .ed-overlay.show{ display:flex; }
+  .ed-box{ background:#fff; border-radius:10px; width:720px; max-width:100%; padding:22px 24px; box-shadow:0 10px 30px rgba(0,0,0,.18); }
+  .ed-box h3{ margin:0 0 4px; font-size:15px; }
+  .ed-sub{ font-size:12px; color:var(--text-muted); margin-bottom:16px; line-height:1.45; }
+  .ed-campo{ margin-bottom:14px; }
+  .ed-campo label{ display:block; font-size:12px; font-weight:700; margin-bottom:5px; }
+  .ed-campo input[type=text], .ed-campo textarea{ width:100%; box-sizing:border-box; border:1px solid var(--gray-border); border-radius:6px; padding:8px 10px; font-size:13px; font-family:Arial, sans-serif; line-height:1.45; }
+  .ed-campo textarea{ resize:vertical; }
+  .ed-campo input:focus, .ed-campo textarea:focus{ outline:none; border-color:var(--red); }
+  .ed-ayuda{ font-size:11px; color:var(--text-muted); margin-top:4px; }
+  .ed-imagen{ display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap; }
+  .ed-imagen img{ max-width:300px; max-height:170px; border:1px solid var(--gray-border); border-radius:6px; }
+  .ed-error{ display:none; color:var(--red-dark); font-size:12px; margin:4px 0 10px; }
+  .ed-error.show{ display:block; }
+  .ed-acciones{ display:flex; gap:10px; justify-content:flex-end; margin-top:6px; flex-wrap:wrap; }
+  .ed-acciones .izq{ margin-right:auto; }
+  .ed-pie{ font-size:11px; color:var(--text-muted); margin-top:10px; }
+
   @media (max-width: 720px){
     .sidebar{ display: none; }
     .main{ margin-left: 0; }
@@ -354,11 +375,60 @@
       </div>
 
       <div class="compose-actions">
+        <button class="btn btn-secondary izq" id="btnEditarCorreo">Editar correo</button>
         <button class="btn btn-secondary" id="btnGuardarBorrador">Guardar Borrador</button>
         <button class="btn btn-primary" id="btnRevisar">Enviar</button>
       </div>
     </div>
   </main>
+
+  <!-- Editar correo: lo que cambia cada año (WebServer -> /api/correos/plantilla/contenido -> PlantillaCorreo) -->
+  <div class="ed-overlay" id="edOverlay">
+    <div class="ed-box" role="dialog" aria-labelledby="edTitulo">
+      <h3 id="edTitulo">Editar correo a los contratistas</h3>
+      <div class="ed-sub">Cambie aquí lo que se actualiza cada año con la resolución de la Alcaldía de Floridablanca. El saludo,
+        la firma de Coordinación de Nómina y la nota de la contraseña no cambian. Donde escriba <b>[AÑO]</b>, el correo pone
+        el año gravable de cada certificado.</div>
+
+      <div class="ed-campo">
+        <label for="edIntro">Texto de la resolución</label>
+        <textarea id="edIntro" rows="2" maxlength="500"></textarea>
+        <div class="ed-ayuda">Cambie el número y la fecha de la resolución, por ejemplo: "Se transcribe artículo 1 de la Resolución 6059 del 31/10/2025 de la Secretaría de Hacienda del municipio."</div>
+      </div>
+      <div class="ed-campo">
+        <label for="edArtTitulo">Título del artículo (va en negrita)</label>
+        <input type="text" id="edArtTitulo" maxlength="60">
+      </div>
+      <div class="ed-campo">
+        <label for="edArtTexto">Texto del artículo</label>
+        <textarea id="edArtTexto" rows="6" maxlength="4000"></textarea>
+      </div>
+      <div class="ed-campo">
+        <label>Imagen del calendario tributario</label>
+        <div class="ed-imagen">
+          <img id="edImgVista" alt="Imagen actual del calendario">
+          <div>
+            <button class="btn btn-secondary" id="edImgElegir" type="button">Cambiar imagen…</button>
+            <input type="file" id="edImgArchivo" accept="image/png,image/jpeg,.png,.jpg,.jpeg" style="display:none">
+            <div class="ed-ayuda" id="edImgNota">PNG o JPG de máximo 2 MB. En el correo se muestra hasta 600 px de ancho.</div>
+          </div>
+        </div>
+      </div>
+      <div class="ed-campo">
+        <label for="edRecordatorio">Párrafo de recordatorio (opcional)</label>
+        <textarea id="edRecordatorio" rows="4" maxlength="4000"></textarea>
+        <div class="ed-ayuda">Déjelo vacío si la norma cambió y ya no aplica: el párrafo no saldrá en el correo.</div>
+      </div>
+
+      <div class="ed-error" id="edError"></div>
+      <div class="ed-acciones">
+        <button class="btn btn-secondary izq" id="edRestaurar" type="button">Restaurar correo original</button>
+        <button class="btn btn-secondary" id="edCancelar" type="button">Cancelar</button>
+        <button class="btn btn-primary" id="edGuardar" type="button">Guardar cambios</button>
+      </div>
+      <div class="ed-pie" id="edPie"></div>
+    </div>
+  </div>
 
 <script>
   // Solo se envían certificados FIRMADOS por el Jefe de Nómina (WebServer -> /api/certificados/listos).
@@ -396,11 +466,11 @@
     return sel.length ? sel[0].anioGravable : (listos.length ? listos[0].anioGravable : '');
   }
   let anioMostrado = null;
-  function mostrarVista(){
+  function mostrarVista(forzar){
     const anio = anioVista();
-    if (anio === anioMostrado) return;
+    if (anio === anioMostrado && !forzar) return;
     anioMostrado = anio;
-    document.getElementById('vistaCorreo').src = '/api/correos/plantilla' + (anio ? '?anio=' + anio : '');
+    document.getElementById('vistaCorreo').src = '/api/correos/plantilla?v=' + Date.now() + (anio ? '&anio=' + anio : '');
   }
 
   fetch('/api/certificados/listos').then(function(r){ return r.json(); }).then(function(datos){
@@ -413,7 +483,7 @@
         const marcado = !elegidos.length || elegidos.indexOf(c.idCertificado) > -1;
         return '<label><input type="checkbox" class="chk-listo" value="' + c.idCertificado + '"' + (marcado ? ' checked' : '') + '> ' +
           esc(c.contratista) + ' <span class="doc">· ' + esc(c.documento) + ' · ' +
-          (c.correo ? esc(c.correo) : '<b style="color:#C40510">sin correo en la sábana</b>') + ' · firmado por ' + esc(c.firmadoPor || '') + '</span></label>';
+          (c.correo ? esc(c.correo) : '<b style="color:#C40510">sin correo en el reporte</b>') + ' · firmado por ' + esc(c.firmadoPor || '') + '</span></label>';
       }).join('');
       document.querySelectorAll('.chk-listo').forEach(function(c){ c.addEventListener('change', actualizar); });
     }
@@ -452,6 +522,87 @@
     sessionStorage.setItem('correoBorrador', JSON.stringify(leerBorrador()));
     window.location.href = 'borrador.html';
   });
+  // ---------- Editar correo (lo que cambia cada año) ----------
+  const ed = function(id){ return document.getElementById(id); };
+  let imagenNueva = null;   // data URL de la imagen elegida (null = dejar la actual)
+
+  function errorEdicion(texto){ ed('edError').textContent = texto || ''; ed('edError').classList.toggle('show', !!texto); }
+
+  async function abrirEdicion(){
+    errorEdicion(''); imagenNueva = null;
+    const r = await fetch('/api/correos/plantilla/contenido');
+    if (!r.ok) { Avisos.mostrar('No se pudo cargar el correo para editarlo.', 'error', 'Editar correo'); return; }
+    const c = await r.json();
+    ed('edIntro').value = c.introduccion;
+    ed('edArtTitulo').value = c.articulo_titulo;
+    ed('edArtTexto').value = c.articulo_texto;
+    ed('edRecordatorio').value = c.recordatorio;
+    ed('edImgVista').src = '/api/correos/plantilla/calendario.png?v=' + Date.now();
+    ed('edImgNota').textContent = (c.imagenPersonalizada ? 'Imagen subida por Nómina. ' : 'Imagen del documento original de Nómina. ') +
+      'PNG o JPG de máximo 2 MB. En el correo se muestra hasta 600 px de ancho.';
+    ed('edPie').textContent = c.actualizado
+      ? 'Última modificación: ' + c.actualizado.replace('T', ' ').substring(0, 16) + (c.actualizadoPor ? ' por ' + c.actualizadoPor : '')
+      : 'Es el correo original del documento de Nómina (sin modificaciones).';
+    ed('edOverlay').classList.add('show');
+    ed('edIntro').focus();
+  }
+  function cerrarEdicion(){ ed('edOverlay').classList.remove('show'); }
+
+  ed('btnEditarCorreo').addEventListener('click', abrirEdicion);
+  ed('edCancelar').addEventListener('click', cerrarEdicion);
+  ed('edOverlay').addEventListener('click', function(e){ if (e.target === ed('edOverlay')) cerrarEdicion(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && ed('edOverlay').classList.contains('show')) cerrarEdicion(); });
+
+  ed('edImgElegir').addEventListener('click', function(){ ed('edImgArchivo').click(); });
+  ed('edImgArchivo').addEventListener('change', function(){
+    const archivo = ed('edImgArchivo').files[0];
+    ed('edImgArchivo').value = '';
+    if (!archivo) return;
+    if (!/^image\/(png|jpeg)$/.test(archivo.type)) { errorEdicion('La imagen debe ser PNG o JPG.'); return; }
+    if (archivo.size > 2 * 1024 * 1024) { errorEdicion('La imagen supera 2 MB.'); return; }
+    errorEdicion('');
+    const lector = new FileReader();
+    lector.onload = function(){ imagenNueva = lector.result; ed('edImgVista').src = imagenNueva;
+      ed('edImgNota').textContent = 'Imagen nueva: ' + archivo.name + ' (se guarda al dar "Guardar cambios").'; };
+    lector.readAsDataURL(archivo);
+  });
+
+  ed('edGuardar').addEventListener('click', async function(){
+    const cuerpo = {
+      introduccion: ed('edIntro').value, articulo_titulo: ed('edArtTitulo').value,
+      articulo_texto: ed('edArtTexto').value, recordatorio: ed('edRecordatorio').value
+    };
+    if (!cuerpo.introduccion.trim() || !cuerpo.articulo_titulo.trim() || !cuerpo.articulo_texto.trim()) {
+      errorEdicion('El texto de la resolución, el título y el texto del artículo son obligatorios.'); return;
+    }
+    if (imagenNueva) cuerpo.imagen = imagenNueva;
+    ed('edGuardar').disabled = true;
+    try {
+      const r = await fetch('/api/correos/plantilla/contenido', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                                                                  body: JSON.stringify(cuerpo) });
+      const j = await r.json().catch(function(){ return {}; });
+      if (!r.ok) { errorEdicion(j.error || 'No se pudo guardar el correo.'); return; }
+      cerrarEdicion();
+      mostrarVista(true);
+      Avisos.mostrar(j.cambios === 'sin cambios' ? 'No había cambios para guardar.'
+        : 'Se guardó: ' + j.cambios + '. Los próximos correos salen así.', 'exito', 'Correo actualizado');
+    } finally {
+      ed('edGuardar').disabled = false;
+    }
+  });
+
+  ed('edRestaurar').addEventListener('click', function(){
+    Avisos.confirmar('Se perderán los cambios hechos al correo y volverá el texto y la imagen del documento original de Nómina.',
+                     { titulo: 'Restaurar correo original', aceptar: 'Restaurar', peligro: true }).then(async function(si){
+      if (!si) return;
+      const r = await fetch('/api/correos/plantilla/contenido', { method: 'DELETE' });
+      if (!r.ok) { errorEdicion('No se pudo restaurar el correo original.'); return; }
+      cerrarEdicion();
+      mostrarVista(true);
+      Avisos.mostrar('El correo volvió al original del documento de Nómina.', 'exito', 'Correo restaurado');
+    });
+  });
+
 </script>
 
 <script src="js/sesion.js"></script>

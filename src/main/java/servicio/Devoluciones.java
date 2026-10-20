@@ -163,8 +163,8 @@ public final class Devoluciones {
             GenerarCertificado.Datos datos = GenerarCertificado.leerDatos(conn, idContratista);
             if (!forzar && huellaAnterior != null && huellaAnterior.equals(GenerarCertificado.huella(datos))) {
                 throw new ReglaException("SIN_CAMBIOS", "Los datos de " + datos.nombreCompleto() + " no han cambiado desde el " +
-                    "certificado devuelto, así que el nuevo saldría igual. Si el error estaba en los datos, corrija la sábana " +
-                    "y vuelva a cargarla antes de regenerar.");
+                    "certificado devuelto, así que el nuevo saldría igual. Si el error estaba en los datos, corrija el reporte " +
+                    "y vuelva a cargarlo antes de regenerar.");
             }
 
             conn.setAutoCommit(false);

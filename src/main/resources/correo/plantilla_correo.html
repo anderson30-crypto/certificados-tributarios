@@ -2,11 +2,13 @@
   Correo que reciben los contratistas con su certificado (estructura entregada por Nómina:
   "Estructura de Correo electrónico Certificado ICA Floridablanca").
 
-  CAMBIA CADA AÑO (según los comentarios de Nómina en el documento original):
-   - {{ANIO}}: el año certificado (vigencia anterior); sale solo del año gravable del certificado
-   - {{RESOLUCION}}: número y fecha de la resolución de Floridablanca -> config.properties: correo.resolucion
-   - el texto del ARTICULO 1 (abajo) y la imagen correo/calendario-ica.png (tabla de vencimientos de la resolución)
-   - el párrafo "Señor contratista, recuerde..." puede cambiar o eliminarse si cambia la regulación
+  Lo que cambia cada año NO se edita aquí: Nómina lo cambia en el aplicativo, en Enviar correo › Editar correo
+  (se guarda en la tabla plantilla_correo):
+   - {{INTRODUCCION}}: "Se transcribe artículo 1 de la Resolución ... de la Secretaría de Hacienda del municipio."
+   - {{ARTICULO_TITULO}} y {{ARTICULO_TEXTO}}: el artículo que se transcribe
+   - {{CALENDARIO}}: la imagen con la tabla de vencimientos
+   - {{RECORDATORIO}}: el párrafo "Señor contratista, recuerde..." (si se deja vacío, no sale)
+  {{ANIO}} es el año certificado; sale solo del año gravable de cada certificado.
   Todo el texto va en Arial 12 pt, como en el documento de Nómina.
 -->
 <div style="font-family: Arial, sans-serif; font-size: 12pt; color: #000000; line-height: normal;">
@@ -16,15 +18,13 @@
 <p style="margin:0;">&nbsp;</p>
 <p style="margin:0; text-align:justify;">Nos permitimos adjuntar el Certificado de Retenciones ICA, de los honorarios reconocidos por los servicios prestados a la Universidad Pontificia Bolivariana Seccional Bucaramanga (NIT 890.902.922-6) durante el año {{ANIO}}, para que pueda presentar su declaración de Industria y Comercio del municipio de Floridablanca según las fechas establecidas en el calendario tributario de la Alcaldía.</p>
 <p style="margin:0; text-align:justify;">&nbsp;</p>
-<p style="margin:0; text-align:justify;">Se transcribe artículo 1 de la Resolución {{RESOLUCION}} de la Secretaría de Hacienda del municipio.</p>
+<p style="margin:0; text-align:justify;">{{INTRODUCCION}}</p>
 <p style="margin:0; text-align:justify;">&nbsp;</p>
-<p style="margin:0; text-align:justify;"><b>ARTICULO 1.</b> Fíjese como último día de presentación oportuna de las declaraciones privadas de Industria y Comercio avisos y tableros y sus complementarios del periodo gravable {{ANIO}}. Estos vencimientos corresponden a los dos últimos dígitos del número de identificación ciudadana o número de identificación tributaria del contribuyente, sin tener en cuenta el dígito de verificación.</p>
+<p style="margin:0; text-align:justify;"><b>{{ARTICULO_TITULO}}</b> {{ARTICULO_TEXTO}}</p>
 <p style="margin:0; text-align:justify;">&nbsp;</p>
-<p style="margin:0;"><img src="{{CALENDARIO}}" width="548" height="306" alt="Declaración anual de Industria y Comercio: fechas de vencimiento según los dos últimos dígitos" style="display:block; width:548px; height:306px; border:0;"></p>
+<p style="margin:0;"><img src="{{CALENDARIO}}" width="{{CALENDARIO_ANCHO}}" height="{{CALENDARIO_ALTO}}" alt="Calendario tributario: fechas de vencimiento según los dos últimos dígitos" style="display:block; width:{{CALENDARIO_ANCHO}}px; height:{{CALENDARIO_ALTO}}px; border:0;"></p>
 <p style="margin:0; text-align:center;">&nbsp;</p>
-<p style="margin:0; text-align:justify;">Señor contratista, recuerde que con el acuerdo municipal 045 de 2016 el Municipio de Floridablanca gravó los contratos de prestación de servicios que se celebren en la jurisdicción del municipio de Floridablanca a partir del 1 de enero de 2017, por tanto, debe presentar la declaración de Industria y Comercio del año inmediatamente anterior en las fechas establecidas por la alcaldía.</p>
-<p style="margin:0;">&nbsp;</p>
-<p style="margin:0; text-align:justify;">El certificado adjunto está protegido: para abrirlo, use como contraseña su número de documento, sin puntos ni espacios.</p>
+{{RECORDATORIO}}<p style="margin:0; text-align:justify;">El certificado adjunto está protegido: para abrirlo, use como contraseña su número de documento, sin puntos ni espacios.</p>
 <p style="margin:0;">&nbsp;</p>
 <p style="margin:0;">Atento saludo,</p>
 <p style="margin:0;">&nbsp;</p>

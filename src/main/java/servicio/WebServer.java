@@ -31,7 +31,7 @@ import java.util.Map;
 
 public class WebServer {
 
-    // Carpeta (en la raíz del proyecto) donde se guardan las sábanas subidas
+    // Carpeta (en la raíz del proyecto) donde se guardan los reportes subidos
     private static final Path CARPETA_SUBIDAS = Paths.get("subidas");
 
     // Cabeceras de seguridad en todas las respuestas: la app no se puede meter dentro de otra página
@@ -148,7 +148,8 @@ public class WebServer {
                 return;
             } catch (Autenticacion.CredencialesInvalidasException e) {
                 // Mismo mensaje para usuario inexistente, contraseña mala o usuario inactivo
-                ctx.status(401).json(Map.of("error", e.getMessage(), "intentosRestantes", e.restantes()));
+                ctx.status(401).json(e.restantes() < 0 ? Map.of("error", e.getMessage())
+                    : Map.of("error", e.getMessage(), "intentosRestantes", e.restantes()));
                 return;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -299,7 +300,7 @@ public class WebServer {
             }
         });
 
-        // Subir la sábana: guarda el archivo en la carpeta "subidas" y devuelve el nombre guardado
+        // Subir el reporte: guarda el archivo en la carpeta "subidas" y devuelve el nombre guardado
         app.post("/api/sabana", ctx -> {
             UploadedFile archivo = ctx.uploadedFile("archivo");
 
@@ -308,7 +309,7 @@ public class WebServer {
                 return;
             }
             if (!archivo.filename().toLowerCase().endsWith(".xlsx")) {
-                ctx.status(400).json(Map.of("error", "La sábana debe ser un archivo Excel .xlsx"));
+                ctx.status(400).json(Map.of("error", "El reporte debe ser un archivo Excel .xlsx"));
                 return;
             }
 
@@ -326,7 +327,7 @@ public class WebServer {
             ctx.json(Map.of("archivo", nombreGuardado, "nombre", nombreOriginal));
         });
 
-        // Ejecutar el CargueMasivo sobre una sábana ya subida
+        // Ejecutar el CargueMasivo sobre un reporte ya subido
         app.post("/api/sabana/{archivo}/cargar", ctx -> {
             // getFileName() evita que se pidan archivos fuera de la carpeta "subidas"
             Path ruta = CARPETA_SUBIDAS.resolve(Paths.get(ctx.pathParam("archivo")).getFileName());
@@ -341,20 +342,23 @@ public class WebServer {
                 List<?> errores = (List<?>) resultado.get("errores");
                 if (Boolean.TRUE.equals(resultado.get("rechazada"))) {
                     // Datos duplicados: no se guardó nada; la página muestra cada repetición
-                    RegistroAuditoria.registrar(usuarioActual(ctx).idUsuario(), "Certificados", "Sábana rechazada",
-                        ruta.getFileName() + " · " + errores.size() + " documento(s) repetido(s)");
-                    ctx.status(422).json(Map.of("error", "La sábana tiene documentos repetidos y no se cargó. Corrija el archivo y súbalo de nuevo.",
+                    // El detalle lleva cada documento repetido (lo muestra Notificaciones de error)
+                    StringBuilder detalle = new StringBuilder(ruta.getFileName() + " · " + errores.size() + " documento(s) repetido(s):");
+                    for (int i = 0; i < errores.size() && i < 30; i++) detalle.append("\n").append(errores.get(i));
+                    if (errores.size() > 30) detalle.append("\n… y ").append(errores.size() - 30).append(" más");
+                    RegistroAuditoria.registrar(usuarioActual(ctx).idUsuario(), "Certificados", "Reporte rechazado", detalle.toString());
+                    ctx.status(422).json(Map.of("error", "El reporte tiene documentos repetidos y no se cargó. Corrija el archivo y súbalo de nuevo.",
                         "errores", errores));
                     return;
                 }
-                RegistroAuditoria.registrar(usuarioActual(ctx).idUsuario(), "Certificados", "Carga de sábana",
+                RegistroAuditoria.registrar(usuarioActual(ctx).idUsuario(), "Certificados", "Carga de reporte",
                     ruta.getFileName() + " · " + resultado.get("insertados") + " nuevos, " + resultado.get("actualizados") +
                     " actualizados, " + errores.size() + " con error");
                 ctx.json(resultado);
 
             } catch (com.github.pjfanning.xlsx.exceptions.ReadException e) {
                 // Se llama .xlsx pero no es un Excel (por ejemplo, otro archivo renombrado): se borra
-                System.out.println("Sábana rechazada, no es un Excel válido: " + ruta.getFileName() + " (" + e.getMessage() + ")");
+                System.out.println("Reporte rechazado, no es un Excel válido: " + ruta.getFileName() + " (" + e.getMessage() + ")");
                 Files.deleteIfExists(ruta);
                 ctx.status(400).json(Map.of("error", "El archivo no es un Excel .xlsx válido. Ábralo en Excel, guárdelo como .xlsx y súbalo de nuevo."));
             } catch (Exception e) {
@@ -539,9 +543,47 @@ public class WebServer {
             // En la vista previa la imagen se ajusta al ancho del recuadro (en el correo va a su tamaño original)
             ctx.contentType("text/html; charset=UTF-8").result("<!doctype html><meta charset=\"utf-8\">" +
                 "<style>body{margin:12px} img{max-width:100% !important; height:auto !important}</style>" +
-                PlantillaCorreo.html(a, "/api/correos/plantilla/calendario.png"));
+                PlantillaCorreo.html(a, "/api/correos/plantilla/calendario.png?v=" + System.currentTimeMillis()));
         });
-        app.get("/api/correos/plantilla/calendario.png", ctx -> ctx.contentType("image/png").result(PlantillaCorreo.calendario()));
+        app.get("/api/correos/plantilla/calendario.png", ctx -> ctx.header("Cache-Control", "no-store")
+            .contentType("image/png").result(PlantillaCorreo.calendario()));
+
+        // Editar el correo (lo que cambia cada año): textos e imagen del calendario
+        app.get("/api/correos/plantilla/contenido", ctx -> ctx.json(PlantillaCorreo.contenido()));
+
+        // Cuerpo JSON: { introduccion, articulo_titulo, articulo_texto, recordatorio, imagen: "data:image/png;base64,..." (opcional) }
+        app.put("/api/correos/plantilla/contenido", ctx -> {
+            Map<?, ?> c = ctx.bodyAsClass(Map.class);
+            int idUsuario = usuarioActual(ctx).idUsuario();
+            try {
+                Map<String, String> textos = new HashMap<>();
+                for (String clave : List.of(PlantillaCorreo.INTRODUCCION, PlantillaCorreo.ARTICULO_TITULO,
+                        PlantillaCorreo.ARTICULO_TEXTO, PlantillaCorreo.RECORDATORIO)) {
+                    textos.put(clave, c.get(clave) == null ? null : String.valueOf(c.get(clave)));
+                }
+                String imagen = texto(c.get("imagen"));
+                byte[] bytes = null;
+                if (!imagen.isEmpty()) {
+                    if (!imagen.startsWith("data:image/") || !imagen.contains(";base64,")) {
+                        throw new PlantillaCorreo.ReglaException("La imagen debe ser PNG o JPG.");
+                    }
+                    bytes = java.util.Base64.getDecoder().decode(imagen.substring(imagen.indexOf(',') + 1));
+                }
+                String cambios = PlantillaCorreo.guardar(textos, bytes, idUsuario);
+                RegistroAuditoria.registrar(idUsuario, "Correo", "Modificación del correo", cambios);
+                ctx.json(Map.of("ok", true, "cambios", cambios));
+            } catch (PlantillaCorreo.ReglaException | IllegalArgumentException e) {
+                ctx.status(400).json(Map.of("error", e.getMessage()));
+            }
+        });
+
+        // Volver al correo original del documento de Nómina
+        app.delete("/api/correos/plantilla/contenido", ctx -> {
+            PlantillaCorreo.restaurarOriginal();
+            RegistroAuditoria.registrar(usuarioActual(ctx).idUsuario(), "Correo", "Modificación del correo",
+                "se restauró el correo original de Nómina");
+            ctx.json(Map.of("ok", true));
+        });
 
         app.get("/api/certificados/historial", ctx -> ctx.json(Dashboard.historial(500)));
         app.get("/api/notificaciones", ctx -> ctx.json(Dashboard.notificaciones()));

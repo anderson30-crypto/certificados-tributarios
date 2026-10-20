@@ -92,6 +92,11 @@ public final class EsquemaBD {
                 System.out.println("Base de datos: columna certificados.t_huella_datos creada");
             }
 
+            // 8) Partes del correo a los contratistas que Nómina edita cada año (resolución, artículo,
+            //    imagen del calendario, recordatorio). Sin filas = el texto original del documento de Nómina
+            ejecutar(conn, "CREATE TABLE IF NOT EXISTS plantilla_correo (t_clave VARCHAR(40) NOT NULL PRIMARY KEY, " +
+                "t_valor MEDIUMTEXT NULL, b_archivo MEDIUMBLOB NULL, id_usuario INT NULL, d_actualizacion DATETIME NOT NULL)");
+
             // 7) Bloqueo de inicio de sesión: intentos fallidos seguidos y hasta cuándo está bloqueado
             if (!existeColumna(conn, "usuarios", "n_intentos_fallidos")) {
                 ejecutar(conn, "ALTER TABLE usuarios ADD COLUMN n_intentos_fallidos INT NOT NULL DEFAULT 0, " +
