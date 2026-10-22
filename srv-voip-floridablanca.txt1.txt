@@ -1,0 +1,327 @@
+#!/usr/bin/env bash
+###############################################################################
+# srv-voip  -  ASTERISK  -  instalacion automatica  -  FLORIDABLANCA
+# IPv4 172.23.1.50/24   IPv6 2801:23:1::50/64   VLAN 10 (DMZ)
+# Dominio: neuroimp.com
+# Ubuntu Server 24.04 - adaptador en PUENTE
+#
+# Uso:   sudo bash srv-voip-floridablanca.sh
+#
+# Deja tres extensiones: 1001, 1002 y 1003
+###############################################################################
+
+set -euo pipefail
+
+#-----------------------------------------------------------------------------
+# Variables
+#-----------------------------------------------------------------------------
+HOSTNAME_SRV="srv-voip"
+DOMINIO="neuroimp.com"
+IPV4="172.23.1.50"
+IPV6="2801:23:1::50"
+GW4="172.23.1.1"
+GW6="2801:23:1::1"
+DNS4="172.23.1.3"
+
+VERDE='\e[32m'; ROJO='\e[31m'; AMARILLO='\e[33m'; NC='\e[0m'
+paso()  { echo -e "\n${VERDE}==> $*${NC}"; }
+aviso() { echo -e "${AMARILLO}[!] $*${NC}"; }
+error() { echo -e "${ROJO}[X] $*${NC}"; exit 1; }
+
+#-----------------------------------------------------------------------------
+# Comprobaciones previas
+#-----------------------------------------------------------------------------
+[[ $EUID -eq 0 ]] || error "Ejecuta el script con sudo:  sudo bash $0"
+
+IFACE=$(ip route show default 2>/dev/null | awk '{print $5; exit}')
+[[ -n "${IFACE:-}" ]] || IFACE=$(ls /sys/class/net | grep -v '^lo$' | head -1)
+[[ -n "${IFACE:-}" ]] || error "No se encontro ninguna interfaz de red"
+echo "Interfaz detectada: $IFACE"
+
+paso "Comprobando acceso a internet (necesario para apt)"
+if ! getent hosts archive.ubuntu.com >/dev/null 2>&1 || \
+   ! timeout 15 bash -c 'exec 3<>/dev/tcp/archive.ubuntu.com/80' 2>/dev/null; then
+    error "Sin internet. Deja la VM con DHCP (como viene por defecto) y vuelve a ejecutar."
+fi
+
+#=============================================================================
+# 1 - Hostname, hosts y zona horaria
+#=============================================================================
+paso "1/6 Hostname, /etc/hosts y zona horaria"
+
+cat > /etc/hosts <<EOF
+127.0.0.1       localhost
+::1             localhost ip6-localhost ip6-loopback
+${IPV4}    vop.${DOMINIO}    ${HOSTNAME_SRV}
+EOF
+
+hostnamectl set-hostname "$HOSTNAME_SRV"
+timedatectl set-timezone America/Bogota
+
+#=============================================================================
+# 2 - Instalar Asterisk
+#=============================================================================
+paso "2/6 Instalando Asterisk (tarda varios minutos)"
+
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=a
+APT_OPTS=(-o DPkg::Lock::Timeout=600 -o Acquire::ForceIPv4=true -o Acquire::Retries=3)
+
+# El espejo de pais (co.archive.ubuntu.com) viene fallando, asi que pasamos al
+# repositorio general ANTES de la primera descarga, no como plan B.
+usar_espejo_general() {
+    local f cambios=0
+    for f in /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list; do
+        [[ -f $f ]] || continue
+        [[ -f "${f}.bak" ]] || cp "$f" "${f}.bak"
+        if grep -qE 'https?://[a-z]{2}\.archive\.ubuntu\.com' "$f"; then
+            sed -i -E 's#https?://[a-z]{2}\.archive\.ubuntu\.com#http://archive.ubuntu.com#g' "$f"
+            cambios=1
+        fi
+    done
+    if (( cambios )); then
+        aviso "Espejo de pais reemplazado por archive.ubuntu.com (copia en *.bak)"
+    else
+        echo "El espejo ya era archive.ubuntu.com, no se toca"
+    fi
+}
+
+intentar() {
+    local n
+    for n in {1..10}; do
+        "$@" && return 0
+        aviso "apt ocupado o fallo de red, reintento $n/10 en 30 s..."
+        [[ $n -eq 2 ]] && { apt-get "${APT_OPTS[@]}" update || true; }
+        sleep 30
+    done
+    error "No se pudo ejecutar: $*"
+}
+
+usar_espejo_general
+intentar apt-get "${APT_OPTS[@]}" update
+intentar apt-get "${APT_OPTS[@]}" -y install asterisk asterisk-core-sounds-en
+
+command -v asterisk >/dev/null || error "Asterisk no quedo instalado; no se aplica netplan"
+
+systemctl stop asterisk || true
+
+#=============================================================================
+# 3 - Extensiones SIP
+#=============================================================================
+paso "3/6 Configurando extensiones"
+
+[[ -f /etc/asterisk/pjsip.conf.bak ]]      || cp /etc/asterisk/pjsip.conf      /etc/asterisk/pjsip.conf.bak
+[[ -f /etc/asterisk/extensions.conf.bak ]] || cp /etc/asterisk/extensions.conf /etc/asterisk/extensions.conf.bak
+
+# OJO: el nombre de la seccion [aor] DEBE ser igual al usuario que registra.
+# Asterisk busca el AOR por el usuario que llega en el REGISTER; si lo llamas
+# "aor1001" responde 404 con "AOR '' not found for endpoint '1001'": el telefono
+# nunca queda registrado y por lo tanto no puede RECIBIR llamadas (aunque si
+# pueda hacerlas, que es lo que confunde). Repetir [1001] con type distinto es
+# correcto, es como viene en el pjsip.conf.sample de Asterisk.
+cat > /etc/asterisk/pjsip.conf <<'EOF'
+[transport-udp]
+type=transport
+protocol=udp
+bind=0.0.0.0:5060
+
+[1001]
+type=endpoint
+context=interno
+disallow=all
+allow=ulaw,alaw
+auth=auth1001
+aors=1001
+
+[auth1001]
+type=auth
+auth_type=userpass
+username=1001
+password=Floridablanca1001
+
+[1001]
+type=aor
+max_contacts=2
+remove_existing=yes
+
+[1002]
+type=endpoint
+context=interno
+disallow=all
+allow=ulaw,alaw
+auth=auth1002
+aors=1002
+
+[auth1002]
+type=auth
+auth_type=userpass
+username=1002
+password=Floridablanca1002
+
+[1002]
+type=aor
+max_contacts=2
+remove_existing=yes
+
+[1003]
+type=endpoint
+context=interno
+disallow=all
+allow=ulaw,alaw
+auth=auth1003
+aors=1003
+
+[auth1003]
+type=auth
+auth_type=userpass
+username=1003
+password=Floridablanca1003
+
+[1003]
+type=aor
+max_contacts=2
+remove_existing=yes
+EOF
+
+#=============================================================================
+# 4 - Plan de marcado
+#=============================================================================
+cat > /etc/asterisk/extensions.conf <<'EOF'
+[general]
+static=yes
+writeprotect=no
+
+[globals]
+
+[interno]
+; Llamadas entre extensiones 1001-1099
+exten => _10XX,1,NoOp(Llamada interna Floridablanca hacia ${EXTEN})
+ same => n,Dial(PJSIP/${EXTEN},20)
+ same => n,Hangup()
+
+; Audio de prueba
+exten => 600,1,Answer()
+ same => n,Wait(1)
+ same => n,Playback(hello-world)
+ same => n,Hangup()
+
+; Eco, para comprobar que hay audio en los dos sentidos
+exten => 601,1,Answer()
+ same => n,Echo()
+ same => n,Hangup()
+EOF
+
+chown asterisk:asterisk /etc/asterisk/pjsip.conf /etc/asterisk/extensions.conf
+chmod 640 /etc/asterisk/pjsip.conf /etc/asterisk/extensions.conf
+
+#=============================================================================
+# 5 - Arrancar y verificar
+#=============================================================================
+paso "4/6 Arrancando Asterisk"
+
+systemctl enable asterisk
+systemctl restart asterisk
+sleep 8
+systemctl is-active --quiet asterisk || error "Asterisk no arranco: journalctl -u asterisk"
+
+asterisk -rx "core show version" || aviso "La consola de Asterisk no respondio todavia"
+asterisk -rx "pjsip show endpoints" || true
+asterisk -rx "pjsip show aors" || true
+asterisk -rx "dialplan show interno" || true
+
+# Sin AOR el telefono registra pero NO puede recibir llamadas: Asterisk responde
+# 404 "AOR '' not found". Lo comprobamos aqui para no descubrirlo marcando.
+if ! asterisk -rx "pjsip show aors" 2>/dev/null | grep -qE "^ *Aor: *1001"; then
+    aviso "Los AOR no se cargaron. Revisa /etc/asterisk/pjsip.conf y corre:"
+    aviso "  sudo asterisk -rx 'pjsip reload'"
+else
+    echo "AOR cargados correctamente (las extensiones podran recibir llamadas)"
+fi
+
+#=============================================================================
+# 6 - Firewall
+#=============================================================================
+paso "5/6 Firewall"
+
+ufw allow 22/tcp
+ufw allow 5060/udp
+ufw allow 10000:20000/udp
+ufw --force enable
+
+#=============================================================================
+# 7 - Red fija (AL FINAL)
+#=============================================================================
+paso "6/6 Aplicando IP fija (netplan)"
+
+mkdir -p /root/netplan-backup
+find /etc/netplan -maxdepth 1 -name '*.yaml' ! -name '01-netcfg.yaml' \
+     -exec mv {} /root/netplan-backup/ \;
+
+mkdir -p /etc/cloud/cloud.cfg.d
+echo "network: {config: disabled}" > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+
+cat > /etc/netplan/01-netcfg.yaml <<EOF
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    ${IFACE}:
+      dhcp4: no
+      dhcp6: no
+      accept-ra: no
+      addresses:
+        - ${IPV4}/24
+        - ${IPV6}/64
+      routes:
+        - to: default
+          via: ${GW4}
+        - to: "::/0"
+          via: ${GW6}
+      nameservers:
+        search: [${DOMINIO}]
+        addresses: [${DNS4}]
+EOF
+chmod 600 /etc/netplan/01-netcfg.yaml
+
+aviso "Si estas conectado por SSH a la IP DHCP, la sesion se va a cortar aqui."
+aviso "Reconecta a ${IPV4}."
+netplan apply
+sleep 3
+
+systemctl restart asterisk
+sleep 8
+
+#=============================================================================
+# Pruebas finales
+#=============================================================================
+paso "Pruebas"
+
+ip -br addr
+ping -c2 -W2 "$GW4" || aviso "No responde el gateway ${GW4}"
+ss -ulnp | grep 5060 || aviso "Asterisk no esta escuchando en 5060/udp"
+asterisk -rx "pjsip show endpoints" || true
+
+echo -e "\n${VERDE}Listo. srv-voip (Floridablanca) configurado en ${IPV4} / ${IPV6}${NC}"
+cat <<EOF
+
+ Softphones (Zoiper, MicroSIP, Linphone):
+   Servidor: ${IPV4}   o   vop.${DOMINIO}
+   Puerto:   5060 UDP
+
+   Usuario   Contrasena
+   1001      Floridablanca1001
+   1002      Floridablanca1002
+   1003      Floridablanca1003
+
+ Pruebas:
+   marcar 1002  -> llamada entre extensiones
+   marcar 600   -> mensaje de audio grabado
+   marcar 601   -> eco, se escucha tu propia voz
+
+ Ver las llamadas en vivo:
+   asterisk -rvvv        y dentro:  pjsip set logger on
+
+ Los clientes VoIP van en la VLAN EMPLEADOS y en la VLAN WIFI, toman IP por
+ DHCP del router y llegan aqui porque el router enruta entre VLAN.
+ Si registra pero no hay audio, casi siempre es el rango RTP 10000-20000/udp.
+EOF
