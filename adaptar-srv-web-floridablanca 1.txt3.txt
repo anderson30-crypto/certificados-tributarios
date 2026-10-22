@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+###############################################################################
+# Convierte srv-web.sh (Giron) en srv-web-floridablanca.sh
+# Uso:  bash adaptar-srv-web-floridablanca.sh srv-web.sh
+# No toca el bloque base64: la pagina se adapta al instalar (sed sobre index.html)
+###############################################################################
+set -euo pipefail
+ORIG="${1:-srv-web.sh}"
+[[ -f "$ORIG" ]] || { echo "No existe $ORIG"; exit 1; }
+DEST="$(dirname "$ORIG")/srv-web-floridablanca.sh"
+BLOQUE="$(mktemp)"
+
+cat > "$BLOQUE" <<'EOF'
+# Adaptar la pagina a Floridablanca (el HTML original es de Giron)
+sed -i \
+    -e 's/Girón/Floridablanca/g' \
+    -e 's/nutrirasbigiron\.com/neuroimp.com/g' \
+    "$RAIZ_WEB/index.html"
+
+EOF
+
+sed -E \
+  -e 's/172\.19\.1\.20/172.23.1.4/g' \
+  -e 's/2801:BBA:1::20/2801:23:1::4/g' \
+  -e 's/^GW4="172\.19\.1\.1"/GW4="172.23.1.1"/' \
+  -e 's/^GW6="2801:BBA:1::1"/GW6="2801:23:1::1"/' \
+  -e 's/^DNS4="172\.19\.1\.4"/DNS4="172.23.1.3"/' \
+  -e 's/VLAN 2 \(DMZ\)/VLAN 10 (DMZ)/' \
+  -e 's/nutriser\.com/neuroimp.com/g' \
+  -e 's/Giron2026/Floridablanca2026/g' \
+  -e 's#L=Giron/#L=Floridablanca/#' \
+  -e 's/^(# srv-web  -  APACHE HTTPS \+ vsftpd FTPS  -  instalacion automatica)$/\1  -  FLORIDABLANCA/' \
+  "$ORIG" \
+| awk -v bf="$BLOQUE" '
+    /^TAM=\$\(stat -c%s/ { while ((getline l < bf) > 0) print l; ins=1 }
+    { print }
+    END { if (!ins) print "ERROR: no se encontro el punto de insercion" > "/dev/stderr" }'  > "$DEST"
+rm -f "$BLOQUE"
+
+echo "Generado: $DEST"
+echo "--- comprobaciones ---"
+grep -nE '^(DOMINIO|IPV4|IPV6|GW4|GW6|DNS4|PASS_FTP)=' "$DEST"
+grep -c 'Adaptar la pagina a Floridablanca' "$DEST" | sed 's/^/bloque HTML insertado: /'
+grep -nE '172\.19|BBA|nutriser\.com|Giron' "$DEST" | grep -v '^.*#' || echo "Sin restos de Giron en codigo"
+bash -n "$DEST" && echo "Sintaxis bash OK"
