@@ -120,7 +120,8 @@ public class CrearAdministrador {
                 Arrays.fill(password, ' ');
                 Arrays.fill(confirmacion, ' ');
                 System.out.println(puedeEntrar
-                    ? "Comprobado: '" + username + "' puede iniciar sesión en http://localhost:7000"
+                    ? "Comprobado: '" + username + "' puede iniciar sesión en " +
+                      ConexionBD.obtener("servidor.url", "http://localhost:7000")
                     : "ATENCIÓN: el usuario se guardó pero la comprobación de inicio de sesión falló (ver mensaje arriba).");
             }
 

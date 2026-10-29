@@ -58,3 +58,29 @@ certificado.firmante.cargo=Coordinador de Nómina
 # CT_SEGURIDAD_LOGIN_INTENTOS / CT_SEGURIDAD_LOGIN_BLOQUEO_MINUTOS
 seguridad.login.intentos=3
 seguridad.login.bloqueo_minutos=15
+# CT_SEGURIDAD_COOKIE_SEGURA  true en producción (HTTPS): la cookie de sesión solo viaja cifrada.
+# En el PC con http://localhost dejar false, si no, no se puede iniciar sesión.
+seguridad.cookie_segura=false
+
+# --- Servidor web ---
+# En el PC no hace falta cambiar nada (http://localhost:7000). En producción el aplicativo atiende
+# https://certributario.bucaramanga.upb.edu.co en el 443 (ver ssl.* abajo y despliegue/).
+# CT_SERVIDOR_HOST  interfaz donde escucha (0.0.0.0 = todas; 127.0.0.1 = solo el mismo servidor)
+servidor.host=0.0.0.0
+# CT_SERVIDOR_PUERTO
+servidor.puerto=7000
+# CT_SERVIDOR_URL  dirección con la que entran los usuarios (solo para los mensajes de la consola)
+servidor.url=http://localhost:7000
+
+# --- HTTPS directo en el aplicativo (producción) ---
+# Si ssl.certificado y ssl.llave tienen valor, el aplicativo atiende https en ssl.puerto y el http de
+# ssl.puerto_redireccion solo redirige a https (servidor.host/servidor.puerto ya no se usan).
+# En el PC dejarlos vacíos. Valores del web14 en despliegue/config.produccion.properties
+# CT_SSL_CERTIFICADO  certificado + cadena en un solo archivo PEM
+ssl.certificado=
+# CT_SSL_LLAVE
+ssl.llave=
+# CT_SSL_PUERTO
+ssl.puerto=443
+# CT_SSL_PUERTO_REDIRECCION  (0 = no abrir el puerto http)
+ssl.puerto_redireccion=80

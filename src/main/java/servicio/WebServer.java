@@ -1,6 +1,7 @@
 package servicio;
 
 import io.javalin.Javalin;
+import io.javalin.community.ssl.SslPlugin;
 import io.javalin.http.UploadedFile;
 import io.javalin.http.staticfiles.Location;
 
@@ -45,6 +46,22 @@ public class WebServer {
             "img-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
     );
 
+    // Dónde escucha el aplicativo sin HTTPS (en el PC: http://localhost:7000). En producción
+    // (https://certributario.bucaramanga.upb.edu.co) ver ssl.* abajo y despliegue/LEEME.md
+    private static final String HOST = ConexionBD.obtener("servidor.host", "0.0.0.0");
+    private static final int PUERTO = Integer.parseInt(ConexionBD.obtener("servidor.puerto", "7000"));
+    private static final String URL_PUBLICA = ConexionBD.obtener("servidor.url", "http://localhost:" + PUERTO);
+
+    // HTTPS hecho por el propio aplicativo (sin Apache delante): se activa solo si config.properties trae
+    // las rutas del certificado y su llave. Sin ellas (en el PC) todo sigue en http://localhost:7000.
+    // ssl.certificado = certificado + cadena de la entidad en un solo archivo PEM (ver despliegue/LEEME.md)
+    private static final String SSL_CERTIFICADO = ConexionBD.obtener("ssl.certificado", "");
+    private static final String SSL_LLAVE = ConexionBD.obtener("ssl.llave", "");
+    private static final boolean CON_SSL = !SSL_CERTIFICADO.isBlank() && !SSL_LLAVE.isBlank();
+    private static final int SSL_PUERTO = Integer.parseInt(ConexionBD.obtener("ssl.puerto", "443"));
+    // Puerto http que solo redirige a https (0 = no abrirlo)
+    private static final int SSL_PUERTO_REDIRECCION = Integer.parseInt(ConexionBD.obtener("ssl.puerto_redireccion", "80"));
+
     public static void main(String[] args) {
 
         // 1) Probar la conexión antes de levantar el servidor, para ver de una vez si MySQL responde
@@ -64,7 +81,8 @@ public class WebServer {
             });
 
             // Cookie de sesión: no la puede leer JavaScript (HttpOnly), no viaja desde otros sitios
-            // (SameSite=Strict) y vence tras 30 minutos sin uso
+            // (SameSite=Strict) y vence tras 30 minutos sin uso. Con HTTPS (producción) además solo viaja
+            // cifrada (Secure): automático con ssl.*, o seguridad.cookie_segura=true detrás de un proxy
             config.jetty.modifyServletContextHandler(handler -> {
                 SessionHandler sesiones = handler.getSessionHandler();
                 if (sesiones == null) {
@@ -74,8 +92,26 @@ public class WebServer {
                 sesiones.setHttpOnly(true);
                 sesiones.setSameSite(HttpCookie.SameSite.STRICT);
                 sesiones.setMaxInactiveInterval(30 * 60);
+                sesiones.getSessionCookieConfig().setSecure(
+                    Boolean.parseBoolean(ConexionBD.obtener("seguridad.cookie_segura", String.valueOf(CON_SSL))));
             });
-        }).start(7000);
+
+            if (CON_SSL) {
+                config.registerPlugin(new SslPlugin(ssl -> {
+                    ssl.pemFromPath(SSL_CERTIFICADO, SSL_LLAVE);
+                    ssl.host = "0.0.0.0".equals(HOST) ? null : HOST;
+                    ssl.securePort = SSL_PUERTO;
+                    ssl.insecure = SSL_PUERTO_REDIRECCION > 0;
+                    ssl.insecurePort = SSL_PUERTO_REDIRECCION;
+                    ssl.redirect = SSL_PUERTO_REDIRECCION > 0;
+                }));
+            }
+        });
+        if (CON_SSL) {
+            app.start();
+        } else {
+            app.start(HOST, PUERTO);
+        }
 
         // Un número de la dirección o de la petición que no es número (por ejemplo ?anio=abc): petición inválida
         app.exception(NumberFormatException.class, (e, ctx) ->
@@ -87,7 +123,7 @@ public class WebServer {
             ctx.status(500).json(Map.of("error", e.getClass().getSimpleName() + ": " + e.getMessage()));
         });
 
-        // La pantalla inicial es el login: http://localhost:7000 lleva directo a login.html
+        // La pantalla inicial es el login: la raíz del sitio lleva directo a login.html
         app.get("/", ctx -> ctx.redirect("/login.html"));
 
         // Control de acceso por sesión y por rol (ver Seguridad.Roles):
@@ -696,7 +732,10 @@ public class WebServer {
             }
         });
 
-        System.out.println("Servidor corriendo en http://localhost:7000");
+        System.out.println(CON_SSL
+            ? "Servidor corriendo en " + URL_PUBLICA + " (https en el puerto " + SSL_PUERTO +
+              (SSL_PUERTO_REDIRECCION > 0 ? ", http " + SSL_PUERTO_REDIRECCION + " redirige a https" : "") + ")"
+            : "Servidor corriendo en " + URL_PUBLICA + " (escuchando en " + HOST + ":" + PUERTO + ")");
     }
 
     private static final String SESION_USUARIO = "usuario";
