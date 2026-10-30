@@ -218,9 +218,9 @@
       try {
         json = await resp.json();
       } catch (e) {
-        // La respuesta no viene del WebServer de este proyecto (Live Server, otro puerto o una versión vieja)
-        throw new Error('El servidor no respondió como se esperaba. Abra el sistema en http://localhost:7000 ' +
-          '(no con Live Server) y reinicie el WebServer con la versión actual.');
+        // La respuesta no viene del WebServer de este proyecto (proxy caído, Live Server o una versión vieja)
+        throw new Error('El servidor no respondió como se esperaba. Recargue la página; si el problema sigue, ' +
+          'contacte al administrador del sistema.');
       }
       if(!resp.ok){
         throw new Error(json.error || 'No se pudo iniciar sesión.');

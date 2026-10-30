@@ -70,6 +70,13 @@
      <artifactId>javalin</artifactId>
      <version>6.3.0</version>
     </dependency>
+
+    <!-- HTTPS directo en el aplicativo (certificado PEM de la universidad); solo se usa si hay ssl.* en la configuración -->
+    <dependency>
+     <groupId>io.javalin.community.ssl</groupId>
+     <artifactId>ssl-plugin</artifactId>
+     <version>6.3.0</version>
+    </dependency>
     
     <dependency>
      <groupId>org.slf4j</groupId>
@@ -91,31 +98,6 @@
      <version>2.17.2</version>
     </dependency>
 
-    <!-- Antes eran JARs sueltos en .classpath / Lib -->
-    <dependency>
-     <groupId>com.itextpdf</groupId>
-     <artifactId>itextpdf</artifactId>
-     <version>5.5.13.3</version>
-    </dependency>
-
-    <dependency>
-     <groupId>org.bouncycastle</groupId>
-     <artifactId>bcprov-jdk15to18</artifactId>
-     <version>1.70</version>
-    </dependency>
-
-    <dependency>
-     <groupId>org.bouncycastle</groupId>
-     <artifactId>bcpkix-jdk15to18</artifactId>
-     <version>1.70</version>
-    </dependency>
-
-    <dependency>
-     <groupId>org.bouncycastle</groupId>
-     <artifactId>bcutil-jdk15to18</artifactId>
-     <version>1.70</version>
-    </dependency>
-
     <!-- Envío de correos por SMTP (Jakarta Mail) -->
     <dependency>
      <groupId>org.eclipse.angus</groupId>
@@ -126,11 +108,50 @@
 
   <build>
     <plugins>
-      <!-- mvn compile exec:java  -> levanta el WebServer en http://localhost:7000 -->
+      <!-- mvn compile exec:java  -> levanta el WebServer (por defecto http://localhost:7000; ver servidor.* en config.properties) -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <version>3.5.0</version>
+      </plugin>
+      <!-- Archivo de despliegue: "mvnw clean package" genera target/certificados-tributarios.jar, un solo
+           archivo con el código, las pantallas, las plantillas y todas las librerías.
+           En el servidor se ejecuta con: java -jar certificados-tributarios.jar  (ver despliegue/) -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.6.0</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <finalName>certificados-tributarios</finalName>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>servicio.WebServer</mainClass>
+                </transformer>
+                <!-- Jetty, SLF4J y el driver de MySQL se registran por META-INF/services: hay que unirlos -->
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+              </transformers>
+              <filters>
+                <!-- Las firmas de las librerías (BouncyCastle) dejan de valer al unirlas en un solo jar -->
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                    <exclude>META-INF/MANIFEST.MF</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
     <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->

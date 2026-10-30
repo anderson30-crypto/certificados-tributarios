@@ -1,0 +1,27 @@
+# Servicio del aplicativo en el web14: arranca solo con el servidor y se reinicia si se cae.
+# Copiar a /etc/systemd/system/certributario.service y luego:
+#   systemctl daemon-reload
+#   systemctl enable --now certributario
+#   journalctl -u certributario -f        (ver la consola del aplicativo)
+
+[Unit]
+Description=Certificados Tributarios ICA - UPB Bucaramanga
+After=network.target mysqld.service mariadb.service
+
+[Service]
+Type=simple
+# Usuario sin privilegios creado para el aplicativo (nunca root)
+User=certributario
+# Carpeta fija: aquí quedan certificados_generados/ y subidas/ (incluirlas en el respaldo)
+WorkingDirectory=/opt/certificados-tributarios
+Environment=CT_CONFIG=/etc/certificados-tributarios/config.properties
+Environment=TZ=America/Bogota
+# Permite usar los puertos 443 y 80 sin correr como root
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+# Archivo de despliegue generado con "mvnw clean package" (target/certificados-tributarios.jar)
+ExecStart=/usr/bin/java -jar /opt/certificados-tributarios/certificados-tributarios.jar
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
