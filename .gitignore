@@ -17,3 +17,4 @@
 /Seguridad/*.p12
 *.p12
 *.pfx
+Pruebas.session*
