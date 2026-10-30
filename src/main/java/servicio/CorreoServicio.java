@@ -152,8 +152,11 @@ public class CorreoServicio {
                 return;
             } catch (MessagingException e) {
                     if (!esTemporal(e) || intento >= esperas.length) {
-                    System.out.println("No se pudo enviar el correo a " + destino + ": " + (e.getMessage() == null ? e : e.getMessage().trim()));
-                    throw new MessagingException(mensajeClaro(e), e);}
+                    System.out.println("No se pudo enviar el correo a " 
+    + destino + ": " + (e.getMessage() == null ? e : 
+    e.getMessage().trim()));
+                    throw new MessagingException(mensajeClaro(e), e);
+                }
                 System.out.println("Office 365 rechazó temporalmente el envío a " + destino + " (" + e.getMessage().trim() +
                     "); nuevo intento en " + esperas[intento] / 1000 + " s");
                 try {
